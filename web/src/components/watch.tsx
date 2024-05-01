@@ -435,6 +435,8 @@ export default function Watch(props: { name: string }) {
 
 			{/* <Plot bitrateWithTimestamp={bitratePlotData()} /> */}
 
+			<canvas ref={canvas} onClick={play} class="aspect-video w-full rounded-lg" />
+
 			<h3>Meta Data</h3>
 			<div class="flex">
 				<div class="mr-20 flex items-center">
@@ -541,8 +543,6 @@ export default function Watch(props: { name: string }) {
 			<button class="bg-cyan-600" onClick={() => downloadData(allFrames())}>
 				Download data
 			</button>
-
-			<canvas ref={canvas} onClick={play} class="aspect-video w-full rounded-lg" />
 		</>
 	)
 }
