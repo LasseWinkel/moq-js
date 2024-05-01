@@ -1,13 +1,13 @@
 /// <reference types="vite/client" />
 
-import * as Message from "./message"
+import * as Message from "./worker/message"
 
 // This is a non-standard way of importing worklet/workers.
 // Unfortunately, it's the only option because of a Vite bug: https://github.com/vitejs/vite/issues/11823
 import workletURL from "./worklet?url"
 
 // NOTE: This must be on the main thread
-export class Context {
+export class Audio {
 	context: AudioContext
 	worklet: Promise<AudioWorkletNode>
 
@@ -46,13 +46,5 @@ export class Context {
 
 	private on(_event: MessageEvent) {
 		// TODO
-	}
-
-	async resume() {
-		await this.context.resume()
-	}
-
-	async close() {
-		await this.context.close()
 	}
 }
