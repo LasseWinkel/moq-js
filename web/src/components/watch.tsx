@@ -117,7 +117,7 @@ const getStreamStartTime = (): Promise<number> => {
 		// Handle the success event when the updated value is stored successfully
 		getRequest.onsuccess = (event) => {
 			const startTime = (event.target as IDBRequest).result as number
-			console.log("Start time successfully retrieved:", startTime)
+			// console.log("Start time successfully retrieved:", startTime)
 			resolve(startTime)
 		}
 
@@ -148,9 +148,9 @@ export default function Watch(props: { name: string }) {
 	const [lastReceivedFrameIndex, setLastReceivedFrameIndex] = createSignal<number>(0)
 	const [percentageReceivedFrames, setPercentageReceivedFrames] = createSignal<number>(0.0)
 
-	const [minContainerizationTime, setMinContainerizationTime] = createSignal<number>(0)
-	const [maxContainerizationTime, setMaxContainerizationTime] = createSignal<number>(0)
-	const [avgContainerizationTime, setAvgContainerizationTime] = createSignal<number>(0.0)
+	const [minSegmentationTime, setMinSegmentationTime] = createSignal<number>(0)
+	const [maxSegmentationTime, setMaxSegmentationTime] = createSignal<number>(0)
+	const [avgSegmentationTime, setAvgSegmentationTime] = createSignal<number>(0.0)
 	const [minPropagationTime, setMinPropagationTime] = createSignal<number>(0)
 	const [maxPropagationTime, setMaxPropagationTime] = createSignal<number>(0)
 	const [avgPropagationTime, setAvgPropagationTime] = createSignal<number>(0.0)
@@ -161,9 +161,9 @@ export default function Watch(props: { name: string }) {
 	const [maxTotalTime, setMaxTotalTime] = createSignal<number>(0)
 	const [avgTotalTime, setAvgTotalTime] = createSignal<number>(0.0)
 
-	const [minLatestContainerizationTime, setMinLatestContainerizationTime] = createSignal<number>(0)
-	const [maxLatestContainerizationTime, setMaxLatestContainerizationTime] = createSignal<number>(0)
-	const [avgLatestContainerizationTime, setAvgLatestContainerizationTime] = createSignal<number>(0.0)
+	const [minLatestSegmentationTime, setMinLatestSegmentationTime] = createSignal<number>(0)
+	const [maxLatestSegmentationTime, setMaxLatestSegmentationTime] = createSignal<number>(0)
+	const [avgLatestSegmentationTime, setAvgLatestSegmentationTime] = createSignal<number>(0.0)
 	const [minLatestPropagationTime, setMinLatestPropagationTime] = createSignal<number>(0)
 	const [maxLatestPropagationTime, setMaxLatestPropagationTime] = createSignal<number>(0)
 	const [avgLatestPropagationTime, setAvgLatestPropagationTime] = createSignal<number>(0.0)
@@ -174,7 +174,7 @@ export default function Watch(props: { name: string }) {
 	const [maxLatestTotalTime, setMaxLatestTotalTime] = createSignal<number>(0)
 	const [avgLatestTotalTime, setAvgLatestTotalTime] = createSignal<number>(0.0)
 
-	const [lastRenderedFrameContainerizationTime, setLastRenderedFrameContainerizationTime] = createSignal<number>(0)
+	const [lastRenderedFrameSegmentationTime, setLastRenderedFrameSegmentationTime] = createSignal<number>(0)
 	const [lastRenderedFramePropagationTime, setLastRenderedFramePropagationTime] = createSignal<number>(0)
 	const [lastRenderedFrameRenderTime, setLastRenderedFrameRenderTime] = createSignal<number>(0)
 	const [lastRenderedFrameTotalTime, setLastRenderedFrameTotalTime] = createSignal<number>(0)
@@ -195,12 +195,12 @@ export default function Watch(props: { name: string }) {
 
 			// Ignore first few frames since none of these frames will acutally be received
 			const firstReceivedFrameIndex =
-				frames.slice(10).findIndex((frame) => frame._5_receiveMp4FrameTimestamp !== undefined) + 10
-			// console.log("FIRST_RECEVIED_FRAME_INDEX", firstReceviedFrame)
+				frames.slice(50).findIndex((frame) => frame._5_receiveMp4FrameTimestamp !== undefined) + 50
+			// console.log("FIRST_RECEVIED_FRAME_INDEX", firstReceivedFrameIndex)
 
 			const lastReceivedFrameIndex =
 				frames.slice(10).findLastIndex((frame) => frame._5_receiveMp4FrameTimestamp !== undefined) + 10
-			// console.log("LAST_RECEVIED_FRAME_INDEX", lastReceivedFrame)
+			// console.log("LAST_RECEVIED_FRAME_INDEX", lastReceivedFrameIndex)
 
 			const allReceivedFrames = frames
 				.slice(firstReceivedFrameIndex)
@@ -215,9 +215,9 @@ export default function Watch(props: { name: string }) {
 			setPercentageReceivedFrames(allReceivedFrames.length / frames.slice(firstReceivedFrameIndex).length)
 
 			let totalAmountRecvBytes = 0
-			let minContainerizationTime = Number.MAX_SAFE_INTEGER
-			let maxContainerizationTime = Number.MIN_SAFE_INTEGER
-			let sumContainerizationTime = 0
+			let minSegmentationTime = Number.MAX_SAFE_INTEGER
+			let maxSegmentationTime = Number.MIN_SAFE_INTEGER
+			let sumSegmentationTime = 0
 			let minPropagationTime = Number.MAX_SAFE_INTEGER
 			let maxPropagationTime = Number.MIN_SAFE_INTEGER
 			let sumPropagationTime = 0
@@ -229,15 +229,15 @@ export default function Watch(props: { name: string }) {
 			let sumTotalTime = 0
 			allReceivedFrames.forEach((frame) => {
 				totalAmountRecvBytes += frame._14_receivedBytes
-				const frameContainerizationTime = frame._2_containerizationTime
-				if (frameContainerizationTime < minContainerizationTime) {
-					minContainerizationTime = frameContainerizationTime
+				const frameSegmentationTime = frame._2_segmentationTime
+				if (frameSegmentationTime < minSegmentationTime) {
+					minSegmentationTime = frameSegmentationTime
 				}
-				if (frameContainerizationTime > maxContainerizationTime) {
-					maxContainerizationTime = frameContainerizationTime
+				if (frameSegmentationTime > maxSegmentationTime) {
+					maxSegmentationTime = frameSegmentationTime
 				}
-				if (frameContainerizationTime) {
-					sumContainerizationTime += frameContainerizationTime
+				if (frameSegmentationTime) {
+					sumSegmentationTime += frameSegmentationTime
 				}
 
 				const framePropagationTime = frame._4_propagationTime
@@ -276,9 +276,9 @@ export default function Watch(props: { name: string }) {
 
 			setTotalAmountRecvBytes(totalAmountRecvBytes)
 
-			setMinContainerizationTime(minContainerizationTime)
-			setMaxContainerizationTime(maxContainerizationTime)
-			setAvgContainerizationTime(sumContainerizationTime / allReceivedFrames.length)
+			setMinSegmentationTime(minSegmentationTime)
+			setMaxSegmentationTime(maxSegmentationTime)
+			setAvgSegmentationTime(sumSegmentationTime / allReceivedFrames.length)
 
 			setMinPropagationTime(minPropagationTime)
 			setMaxPropagationTime(maxPropagationTime)
@@ -298,9 +298,9 @@ export default function Watch(props: { name: string }) {
 				.slice(firstReceivedFrameIndex)
 				.filter((frame) => Date.now() - frame._1_rawVideoTimestamp < LATEST_DATA_DISPLAY_INTERVAL * 1000)
 
-			let maxLatestContainerizationTime = Number.MIN_SAFE_INTEGER
-			let minLatestContainerizationTime = Number.MAX_SAFE_INTEGER
-			let sumLatestContainerizationTime = 0
+			let maxLatestSegmentationTime = Number.MIN_SAFE_INTEGER
+			let minLatestSegmentationTime = Number.MAX_SAFE_INTEGER
+			let sumLatestSegmentationTime = 0
 			let minLatestPropagationTime = Number.MAX_SAFE_INTEGER
 			let maxLatestPropagationTime = Number.MIN_SAFE_INTEGER
 			let sumLatestPropagationTime = 0
@@ -311,15 +311,15 @@ export default function Watch(props: { name: string }) {
 			let maxLatestTotalTime = Number.MIN_SAFE_INTEGER
 			let sumLatestTotalTime = 0
 			latestFrames.forEach((frame) => {
-				const frameContainerizationTime = frame._2_containerizationTime
-				if (frameContainerizationTime < minLatestContainerizationTime) {
-					minLatestContainerizationTime = frameContainerizationTime
+				const frameSegmentationTime = frame._2_segmentationTime
+				if (frameSegmentationTime < minLatestSegmentationTime) {
+					minLatestSegmentationTime = frameSegmentationTime
 				}
-				if (frameContainerizationTime > maxLatestContainerizationTime) {
-					maxLatestContainerizationTime = frameContainerizationTime
+				if (frameSegmentationTime > maxLatestSegmentationTime) {
+					maxLatestSegmentationTime = frameSegmentationTime
 				}
-				if (frameContainerizationTime) {
-					sumLatestContainerizationTime += frameContainerizationTime
+				if (frameSegmentationTime) {
+					sumLatestSegmentationTime += frameSegmentationTime
 				}
 
 				const framePropagationTime = frame._4_propagationTime
@@ -356,9 +356,9 @@ export default function Watch(props: { name: string }) {
 				}
 			})
 
-			setMinLatestContainerizationTime(minLatestContainerizationTime)
-			setMaxLatestContainerizationTime(maxLatestContainerizationTime)
-			setAvgLatestContainerizationTime(sumLatestContainerizationTime / latestFrames.length)
+			setMinLatestSegmentationTime(minLatestSegmentationTime)
+			setMaxLatestSegmentationTime(maxLatestSegmentationTime)
+			setAvgLatestSegmentationTime(sumLatestSegmentationTime / latestFrames.length)
 
 			setMinLatestPropagationTime(minLatestPropagationTime)
 			setMaxLatestPropagationTime(maxLatestPropagationTime)
@@ -377,7 +377,7 @@ export default function Watch(props: { name: string }) {
 			const lastRenderedFrame = frames.findLast((frame) => frame._7_renderFrameTimestamp !== undefined)
 
 			if (lastRenderedFrame) {
-				setLastRenderedFrameContainerizationTime(lastRenderedFrame._2_containerizationTime)
+				setLastRenderedFrameSegmentationTime(lastRenderedFrame._2_segmentationTime)
 				setLastRenderedFramePropagationTime(lastRenderedFrame._4_propagationTime)
 				setLastRenderedFrameRenderTime(lastRenderedFrame._6_renderFrameTime)
 				setLastRenderedFrameTotalTime(lastRenderedFrame._8_totalTime)
@@ -485,10 +485,10 @@ export default function Watch(props: { name: string }) {
 				<div class="p-5 text-center">Max</div>
 				<div class="p-5 text-center">Avg</div>
 
-				<div class="p-5 text-center">Containerization Time:</div>
-				<div class="p-5 text-center">{minContainerizationTime()}</div>
-				<div class="p-5 text-center">{maxContainerizationTime()}</div>
-				<div class="p-5 text-center">{avgContainerizationTime().toFixed(2)}</div>
+				<div class="p-5 text-center">Segmentation Time:</div>
+				<div class="p-5 text-center">{minSegmentationTime()}</div>
+				<div class="p-5 text-center">{maxSegmentationTime()}</div>
+				<div class="p-5 text-center">{avgSegmentationTime().toFixed(2)}</div>
 
 				<div class="p-5 text-center">Propagation Time:</div>
 				<div class="p-5 text-center">{minPropagationTime()}</div>
@@ -515,11 +515,11 @@ export default function Watch(props: { name: string }) {
 				<div class="p-5 text-center">Last</div>
 				<div class="p-5 text-center">Avg</div>
 
-				<div class="p-5 text-center">Containerization Time:</div>
-				<div class="p-5 text-center">{minLatestContainerizationTime()}</div>
-				<div class="p-5 text-center">{maxLatestContainerizationTime()}</div>
-				<div class="p-5 text-center">{lastRenderedFrameContainerizationTime()}</div>
-				<div class="p-5 text-center">{avgLatestContainerizationTime().toFixed(2)}</div>
+				<div class="p-5 text-center">Segmentation Time:</div>
+				<div class="p-5 text-center">{minLatestSegmentationTime()}</div>
+				<div class="p-5 text-center">{maxLatestSegmentationTime()}</div>
+				<div class="p-5 text-center">{lastRenderedFrameSegmentationTime()}</div>
+				<div class="p-5 text-center">{avgLatestSegmentationTime().toFixed(2)}</div>
 
 				<div class="p-5 text-center">Propagation Time:</div>
 				<div class="p-5 text-center">{minLatestPropagationTime()}</div>

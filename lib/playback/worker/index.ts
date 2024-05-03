@@ -10,6 +10,66 @@ import { asError } from "../../common/error"
 import { Deferred } from "../../common/async"
 import { GroupReader, Reader } from "../../transport/objects"
 
+import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDatabaseName } from "../../contribute"
+
+let db: IDBDatabase
+
+// Open or create a database
+const openRequest = indexedDB.open(IndexedDatabaseName, 1)
+
+// Handle the success event when the database is successfully opened
+openRequest.onsuccess = (event) => {
+	db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
+}
+
+// Handle any errors that occur during database opening
+openRequest.onerror = (event) => {
+	console.error("Error opening database:", (event.target as IDBOpenDBRequest).error)
+}
+
+// Function to add the decode timestamp of a frame in IndexedDB
+function addReceiveMP4FrameTimestamp(frame: MP4.Frame, currentTimeInMilliseconds: number) {
+	if (!db) {
+		console.error("IndexedDB is not initialized.")
+		return
+	}
+
+	const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readwrite")
+	const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
+	const updateRequest = objectStore.get(frame.sample.duration)
+
+	// Handle the success event when the current value is retrieved successfully
+	updateRequest.onsuccess = (event) => {
+		const currentFrame: IndexedDBFramesSchema = (event.target as IDBRequest).result ?? {} // Retrieve the current value (default to 0 if not found)
+		// console.log("CURRENT_FRAME", frame.sample.duration, currentFrame)
+
+		const updatedFrame = {
+			...currentFrame,
+			_4_propagationTime: currentTimeInMilliseconds - currentFrame._3_segmentationTimestamp,
+			_5_receiveMp4FrameTimestamp: currentTimeInMilliseconds,
+			_11_decodedTimestampAttribute: frame.sample.dts,
+			_14_receivedBytes: frame.sample.size,
+		} as IndexedDBFramesSchema // Calculate the updated value
+
+		const putRequest = objectStore.put(updatedFrame, frame.sample.duration) // Store the updated value back into the database
+
+		// Handle the success event when the updated value is stored successfully
+		putRequest.onsuccess = () => {
+			// console.log("Frame updated successfully. New value:", updatedFrame)
+		}
+
+		// Handle any errors that occur during value storage
+		putRequest.onerror = (event) => {
+			console.error("Error storing updated value:", (event.target as IDBRequest).error)
+		}
+	}
+
+	// Handle any errors that occur during value retrieval
+	updateRequest.onerror = (event) => {
+		console.error("Error updating frame:", (event.target as IDBRequest).error)
+	}
+}
+
 class Worker {
 	// Timeline receives samples, buffering them and choosing the timestamp to render.
 	#timeline = new Timeline()
@@ -81,12 +141,9 @@ class Worker {
 		})
 		segments.releaseLock()
 
-		// console.log("GROUP_READER", reader)
-
 		// Read each chunk, decoding the MP4 frames and adding them to the queue.
 		for (;;) {
 			const chunk = await reader.read()
-			// console.log("GROUP_CHUNK", chunk)
 
 			if (!chunk) {
 				break
@@ -94,6 +151,8 @@ class Worker {
 
 			const frames = container.decode(chunk.payload)
 			for (const frame of frames) {
+				addReceiveMP4FrameTimestamp(frame, Date.now())
+
 				await segment.write(frame)
 			}
 		}

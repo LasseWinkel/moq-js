@@ -13,8 +13,8 @@ export enum IndexedDBObjectStores {
 
 export interface IndexedDBFramesSchema {
 	_1_rawVideoTimestamp: number
-	_2_containerizationTime: number
-	_3_createMP4FrameTimestamp: number
+	_2_segmentationTime: number
+	_3_segmentationTimestamp: number
 	_4_propagationTime: number
 	_5_receiveMp4FrameTimestamp: number
 	_6_renderFrameTime: number

@@ -1,12 +1,8 @@
 import * as MP4 from "../media/mp4"
 import { Chunk } from "./chunk"
 
-import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDatabaseName } from "./video"
-
 type DecoderConfig = AudioDecoderConfig | VideoDecoderConfig
 type EncodedChunk = EncodedAudioChunk | EncodedVideoChunk
-
-let db: IDBDatabase
 
 export class Container {
 	#mp4: MP4.ISOFile
@@ -17,14 +13,6 @@ export class Container {
 	encode: TransformStream<DecoderConfig | EncodedChunk, Chunk>
 
 	constructor() {
-		// Open IndexedDB
-		const openRequest = indexedDB.open(IndexedDatabaseName, 1)
-
-		// Handle the success event when the database is successfully opened
-		openRequest.onsuccess = (event) => {
-			db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-		}
-
 		this.#mp4 = new MP4.ISOFile()
 		this.#mp4.init()
 
@@ -37,48 +25,6 @@ export class Container {
 				}
 			},
 		})
-	}
-
-	// Function to add the time of mp4 containerization for each frame in IndexedDB
-	addFrameContainerizationTimestamp(frame: EncodedChunk, currentDateTime: number) {
-		if (!db) {
-			console.error("IndexedDB is not initialized.")
-			return
-		}
-
-		const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readwrite")
-		const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
-		const updateRequest = objectStore.get(frame.timestamp)
-
-		// Handle the success event when the current value is retrieved successfully
-		updateRequest.onsuccess = (event) => {
-			const currentFrame: IndexedDBFramesSchema = (event.target as IDBRequest).result ?? {} // Retrieve the current value
-
-			const updatedFrame = {
-				...currentFrame,
-				_2_containerizationTime: currentDateTime - currentFrame._1_rawVideoTimestamp,
-				_3_createMP4FrameTimestamp: currentDateTime,
-				_10_encodedTimestampAttribute: frame.timestamp,
-				_13_sentBytes: frame.byteLength,
-			} as IndexedDBFramesSchema
-
-			const putRequest = objectStore.put(updatedFrame, frame.timestamp) // Store the updated value back into the database
-
-			// Handle the success event when the updated value is stored successfully
-			putRequest.onsuccess = () => {
-				// console.log("Frame updated successfully. New value:", updatedFrame)
-			}
-
-			// Handle any errors that occur during value storage
-			putRequest.onerror = (event) => {
-				console.error("Error storing updated value:", (event.target as IDBRequest).error)
-			}
-		}
-
-		// Handle any errors that occur during value retrieval
-		updateRequest.onerror = (event) => {
-			console.error("Error updating frame:", (event.target as IDBRequest).error)
-		}
 	}
 
 	#init(frame: DecoderConfig, controller: TransformStreamDefaultController<Chunk>) {
@@ -153,7 +99,7 @@ export class Container {
 			return
 		}
 
-		const duration = frame.timestamp - this.#frame.timestamp
+		// const duration = frame.timestamp - this.#frame.timestamp // Duration not needed for now
 
 		// TODO avoid this extra copy by writing to the mdat directly
 		// ...which means changing mp4box.js to take an offset instead of ArrayBuffer
@@ -195,11 +141,6 @@ export class Container {
 			duration: this.#frame.duration ?? 0,
 			data,
 		})
-
-		// Check whether the frame is a video frame
-		if (frame.duration === 0) {
-			this.addFrameContainerizationTimestamp(frame, Date.now())
-		}
 
 		this.#frame = frame
 	}

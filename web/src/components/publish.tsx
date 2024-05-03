@@ -30,7 +30,7 @@ const initializeIndexedDB = () => {
 
 			// Handle the success event when the value is stored successfully
 			initStartTime.onsuccess = () => {
-				console.log("Start time successfully reset")
+				// console.log("Start time successfully reset")
 			}
 
 			// Handle any errors that occur during value storage
@@ -44,7 +44,7 @@ const initializeIndexedDB = () => {
 
 			// Handle the success event when the value is stored successfully
 			initFrames.onsuccess = () => {
-				console.log("Frames successfully reset")
+				// console.log("Frames successfully reset")
 			}
 
 			// Handle any errors that occur during value storage
@@ -68,7 +68,7 @@ const addStreamStartTime = (currentTimeInMilliseconds: number) => {
 
 	// Handle the success event when the updated value is stored successfully
 	addRequest.onsuccess = () => {
-		console.log("Start time successfully set:", currentTimeInMilliseconds)
+		// console.log("Start time successfully set:", currentTimeInMilliseconds)
 	}
 
 	// Handle any errors that occur during value retrieval
