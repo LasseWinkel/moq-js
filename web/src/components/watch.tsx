@@ -4,13 +4,14 @@ import { Player } from "@kixelated/moq/playback"
 import { IndexedDatabaseName, IndexedDBObjectStores } from "@kixelated/moq/contribute"
 import type { IndexedDBFramesSchema } from "@kixelated/moq/contribute"
 
-import Plot from "./bitChart"
+import FramesPlot from "./frames"
+import BitratePlot from "./bitrate"
 
 import Fail from "./fail"
 
 import { createEffect, createSignal, onCleanup } from "solid-js"
 
-export interface IndexedDBFBitRateWithTimestampSchema {
+export interface IndexedDBBitRateWithTimestampSchema {
 	bitrate: number
 	timestamp: number
 }
@@ -141,11 +142,11 @@ export default function Watch(props: { name: string }) {
 	const [streamStartTime, setStreamStartTime] = createSignal<number>(0)
 	const [streamRunningTime, setStreamRunningTime] = createSignal<number>(0)
 	const [streamWatchTime, setStreamWatchTime] = createSignal<number>(0)
+	const [streamStartWatchTime, setStreamStartWatchTime] = createSignal<number>(0)
 	const [totalAmountRecvBytes, setTotalAmountRecvBytes] = createSignal<number>(0)
 	const [allFrames, setAllFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [receivedFrames, setReceivedFrames] = createSignal<IndexedDBFramesSchema[]>([])
-	const [firstReceivedFrameIndex, setFirstReceivedFrameIndex] = createSignal<number>(0)
-	const [lastReceivedFrameIndex, setLastReceivedFrameIndex] = createSignal<number>(0)
+	const [latestFrames, setLatestFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [percentageReceivedFrames, setPercentageReceivedFrames] = createSignal<number>(0.0)
 
 	const [minSegmentationTime, setMinSegmentationTime] = createSignal<number>(0)
@@ -179,7 +180,10 @@ export default function Watch(props: { name: string }) {
 	const [lastRenderedFrameRenderTime, setLastRenderedFrameRenderTime] = createSignal<number>(0)
 	const [lastRenderedFrameTotalTime, setLastRenderedFrameTotalTime] = createSignal<number>(0)
 
-	const [bitratePlotData, setBitratePlotData] = createSignal<IndexedDBFBitRateWithTimestampSchema[]>([])
+	const [showFramesPlot, setShowFramesPlot] = createSignal<boolean>(false)
+	const [showBitratePlot, setShowBitratePlot] = createSignal<boolean>(false)
+
+	const [bitratePlotData, setBitratePlotData] = createSignal<IndexedDBBitRateWithTimestampSchema[]>([])
 	const [bitRate, setBitRate] = createSignal<number>(0.0)
 	const [framesPerSecond, setFramesPerSecond] = createSignal<number>(0.0)
 
@@ -189,29 +193,24 @@ export default function Watch(props: { name: string }) {
 		const retrieveData = async () => {
 			if (streamStartTime() === 0) {
 				setStreamStartTime(await getStreamStartTime())
+				setStreamStartWatchTime(Date.now())
 			}
 
 			const frames = await retrieveFramesFromIndexedDB()
 
 			// Ignore first few frames since none of these frames will acutally be received
 			const firstReceivedFrameIndex =
-				frames.slice(50).findIndex((frame) => frame._5_receiveMp4FrameTimestamp !== undefined) + 50
+				frames.slice(60).findIndex((frame) => frame._5_receiveMp4FrameTimestamp !== undefined) + 60
 			// console.log("FIRST_RECEVIED_FRAME_INDEX", firstReceivedFrameIndex)
-
-			const lastReceivedFrameIndex =
-				frames.slice(10).findLastIndex((frame) => frame._5_receiveMp4FrameTimestamp !== undefined) + 10
-			// console.log("LAST_RECEVIED_FRAME_INDEX", lastReceivedFrameIndex)
 
 			const allReceivedFrames = frames
 				.slice(firstReceivedFrameIndex)
-				.filter((frame) => frame._5_receiveMp4FrameTimestamp !== undefined)
+				.filter((frame) => frame._7_renderFrameTimestamp !== undefined)
 
 			// ALL FRAMES
 
 			setAllFrames(frames)
 			setReceivedFrames(allReceivedFrames)
-			setFirstReceivedFrameIndex(firstReceivedFrameIndex)
-			setLastReceivedFrameIndex(lastReceivedFrameIndex)
 			setPercentageReceivedFrames(allReceivedFrames.length / frames.slice(firstReceivedFrameIndex).length)
 
 			let totalAmountRecvBytes = 0
@@ -294,9 +293,11 @@ export default function Watch(props: { name: string }) {
 
 			// LATEST FRAMES
 
-			const latestFrames = frames
+			const latestFrames = allReceivedFrames
 				.slice(firstReceivedFrameIndex)
 				.filter((frame) => Date.now() - frame._1_rawVideoTimestamp < LATEST_DATA_DISPLAY_INTERVAL * 1000)
+
+			setLatestFrames(latestFrames)
 
 			let maxLatestSegmentationTime = Number.MIN_SAFE_INTEGER
 			let minLatestSegmentationTime = Number.MAX_SAFE_INTEGER
@@ -395,7 +396,7 @@ export default function Watch(props: { name: string }) {
 		setBitRate(parseFloat(((totalAmountRecvBytes() * 8) / totalSeconds).toFixed(2)))
 		setFramesPerSecond(parseFloat((receivedFrames().length / totalSeconds).toFixed(2)))
 
-		// setBitratePlotData(bitratePlotData().concat([{ bitrate: bitRate(), timestamp: totalMilliseconds - 3600000 }]))
+		setBitratePlotData(bitratePlotData().concat([{ bitrate: bitRate(), timestamp: totalMillisecondsWatched }]))
 	}, DATA_UPDATE_RATE)
 
 	let canvas!: HTMLCanvasElement
@@ -431,11 +432,15 @@ export default function Watch(props: { name: string }) {
 		<>
 			<Fail error={error()} />
 
-			{/* <h3>Charts</h3> */}
-
-			{/* <Plot bitrateWithTimestamp={bitratePlotData()} /> */}
-
 			<canvas ref={canvas} onClick={play} class="aspect-video w-full rounded-lg" />
+
+			<h3>Charts</h3>
+
+			<button onClick={() => setShowFramesPlot(!showFramesPlot())}>Toggle Frames Plot</button>
+			<button onClick={() => setShowBitratePlot(!showBitratePlot())}>Toggle Bitrate Plot</button>
+
+			{showFramesPlot() && <FramesPlot watchStartTime={streamStartWatchTime()} frames={latestFrames()} />}
+			{showBitratePlot() && <BitratePlot bitrateWithTimestamp={bitratePlotData()} />}
 
 			<h3>Meta Data</h3>
 			<div class="flex">

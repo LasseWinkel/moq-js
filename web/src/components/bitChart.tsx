@@ -1,7 +1,7 @@
 import { createEffect } from "solid-js"
 import Chart from "chart.js/auto"
 import * as ch from "chart.js/auto"
-import type { IndexedDBFBitRateWithTimestampSchema } from "./watch"
+import type { IndexedDBBitRateWithTimestampSchema } from "./watch"
 
 let chart: Chart // define chart variable outside of function
 
@@ -10,11 +10,11 @@ const chartTypes: { [key: string]: ch.ChartType } = {
 	bar: "bar",
 }
 
-interface ChartPropss {
-	bitrateWithTimestamp: IndexedDBFBitRateWithTimestampSchema[]
+interface ChartProps {
+	bitrateWithTimestamp: IndexedDBBitRateWithTimestampSchema[]
 }
 
-const Plot = (props: ChartPropss) => {
+const Plot = (props: ChartProps) => {
 	createEffect(() => {
 		console.log("CHART_RENDER")
 		const bitrateWithTimestamp = props.bitrateWithTimestamp
