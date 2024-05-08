@@ -391,7 +391,7 @@ export default function Watch(props: { name: string }) {
 
 		const totalMillisecondsWatched = streamWatchTime() + DATA_UPDATE_RATE
 		setStreamWatchTime(totalMillisecondsWatched)
-		const totalSeconds = Math.floor(totalMillisecondsWatched / 1000)
+		const totalSeconds = totalMillisecondsWatched / 1000
 
 		setBitRate(parseFloat(((totalAmountRecvBytes() * 8) / totalSeconds).toFixed(2)))
 		setFramesPerSecond(parseFloat((receivedFrames().length / totalSeconds).toFixed(2)))
