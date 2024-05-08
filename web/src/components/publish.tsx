@@ -10,6 +10,27 @@ import { Client, Connection } from "@kixelated/moq/transport"
 import { createSignal, createEffect, onCleanup, createMemo, Show, For, createSelector, Switch, Match } from "solid-js"
 
 import Fail from "./fail"
+/*
+// Utility function to download collected data.
+function downloadData(data: { timestamp: string; captureTime: number }[]): void {
+	const jsonData = JSON.stringify(data)
+	const blob = new Blob([jsonData], {
+		type: "application/json",
+	})
+
+	const link = document.createElement("a")
+	link.href = URL.createObjectURL(blob)
+	link.download = "capture_time"
+
+	// Append the link to the body
+	document.body.appendChild(link)
+
+	// Programmatically click the link to trigger the download
+	link.click()
+
+	// Clean up
+	document.body.removeChild(link)
+} */
 
 let db: IDBDatabase
 
@@ -219,10 +240,16 @@ export default function Publish() {
 		client.connect().then(setConnection).catch(setError)
 	})
 
-	/* const getCaptureFrameTime = (videoElement: HTMLVideoElement) => {
+	/*  const getCaptureFrameTime = (videoElement: HTMLVideoElement) => {
 		// const videoElement = document.createElement("video")
 		const canvas = document.createElement("canvas")
 		const ctx = canvas.getContext("2d")
+
+		const seenFrames: { timestamp: string; captureTime: number }[] = []
+
+		setTimeout(() => {
+			downloadData(seenFrames)
+		}, 30000)
 
 		const updateCanvas: VideoFrameRequestCallback = function (
 			now: number,
@@ -237,8 +264,13 @@ export default function Publish() {
 			},
 		) {
 			if (metadata.captureTime) {
-				console.log("CALLBACKF", (metadata.mediaTime * 1000000).toFixed(), metadata.captureTime.toFixed())
-				// addRawVideoFrameTimestamp(Math.round(metadata.mediaTime * 1000000), metadata.captureTime)
+				seenFrames.push({
+					timestamp: (metadata.mediaTime * 1000000).toFixed(),
+					captureTime: metadata.captureTime,
+				})
+				// console.log("CALLBACKF", seenFrames)
+				// console.log("")
+
 			}
 
 			if (!ctx) throw new Error("failed to get canvas context")
@@ -271,12 +303,12 @@ export default function Publish() {
 			throw new Error("no supported video codec")
 		}
 
-		/* const e = videoElement()
+		const e = videoElement()
 		if (!e) {
 			throw new Error("no video element")
 		}
 
-		getCaptureFrameTime(e) */
+		// getCaptureFrameTime(e)
 
 		return new Broadcast({
 			connection: c,

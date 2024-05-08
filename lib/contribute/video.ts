@@ -3,6 +3,27 @@ const SUPPORTED = [
 	"hev1", // HEVC (aka h.265)
 	// "av01", // TDOO support AV1
 ]
+/*
+// Utility function to download collected data.
+function downloadData(data: any[]): void {
+	const jsonData = JSON.stringify(data)
+	const blob = new Blob([jsonData], {
+		type: "application/json",
+	})
+
+	const link = document.createElement("a")
+	link.href = URL.createObjectURL(blob)
+	link.download = "transform_time"
+
+	// Append the link to the body
+	document.body.appendChild(link)
+
+	// Programmatically click the link to trigger the download
+	link.click()
+
+	// Clean up
+	document.body.removeChild(link)
+} */
 
 export const IndexedDatabaseName = "IndexedDB"
 
@@ -44,6 +65,9 @@ export class Encoder {
 
 	// Count the number of frames without a keyframe.
 	#keyframeCounter = 0
+	/*
+	#seenFrames: { timestamp: number; transformTime: number }[] = []
+	#downloaded = false */
 
 	// Converts raw rames to encoded frames.
 	frames: TransformStream<VideoFrame, VideoDecoderConfig | EncodedVideoChunk>
@@ -130,6 +154,14 @@ export class Encoder {
 		const encoder = this.#encoder
 
 		this.addRawVideoFrameTimestamp(frame, Date.now())
+		/* 	this.#seenFrames.push({ timestamp: frame.timestamp, transformTime: performance.now() })
+
+		setTimeout(() => {
+			if (!this.#downloaded) {
+				downloadData(this.#seenFrames)
+			}
+			this.#downloaded = true
+		}, 30000) */
 
 		// Set keyFrame to undefined when we're not sure so the encoder can decide.
 		encoder.encode(frame, { keyFrame: this.#keyframeNext })
