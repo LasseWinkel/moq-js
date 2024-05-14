@@ -22,6 +22,9 @@ const DATA_UPDATE_RATE = 500
 // The time interval for the latest data in seconds
 const LATEST_DATA_DISPLAY_INTERVAL = 3
 
+// Time until data download in seconds
+const DATA_DOWNLOAD_TIME = 60
+
 // Helper function to nicely display large numbers
 function formatNumber(number: number): string {
 	const suffixes = ["", "k", "M", "B", "T"] // Add more suffixes as needed
@@ -47,8 +50,8 @@ function createTimeString(millisecondsInput: number): string {
 }
 
 // Utility function to download collected data.
-function downloadData(data: IndexedDBFramesSchema[]): void {
-	const jsonData = JSON.stringify(data)
+function downloadFrameData(frames: IndexedDBFramesSchema[]): void {
+	const jsonData = JSON.stringify(frames)
 	const blob = new Blob([jsonData], {
 		type: "application/json",
 	})
@@ -187,6 +190,8 @@ export default function Watch(props: { name: string }) {
 	const [bitRate, setBitRate] = createSignal<number>(0.0)
 	const [framesPerSecond, setFramesPerSecond] = createSignal<number>(0.0)
 
+	const [isRecording, setIsRecording] = createSignal<boolean>(false)
+
 	// Define a function to update the data every second
 	const updateDataInterval = setInterval(() => {
 		// Function to retrieve data from the IndexedDB
@@ -194,6 +199,41 @@ export default function Watch(props: { name: string }) {
 			if (streamStartTime() === 0) {
 				setStreamStartTime(await getStreamStartTime())
 				setStreamStartWatchTime(Date.now())
+
+				// Record the received video
+				/* setIsRecording(true)
+				const stream = canvas.captureStream()
+				console.log(stream)
+
+				const recordedBlobs: BlobPart[] = []
+				const mediaRecorder = new MediaRecorder(stream, {
+					videoBitsPerSecond: 4000000,
+					videoKeyFrameIntervalCount: 60,
+				})
+				console.log("Video bits per second", mediaRecorder.videoBitsPerSecond)
+				mediaRecorder.ondataavailable = (event) => {
+					if (event.data && event.data.size > 0) {
+						recordedBlobs.push(event.data)
+					}
+				}
+
+				mediaRecorder.start()
+
+				mediaRecorder.onstop = function () {
+					setIsRecording(false)
+					const blob = new Blob(recordedBlobs, { type: "video/mp4" })
+					const url = URL.createObjectURL(blob)
+					const a = document.createElement("a")
+					a.href = url
+					a.download = "received_video.mp4"
+					a.click()
+					URL.revokeObjectURL(url)
+				} */
+
+				setTimeout(() => {
+					// mediaRecorder.stop()
+					downloadFrameData(allFrames())
+				}, DATA_DOWNLOAD_TIME * 1000)
 			}
 
 			const frames = await retrieveFramesFromIndexedDB()
@@ -432,6 +472,7 @@ export default function Watch(props: { name: string }) {
 		<>
 			<Fail error={error()} />
 
+			{isRecording() && <div class="text-red-400">Recording</div>}
 			<canvas ref={canvas} onClick={play} class="aspect-video w-full rounded-lg" />
 
 			<h3>Charts</h3>
@@ -545,7 +586,7 @@ export default function Watch(props: { name: string }) {
 				<div class="p-5 text-center">{avgLatestTotalTime().toFixed(2)}</div>
 			</div>
 
-			<button class="bg-cyan-600" onClick={() => downloadData(allFrames())}>
+			<button class="bg-cyan-600" onClick={() => downloadFrameData(allFrames())}>
 				Download data
 			</button>
 		</>

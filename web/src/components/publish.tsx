@@ -7,7 +7,18 @@ import {
 } from "@kixelated/moq/contribute"
 import { Client, Connection } from "@kixelated/moq/transport"
 
-import { createSignal, createEffect, onCleanup, createMemo, Show, For, createSelector, Switch, Match } from "solid-js"
+import {
+	createSignal,
+	createEffect,
+	onCleanup,
+	createMemo,
+	Show,
+	For,
+	createSelector,
+	Switch,
+	Match,
+	onMount,
+} from "solid-js"
 
 import Fail from "./fail"
 /*
@@ -156,10 +167,10 @@ const VIDEO_CODECS: VideoCodec[] = [
 ]
 
 const SUPPORTED_HEIGHT = [240, 360, 480, 720, 1080, 1440]
-const SUPPORTED_FPS = [15, 30, 60]
+const SUPPORTED_FPS = [5, 15, 30, 60, 90]
 
 const DEFAULT_HEIGHT = 480
-const DEFAULT_FPS = 30
+// const DEFAULT_FPS = 30
 
 export default function Publish() {
 	// Open IndexedDB
@@ -205,6 +216,8 @@ export default function Publish() {
 	const [copied, setCopied] = createSignal<boolean>()
 	const [active, setActive] = createSignal<boolean>()
 	const [error, setError] = createSignal<Error | undefined>()
+	const [isRecording, setIsRecording] = createSignal<boolean>(false)
+	const [fps, setFps] = createSignal(30)
 
 	const audioTrack = createMemo(() => {
 		const tracks = device()?.getAudioTracks()
@@ -239,6 +252,43 @@ export default function Publish() {
 
 		client.connect().then(setConnection).catch(setError)
 	})
+
+	/* 	const recordOriginalVideo = (stream: MediaStream) => {
+		// Record the published video
+		setIsRecording(true)
+		const recordedBlobs: BlobPart[] = []
+		const mediaRecorder = new MediaRecorder(stream, {
+			videoBitsPerSecond: 4000000,
+			videoKeyFrameIntervalCount: 60,
+		})
+		console.log("Recorder", mediaRecorder)
+		mediaRecorder.ondataavailable = (event) => {
+			if (event.data && event.data.size > 0) {
+				console.log("Recorded", recordedBlobs)
+
+				recordedBlobs.push(event.data)
+			}
+		}
+
+		mediaRecorder.start()
+
+		mediaRecorder.onstop = function () {
+			setIsRecording(false)
+			console.log("Recorded", recordedBlobs)
+
+			const blob = new Blob(recordedBlobs, { type: "video/mp4" })
+			const url = URL.createObjectURL(blob)
+			const a = document.createElement("a")
+			a.href = url
+			a.download = "published_video.mp4"
+			a.click()
+			URL.revokeObjectURL(url)
+		}
+
+		setTimeout(() => {
+			mediaRecorder.stop()
+		}, 20000)
+	} */
 
 	/*  const getCaptureFrameTime = (videoElement: HTMLVideoElement) => {
 		// const videoElement = document.createElement("video")
@@ -309,6 +359,9 @@ export default function Publish() {
 		}
 
 		// getCaptureFrameTime(e)
+		// recordOriginalVideo(d)
+
+		console.log(video())
 
 		return new Broadcast({
 			connection: c,
@@ -435,11 +488,19 @@ export default function Publish() {
 					setVideoElement={setVideoElement}
 					setDeviceLoading={setDeviceLoading}
 					stopStream={stopStreaming}
+					fps={fps()}
 				/>
+				{isRecording() && <div class="text-red-400">Recording</div>}
 
 				<Show when={videoTrack()}>
 					{(track) => (
-						<Video setError={setError} setConfig={setVideo} track={track()} advanced={advanced()} />
+						<Video
+							setError={setError}
+							setFps={setFps}
+							setConfig={setVideo}
+							track={track()}
+							advanced={advanced()}
+						/>
 					)}
 				</Show>
 
@@ -518,11 +579,16 @@ function Device(props: {
 	setVideoElement: (input: HTMLVideoElement) => void
 	setDeviceLoading: (ok: boolean) => void
 	stopStream: () => void
+	fps: number
 }) {
 	const [mode, setMode] = createSignal<"user" | "display" | "none">("none")
 	const [device, setDevice] = createSignal<MediaStream | undefined>()
 	const [videoDeviceId, setVideoDeviceId] = createSignal<string>("")
 	const [audioDeviceId, setAudioDeviceId] = createSignal<string>("")
+
+	createEffect(() => {
+		loadUser()
+	})
 
 	let preview: HTMLVideoElement | undefined // undefined until mount
 
@@ -555,7 +621,7 @@ function Device(props: {
 				video: {
 					aspectRatio: { ideal: 16 / 9 },
 					height: { ideal: DEFAULT_HEIGHT }, // max not supported
-					frameRate: { ideal: DEFAULT_FPS }, // max not supported
+					frameRate: { ideal: props.fps }, // max not supported
 				},
 			})
 			.then(setDevice)
@@ -583,7 +649,7 @@ function Device(props: {
 					: {
 							aspectRatio: { ideal: 16 / 9 },
 							height: { ideal: DEFAULT_HEIGHT, max: SUPPORTED_HEIGHT.at(-1) },
-							frameRate: { ideal: DEFAULT_FPS, max: SUPPORTED_FPS.at(-1) },
+							frameRate: { ideal: props.fps, max: SUPPORTED_FPS.at(-1) },
 							deviceId: videoDeviceId(),
 					  },
 		})
@@ -758,6 +824,7 @@ function DeviceList(props: {
 
 function Video(props: {
 	setError: (err: Error) => void
+	setFps: (fps: number) => void
 	setConfig: (config: VideoEncoderConfig | undefined) => void
 	track: VideoTrackSettings
 	advanced: boolean
@@ -774,8 +841,17 @@ function Video(props: {
 		return options
 	})
 
+	// Default values
+	const [height, setHeight] = createSignal(0) // use track default
+	const [fps, setFps] = createSignal(0) // use fps default
+	const [bitrate, setBitrate] = createSignal(2_000_000)
+	const [codec, setCodec] = createSignal("")
+	const [profile, setProfile] = createSignal("")
+	const [supported, setSupported] = createSignal<VideoCodec[]>()
+	const [maxSupportedFrameRate, setMaxSupportedFrameRate] = createSignal<number>(0)
+
 	const supportedFps = createMemo(() => {
-		const options = SUPPORTED_FPS.filter((f) => f <= props.track.frameRate)
+		const options = SUPPORTED_FPS.filter((f) => f <= maxSupportedFrameRate())
 
 		// Use the device framerate by default
 		if (options.indexOf(props.track.frameRate) == -1) {
@@ -786,13 +862,10 @@ function Video(props: {
 		return options
 	})
 
-	// Default values
-	const [height, setHeight] = createSignal(0) // use track default
-	const [fps, setFps] = createSignal(0) // use fps default
-	const [bitrate, setBitrate] = createSignal(2_000_000)
-	const [codec, setCodec] = createSignal("")
-	const [profile, setProfile] = createSignal("")
-	const [supported, setSupported] = createSignal<VideoCodec[]>()
+	// Set the maximum supported frame rate initially
+	onMount(() => {
+		setMaxSupportedFrameRate(props.track.frameRate)
+	})
 
 	// Compute the width based on the aspect ratio.
 	const width = (height: number) => {
@@ -948,7 +1021,14 @@ function Video(props: {
 
 					<label>
 						Frame Rate
-						<select name="fps" class="block w-64" onInput={(e) => setFps(parseInt(e.target.value))}>
+						<select
+							name="fps"
+							class="block w-64"
+							onInput={(e) => {
+								setFps(parseInt(e.target.value))
+								props.setFps(parseInt(e.target.value))
+							}}
+						>
 							<For each={supportedFps()}>
 								{(value) => (
 									<option value={value} selected={value === fps()}>
@@ -966,7 +1046,7 @@ function Video(props: {
 							name="bitrate"
 							class="block w-64"
 							min={500_000}
-							max={4_000_000}
+							max={20_000_000}
 							step={100_000}
 							value={bitrate()}
 							onInput={(e) => setBitrate(parseInt(e.target.value))}
