@@ -333,9 +333,9 @@ export default function Watch(props: { name: string }) {
 
 			// LATEST FRAMES
 
-			const latestFrames = allReceivedFrames
-				.slice(firstReceivedFrameIndex)
-				.filter((frame) => Date.now() - frame._1_rawVideoTimestamp < LATEST_DATA_DISPLAY_INTERVAL * 1000)
+			const latestFrames = allReceivedFrames.filter(
+				(frame) => Date.now() - frame._7_renderFrameTimestamp < LATEST_DATA_DISPLAY_INTERVAL * 1000,
+			)
 
 			setLatestFrames(latestFrames)
 
