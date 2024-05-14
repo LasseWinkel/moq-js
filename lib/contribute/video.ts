@@ -47,6 +47,8 @@ export interface IndexedDBFramesSchema {
 	_12_renderTimestampAttribute: number
 	_13_sentBytes: number
 	_14_receivedBytes: number
+	_15_sentType: string
+	_16_receivedType: string
 }
 
 let db: IDBDatabase

@@ -12,7 +12,7 @@ import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDatabaseName } fro
 let db: IDBDatabase
 
 // Function to add the time for each frame when they are written to the stream in IndexedDB
-const addFrameToStreamTimestamp = (frame: { timestamp: number; byteLength: number }, currentDateTime: number) => {
+const addFrameToStreamTimestamp = (frame: Chunk, currentDateTime: number) => {
 	if (!db) {
 		console.error("IndexedDB is not initialized.")
 		return
@@ -31,7 +31,8 @@ const addFrameToStreamTimestamp = (frame: { timestamp: number; byteLength: numbe
 			_2_segmentationTime: currentDateTime - currentFrame._1_rawVideoTimestamp,
 			_3_segmentationTimestamp: currentDateTime,
 			_10_encodedTimestampAttribute: frame.timestamp,
-			_13_sentBytes: frame.byteLength - 108, // 108 bytes are somehow added along the path but not received
+			_13_sentBytes: frame.data.byteLength - 108, // 108 bytes are somehow added along the path but not received
+			_15_sentType: frame.type,
 		} as IndexedDBFramesSchema
 
 		const putRequest = objectStore.put(updatedFrame, frame.timestamp) // Store the updated value back into the database
@@ -157,7 +158,7 @@ export class Track {
 			await writer.write(chunk)
 			// Check whether the frame is a video frame
 			if (chunk.timestamp < 1000000000) {
-				addFrameToStreamTimestamp({ timestamp: chunk.timestamp, byteLength: chunk.data.byteLength }, Date.now())
+				addFrameToStreamTimestamp(chunk, Date.now())
 			}
 		} else {
 			console.warn("dropping chunk", writer.desiredSize)

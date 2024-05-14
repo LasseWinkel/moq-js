@@ -49,6 +49,7 @@ function addReceiveMP4FrameTimestamp(frame: MP4.Frame, currentTimeInMilliseconds
 			_5_receiveMp4FrameTimestamp: currentTimeInMilliseconds,
 			_11_decodedTimestampAttribute: frame.sample.dts,
 			_14_receivedBytes: frame.sample.size,
+			_16_receivedType: frame.sample.is_sync ? "key" : "delta",
 		} as IndexedDBFramesSchema // Calculate the updated value
 
 		const putRequest = objectStore.put(updatedFrame, frame.sample.duration) // Store the updated value back into the database
