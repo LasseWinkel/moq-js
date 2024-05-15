@@ -192,7 +192,7 @@ export default function Watch(props: { name: string }) {
 
 	const [isRecording, setIsRecording] = createSignal<boolean>(false)
 
-	// Define a function to update the data every second
+	/* 	// Define a function to update the data every second
 	const updateDataInterval = setInterval(() => {
 		// Function to retrieve data from the IndexedDB
 		const retrieveData = async () => {
@@ -228,7 +228,7 @@ export default function Watch(props: { name: string }) {
 					a.download = "received_video.mp4"
 					a.click()
 					URL.revokeObjectURL(url)
-				} */
+				}
 
 				setTimeout(() => {
 					// mediaRecorder.stop()
@@ -437,7 +437,7 @@ export default function Watch(props: { name: string }) {
 		setFramesPerSecond(parseFloat((receivedFrames().length / totalSeconds).toFixed(2)))
 
 		setBitratePlotData(bitratePlotData().concat([{ bitrate: bitRate(), timestamp: totalMillisecondsWatched }]))
-	}, DATA_UPDATE_RATE)
+	}, DATA_UPDATE_RATE) */
 
 	let canvas!: HTMLCanvasElement
 
@@ -459,7 +459,7 @@ export default function Watch(props: { name: string }) {
 
 		onCleanup(() => {
 			player.close().then(setError).catch(setError)
-			clearInterval(updateDataInterval)
+			// clearInterval(updateDataInterval)
 		})
 		player.closed().then(setError).catch(setError)
 	})
@@ -475,7 +475,7 @@ export default function Watch(props: { name: string }) {
 			{isRecording() && <div class="text-red-400">Recording</div>}
 			<canvas ref={canvas} onClick={play} class="aspect-video w-full rounded-lg" />
 
-			<h3>Charts</h3>
+			{/* {<h3>Charts</h3>}
 
 			<button onClick={() => setShowFramesPlot(!showFramesPlot())}>Toggle Frames Plot</button>
 			<button onClick={() => setShowBitratePlot(!showBitratePlot())}>Toggle Bitrate Plot</button>
@@ -585,7 +585,7 @@ export default function Watch(props: { name: string }) {
 				<div class="p-5 text-center">{lastRenderedFrameTotalTime()}</div>
 				<div class="p-5 text-center">{avgLatestTotalTime().toFixed(2)}</div>
 			</div>
-
+ */}
 			<button class="bg-cyan-600" onClick={() => downloadFrameData(allFrames())}>
 				Download data
 			</button>
