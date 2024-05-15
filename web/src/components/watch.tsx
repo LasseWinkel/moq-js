@@ -586,7 +586,7 @@ export default function Watch(props: { name: string }) {
 				<div class="p-5 text-center">{avgLatestTotalTime().toFixed(2)}</div>
 			</div>
  */}
-			<button class="bg-cyan-600" onClick={() => downloadFrameData(allFrames())}>
+			<button class="bg-cyan-600" onClick={async () => downloadFrameData(await retrieveFramesFromIndexedDB())}>
 				Download data
 			</button>
 		</>
