@@ -169,7 +169,7 @@ const VIDEO_CODECS: VideoCodec[] = [
 const SUPPORTED_HEIGHT = [240, 360, 480, 720, 1080, 1440]
 const SUPPORTED_FPS = [5, 15, 30, 60, 90]
 
-const DEFAULT_HEIGHT = 480
+const DEFAULT_HEIGHT = 1440
 // const DEFAULT_FPS = 30
 
 export default function Publish() {
