@@ -70,6 +70,8 @@ declare module "mp4box" {
 			hvcC?: BoxParser.hvcCBox // hevc
 			vpcC?: BoxParser.vpcCBox // vp9
 			av1C?: BoxParser.av1CBox // av1
+			height: number
+			width: number
 		}
 		data: Uint8Array
 		size: number

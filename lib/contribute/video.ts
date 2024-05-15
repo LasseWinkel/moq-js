@@ -49,6 +49,8 @@ export interface IndexedDBFramesSchema {
 	_14_receivedBytes: number
 	_15_sentType: string
 	_16_receivedType: string
+	_17_width: number
+	_18_height: number
 }
 
 let db: IDBDatabase
