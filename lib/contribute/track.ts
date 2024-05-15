@@ -157,7 +157,7 @@ export class Track {
 		if ((writer.desiredSize || 0) > 0) {
 			await writer.write(chunk)
 			// Check whether the frame is a video frame
-			if (chunk.timestamp < 1000000000) {
+			if (chunk.duration === 0) {
 				addFrameToStreamTimestamp(chunk, Date.now())
 			}
 		} else {
