@@ -17,10 +17,10 @@ export interface IndexedDBBitRateWithTimestampSchema {
 }
 
 // Data update rate in milliseconds
-const DATA_UPDATE_RATE = 500
+const DATA_UPDATE_RATE = 1000
 
 // The time interval for the latest data in seconds
-const LATEST_DATA_DISPLAY_INTERVAL = 3
+const LATEST_DATA_DISPLAY_INTERVAL = 5
 
 // Time until data download in seconds
 const DATA_DOWNLOAD_TIME = 60
@@ -192,7 +192,7 @@ export default function Watch(props: { name: string }) {
 
 	const [isRecording, setIsRecording] = createSignal<boolean>(false)
 
-	/* 	// Define a function to update the data every second
+	// Define a function to update the data at regular times
 	const updateDataInterval = setInterval(() => {
 		// Function to retrieve data from the IndexedDB
 		const retrieveData = async () => {
@@ -228,33 +228,31 @@ export default function Watch(props: { name: string }) {
 					a.download = "received_video.mp4"
 					a.click()
 					URL.revokeObjectURL(url)
-				}
+				} */
 
 				setTimeout(() => {
 					// mediaRecorder.stop()
-					downloadFrameData(allFrames())
+					// downloadFrameData(allFrames())
+					// clearInterval(updateDataInterval)
 				}, DATA_DOWNLOAD_TIME * 1000)
 			}
 
 			const frames = await retrieveFramesFromIndexedDB()
 
 			// Ignore first few frames since none of these frames will acutally be received
-			const firstReceivedFrameIndex =
-				frames.slice(60).findIndex((frame) => frame._5_receiveMp4FrameTimestamp !== undefined) + 60
+			// const firstReceivedFrameIndex =
+			// 	frames.slice(60).findIndex((frame) => frame._5_receiveMp4FrameTimestamp !== undefined) + 60
 			// console.log("FIRST_RECEVIED_FRAME_INDEX", firstReceivedFrameIndex)
 
-			const allReceivedFrames = frames
-				.slice(firstReceivedFrameIndex)
-				.filter((frame) => frame._7_renderFrameTimestamp !== undefined)
+			const allReceivedFrames = frames.filter((frame) => frame._7_renderFrameTimestamp !== undefined)
 
 			// ALL FRAMES
 
 			setAllFrames(frames)
 			setReceivedFrames(allReceivedFrames)
-			setPercentageReceivedFrames(allReceivedFrames.length / frames.slice(firstReceivedFrameIndex).length)
+			setPercentageReceivedFrames(allReceivedFrames.length / frames.length)
 
-			let totalAmountRecvBytes = 0
-			let minSegmentationTime = Number.MAX_SAFE_INTEGER
+			/* let minSegmentationTime = Number.MAX_SAFE_INTEGER
 			let maxSegmentationTime = Number.MIN_SAFE_INTEGER
 			let sumSegmentationTime = 0
 			let minPropagationTime = Number.MAX_SAFE_INTEGER
@@ -267,7 +265,6 @@ export default function Watch(props: { name: string }) {
 			let maxTotalTime = Number.MIN_SAFE_INTEGER
 			let sumTotalTime = 0
 			allReceivedFrames.forEach((frame) => {
-				totalAmountRecvBytes += frame._14_receivedBytes
 				const frameSegmentationTime = frame._2_segmentationTime
 				if (frameSegmentationTime < minSegmentationTime) {
 					minSegmentationTime = frameSegmentationTime
@@ -313,7 +310,6 @@ export default function Watch(props: { name: string }) {
 				}
 			})
 
-			setTotalAmountRecvBytes(totalAmountRecvBytes)
 
 			setMinSegmentationTime(minSegmentationTime)
 			setMaxSegmentationTime(maxSegmentationTime)
@@ -329,7 +325,7 @@ export default function Watch(props: { name: string }) {
 
 			setMinTotalTime(minTotalTime)
 			setMaxTotalTime(maxTotalTime)
-			setAvgTotalTime(sumTotalTime / allReceivedFrames.length)
+			setAvgTotalTime(sumTotalTime / allReceivedFrames.length) */
 
 			// LATEST FRAMES
 
@@ -338,6 +334,8 @@ export default function Watch(props: { name: string }) {
 			)
 
 			setLatestFrames(latestFrames)
+
+			let totalAmountRecvBytes = 0
 
 			let maxLatestSegmentationTime = Number.MIN_SAFE_INTEGER
 			let minLatestSegmentationTime = Number.MAX_SAFE_INTEGER
@@ -352,6 +350,8 @@ export default function Watch(props: { name: string }) {
 			let maxLatestTotalTime = Number.MIN_SAFE_INTEGER
 			let sumLatestTotalTime = 0
 			latestFrames.forEach((frame) => {
+				totalAmountRecvBytes += frame._14_receivedBytes
+
 				const frameSegmentationTime = frame._2_segmentationTime
 				if (frameSegmentationTime < minLatestSegmentationTime) {
 					minLatestSegmentationTime = frameSegmentationTime
@@ -397,6 +397,8 @@ export default function Watch(props: { name: string }) {
 				}
 			})
 
+			setTotalAmountRecvBytes(totalAmountRecvBytes)
+
 			setMinLatestSegmentationTime(minLatestSegmentationTime)
 			setMaxLatestSegmentationTime(maxLatestSegmentationTime)
 			setAvgLatestSegmentationTime(sumLatestSegmentationTime / latestFrames.length)
@@ -431,13 +433,13 @@ export default function Watch(props: { name: string }) {
 
 		const totalMillisecondsWatched = streamWatchTime() + DATA_UPDATE_RATE
 		setStreamWatchTime(totalMillisecondsWatched)
-		const totalSeconds = totalMillisecondsWatched / 1000
+		// const totalSeconds = totalMillisecondsWatched / 1000
 
-		setBitRate(parseFloat(((totalAmountRecvBytes() * 8) / totalSeconds).toFixed(2)))
-		setFramesPerSecond(parseFloat((receivedFrames().length / totalSeconds).toFixed(2)))
+		setBitRate(parseFloat(((totalAmountRecvBytes() * 8) / LATEST_DATA_DISPLAY_INTERVAL).toFixed(2)))
+		setFramesPerSecond(parseFloat((latestFrames().length / LATEST_DATA_DISPLAY_INTERVAL).toFixed(2)))
 
-		setBitratePlotData(bitratePlotData().concat([{ bitrate: bitRate(), timestamp: totalMillisecondsWatched }]))
-	}, DATA_UPDATE_RATE) */
+		// setBitratePlotData(bitratePlotData().concat([{ bitrate: bitRate(), timestamp: totalMillisecondsWatched }]))
+	}, DATA_UPDATE_RATE)
 
 	let canvas!: HTMLCanvasElement
 
@@ -459,7 +461,7 @@ export default function Watch(props: { name: string }) {
 
 		onCleanup(() => {
 			player.close().then(setError).catch(setError)
-			// clearInterval(updateDataInterval)
+			clearInterval(updateDataInterval)
 		})
 		player.closed().then(setError).catch(setError)
 	})
@@ -483,6 +485,8 @@ export default function Watch(props: { name: string }) {
 			{showFramesPlot() && <FramesPlot watchStartTime={streamStartWatchTime()} frames={latestFrames()} />}
 			{showBitratePlot() && <BitratePlot bitrateWithTimestamp={bitratePlotData()} />}
 
+			*/}
+
 			<h3>Meta Data</h3>
 			<div class="flex">
 				<div class="mr-20 flex items-center">
@@ -498,7 +502,7 @@ export default function Watch(props: { name: string }) {
 
 			<div class="flex">
 				<div class="mr-20 flex items-center">
-					<span>Total Bits Received: &nbsp;</span>
+					<span>Bits Received: &nbsp;</span>
 					<p>{formatNumber(totalAmountRecvBytes() * 8)}</p>
 				</div>
 
@@ -524,6 +528,8 @@ export default function Watch(props: { name: string }) {
 					<p>{framesPerSecond()} fps</p>
 				</div>
 			</div>
+
+			{/*
 
 			<div class="grid grid-cols-4 gap-5 border">
 				<div class="p-5 text-center" />
@@ -551,6 +557,7 @@ export default function Watch(props: { name: string }) {
 				<div class="p-5 text-center">{maxTotalTime()}</div>
 				<div class="p-5 text-center">{avgTotalTime().toFixed(2)}</div>
 			</div>
+		*/}
 
 			<h3>Last {LATEST_DATA_DISPLAY_INTERVAL} Seconds</h3>
 
@@ -585,7 +592,6 @@ export default function Watch(props: { name: string }) {
 				<div class="p-5 text-center">{lastRenderedFrameTotalTime()}</div>
 				<div class="p-5 text-center">{avgLatestTotalTime().toFixed(2)}</div>
 			</div>
- */}
 			<button class="bg-cyan-600" onClick={async () => downloadFrameData(await retrieveFramesFromIndexedDB())}>
 				Download data
 			</button>
