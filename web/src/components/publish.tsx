@@ -517,6 +517,7 @@ export default function Publish() {
 				<div class="flex flex-wrap items-center gap-4">
 					<button
 						type="submit"
+						id={watchUrl}
 						onClick={(e) => {
 							e.preventDefault()
 
@@ -524,6 +525,14 @@ export default function Publish() {
 								const startTime = Date.now()
 								addStreamStartTime(startTime)
 								setActive(true)
+
+								const target = e.currentTarget
+								const relative = target.getAttribute("id")
+								if (!relative) return
+
+								// Compute the absolute URL
+								const absolute = new URL(relative, window.location.href).href
+								window.open(absolute, "_blank")
 							}
 						}}
 						classList={{
