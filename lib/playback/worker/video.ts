@@ -28,37 +28,39 @@ function addRenderFrameTimestamp(frame: VideoFrame, currentTimeInMilliseconds: n
 
 	const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readwrite")
 	const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
-	const updateRequest = objectStore.get(frame.duration!)
+	if (frame.duration) {
+		const updateRequest = objectStore.get(frame.duration)
 
-	// Handle the success event when the current value is retrieved successfully
-	updateRequest.onsuccess = (event) => {
-		const currentFrame: IndexedDBFramesSchema = (event.target as IDBRequest).result ?? {} // Retrieve the current value (default to 0 if not found)
-		// console.log("CURRENT_FRAME", frame.sample.duration, currentFrame)
+		// Handle the success event when the current value is retrieved successfully
+		updateRequest.onsuccess = (event) => {
+			const currentFrame: IndexedDBFramesSchema = (event.target as IDBRequest).result ?? {} // Retrieve the current value (default to 0 if not found)
+			// console.log("CURRENT_FRAME", frame.sample.duration, currentFrame)
 
-		const updatedFrame = {
-			...currentFrame,
-			_6_renderFrameTime: currentTimeInMilliseconds - currentFrame._5_receiveMp4FrameTimestamp,
-			_7_renderFrameTimestamp: currentTimeInMilliseconds,
-			_8_totalTime: currentTimeInMilliseconds - currentFrame._1_rawVideoTimestamp,
-			_12_renderTimestampAttribute: frame.timestamp,
-		} as IndexedDBFramesSchema
+			const updatedFrame = {
+				...currentFrame,
+				_6_renderFrameTime: currentTimeInMilliseconds - currentFrame._5_receiveMp4FrameTimestamp,
+				_7_renderFrameTimestamp: currentTimeInMilliseconds,
+				_8_totalTime: currentTimeInMilliseconds - currentFrame._1_rawVideoTimestamp,
+				_12_renderTimestampAttribute: frame.timestamp,
+			} as IndexedDBFramesSchema
 
-		const putRequest = objectStore.put(updatedFrame, frame.duration!) // Store the updated value back into the database
+			const putRequest = objectStore.put(updatedFrame, frame.duration!) // Store the updated value back into the database
 
-		// Handle the success event when the updated value is stored successfully
-		putRequest.onsuccess = () => {
-			// console.log("Frame updated successfully. New value:", updatedFrame)
+			// Handle the success event when the updated value is stored successfully
+			putRequest.onsuccess = () => {
+				// console.log("Frame updated successfully. New value:", updatedFrame)
+			}
+
+			// Handle any errors that occur during value storage
+			putRequest.onerror = (event) => {
+				console.error("Error storing updated value:", (event.target as IDBRequest).error)
+			}
 		}
 
-		// Handle any errors that occur during value storage
-		putRequest.onerror = (event) => {
-			console.error("Error storing updated value:", (event.target as IDBRequest).error)
+		// Handle any errors that occur during value retrieval
+		updateRequest.onerror = (event) => {
+			console.error("Error updating frame:", (event.target as IDBRequest).error)
 		}
-	}
-
-	// Handle any errors that occur during value retrieval
-	updateRequest.onerror = (event) => {
-		console.error("Error updating frame:", (event.target as IDBRequest).error)
 	}
 }
 

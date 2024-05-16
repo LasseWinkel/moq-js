@@ -30,7 +30,7 @@ openRequest.onerror = (event) => {
 // Function to add the decode timestamp of a frame in IndexedDB
 function addReceiveMP4FrameTimestamp(frame: MP4.Frame, currentTimeInMilliseconds: number) {
 	if (!db) {
-		console.error("IndexedDB is not initialized.")
+		// console.error("IndexedDB is not initialized.")
 		return
 	}
 
@@ -137,12 +137,14 @@ class Worker {
 		const segment = queue.writable.getWriter()
 
 		// Add the segment to the timeline
-		const segments = timeline.segments.getWriter()
-		await segments.write({
-			sequence: msg.header.group,
-			frames: queue.readable,
-		})
-		segments.releaseLock()
+		if (!timeline.segments.locked) {
+			const segments = timeline.segments.getWriter()
+			await segments.write({
+				sequence: msg.header.group,
+				frames: queue.readable,
+			})
+			segments.releaseLock()
+		}
 
 		// Read each chunk, decoding the MP4 frames and adding them to the queue.
 		for (;;) {
@@ -154,14 +156,18 @@ class Worker {
 
 			const frames = container.decode(chunk.payload)
 			for (const frame of frames) {
-				addReceiveMP4FrameTimestamp(frame, Date.now())
+				if (MP4.isVideoTrack(frame.track)) {
+					addReceiveMP4FrameTimestamp(frame, Date.now())
+				}
 
 				await segment.write(frame)
 			}
 		}
 
 		// We done.
-		await segment.close()
+		await segment.close().catch((e) => {
+			return asError(e)
+		})
 	}
 }
 

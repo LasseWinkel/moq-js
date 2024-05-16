@@ -237,6 +237,7 @@ export default function Watch(props: { name: string }) {
 				}, DATA_DOWNLOAD_TIME * 1000)
 			}
 
+			const timeOfDataRetrieval = Date.now()
 			const frames = await retrieveFramesFromIndexedDB()
 
 			// Ignore first few frames since none of these frames will acutally be received
@@ -330,7 +331,7 @@ export default function Watch(props: { name: string }) {
 			// LATEST FRAMES
 
 			const latestFrames = allReceivedFrames.filter(
-				(frame) => Date.now() - frame._7_renderFrameTimestamp < LATEST_DATA_DISPLAY_INTERVAL * 1000,
+				(frame) => timeOfDataRetrieval - frame._7_renderFrameTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
 			)
 
 			setLatestFrames(latestFrames)
