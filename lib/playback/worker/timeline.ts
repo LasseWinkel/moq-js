@@ -83,11 +83,11 @@ export class Component {
 			if (this.#current) {
 				if (value.sequence < this.#current.sequence) {
 					// Our segment is older than the current, abandon it.
-					await value.frames.cancel("skipping segment; too old")
+					await value.frames.cancel(`skipping segment ${value.sequence}; too old`)
 					continue
 				} else {
 					// Our segment is newer than the current, cancel the old one.
-					await this.#current.frames.cancel("skipping segment; too slow")
+					await this.#current.frames.cancel(`skipping segment ${this.#current.sequence}; too slow`)
 				}
 			}
 

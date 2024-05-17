@@ -150,6 +150,8 @@ export default function Watch(props: { name: string }) {
 	const [allFrames, setAllFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [receivedFrames, setReceivedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [latestFrames, setLatestFrames] = createSignal<IndexedDBFramesSchema[]>([])
+	const [totalSkippedFrames, setTotalSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
+	const [latestSkippedFrames, setLatestSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [percentageReceivedFrames, setPercentageReceivedFrames] = createSignal<number>(0.0)
 
 	const [minSegmentationTime, setMinSegmentationTime] = createSignal<number>(0)
@@ -245,12 +247,14 @@ export default function Watch(props: { name: string }) {
 			// 	frames.slice(60).findIndex((frame) => frame._5_receiveMp4FrameTimestamp !== undefined) + 60
 			// console.log("FIRST_RECEVIED_FRAME_INDEX", firstReceivedFrameIndex)
 
-			const allReceivedFrames = frames.filter((frame) => frame._7_renderFrameTimestamp !== undefined)
+			const allReceivedFrames = frames.filter((frame) => frame._5_receiveMp4FrameTimestamp !== undefined)
+			const allSkippedFrames = frames.filter((frame) => frame._5_receiveMp4FrameTimestamp === undefined)
 
 			// ALL FRAMES
 
 			setAllFrames(frames)
 			setReceivedFrames(allReceivedFrames)
+			setTotalSkippedFrames(allSkippedFrames)
 			setPercentageReceivedFrames(allReceivedFrames.length / frames.length)
 
 			/* let minSegmentationTime = Number.MAX_SAFE_INTEGER
@@ -331,10 +335,15 @@ export default function Watch(props: { name: string }) {
 			// LATEST FRAMES
 
 			const latestFrames = allReceivedFrames.filter(
-				(frame) => timeOfDataRetrieval - frame._7_renderFrameTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
+				(frame) =>
+					timeOfDataRetrieval - frame._5_receiveMp4FrameTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
+			)
+			const latestSkippedFrames = allSkippedFrames.filter(
+				(frame) => timeOfDataRetrieval - frame._3_segmentationTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
 			)
 
 			setLatestFrames(latestFrames)
+			setLatestSkippedFrames(latestSkippedFrames)
 
 			let totalAmountRecvBytes = 0
 
@@ -527,6 +536,18 @@ export default function Watch(props: { name: string }) {
 				<div class="flex items-center">
 					<span>Frame Rate: &nbsp;</span>
 					<p>{framesPerSecond()} fps</p>
+				</div>
+			</div>
+
+			<div class="flex">
+				<div class="mr-20 flex items-center">
+					<span>Total Frames Skipped: &nbsp;</span>
+					<p>{totalSkippedFrames().length}</p>
+				</div>
+
+				<div class="flex items-center">
+					<span>Latest Frames Skipped: &nbsp;</span>
+					<p>{latestSkippedFrames().length}</p>
 				</div>
 			</div>
 
