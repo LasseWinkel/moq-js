@@ -593,7 +593,7 @@ function Device(props: {
 	const [mode, setMode] = createSignal<"user" | "display" | "none">("none")
 	const [device, setDevice] = createSignal<MediaStream | undefined>()
 	const [videoDeviceId, setVideoDeviceId] = createSignal<string>("")
-	const [audioDeviceId, setAudioDeviceId] = createSignal<string>("")
+	const [audioDeviceId, setAudioDeviceId] = createSignal<string>("disabled")
 
 	createEffect(() => {
 		loadUser()
@@ -813,7 +813,7 @@ function DeviceList(props: {
 								<option
 									value={device.deviceId}
 									selected={
-										(props.videoDeviceId === "" && i() === 0) ||
+										(props.audioDeviceId === "" && i() === 0) ||
 										props.audioDeviceId === device.deviceId
 									}
 								>
