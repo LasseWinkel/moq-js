@@ -51,6 +51,7 @@ export interface IndexedDBFramesSchema {
 	_16_receivedType: string
 	_17_width: number
 	_18_height: number
+	_19_segmentID: number
 }
 
 let db: IDBDatabase
