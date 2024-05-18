@@ -22,11 +22,11 @@ if (frontmatter && frontmatter.title) title = frontmatter.title
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/layout/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
-		<title>{title ? `${title} - ` : ""}Media over QUIC</title>
+		<title>{title ? `${title} - ` : ""}</title>
 	</head>
 	<body>
 		<div class="flex flex-col md:flex-row gap-8 md:p-8 p-4">
-			<nav class="flex flex-row items-center md:flex-col md:w-72 md:gap-12 gap-4 w-full">
+			<!-- <nav class="flex flex-row items-center md:flex-col md:w-72 md:gap-12 gap-4 w-full">
 				<a href="/" class="w-1/2 md:w-auto">
 					<img src="/layout/logo.svg" class="w-52" alt="Media over QUIC" />
 				</a>
@@ -47,7 +47,7 @@ if (frontmatter && frontmatter.title) title = frontmatter.title
 						<img src="/layout/discord.svg" class="w-28" alt="Discord" />
 					</a>
 				</div>
-			</nav>
+			</nav> -->
 			<article class="markdown">
 				<slot />
 			</article>

@@ -481,73 +481,75 @@ export default function Watch(props: { name: string }) {
 	// NOTE: The canvas automatically has width/height set to the decoded video size.
 	// TODO shrink it if needed via CSS
 	return (
-		<>
-			<Fail error={error()} />
+		<div class="flex">
+			<div>
+				<Fail error={error()} />
 
-			{isRecording() && <div class="text-red-400">Recording</div>}
-			<canvas ref={canvas} onClick={play} class="aspect-video w-full rounded-lg" />
+				{isRecording() && <div class="text-red-400">Recording</div>}
+				<canvas ref={canvas} onClick={play} class="aspect-video w-1/2 rounded-lg" />
 
-			{/* {<h3>Charts</h3>}
+				{/* {<h3>Charts</h3>}
 
-			<button onClick={() => setShowFramesPlot(!showFramesPlot())}>Toggle Frames Plot</button>
-			<button onClick={() => setShowBitratePlot(!showBitratePlot())}>Toggle Bitrate Plot</button>
+				<button onClick={() => setShowFramesPlot(!showFramesPlot())}>Toggle Frames Plot</button>
+				<button onClick={() => setShowBitratePlot(!showBitratePlot())}>Toggle Bitrate Plot</button>
 
-			{showFramesPlot() && <FramesPlot watchStartTime={streamStartWatchTime()} frames={latestFrames()} />}
-			{showBitratePlot() && <BitratePlot bitrateWithTimestamp={bitratePlotData()} />}
+				{showFramesPlot() && <FramesPlot watchStartTime={streamStartWatchTime()} frames={latestFrames()} />}
+				{showBitratePlot() && <BitratePlot bitrateWithTimestamp={bitratePlotData()} />}
 
-			*/}
+				*/}
 
-			<h3>Meta Data</h3>
-			<div class="flex">
-				<div class="mr-20 flex items-center">
-					<span>Stream live since: &nbsp;</span>
-					<p>{createTimeString(streamRunningTime())}</p>
+				<h3>Meta Data</h3>
+				<div class="flex">
+					<div class="mr-20 flex items-center">
+						<span>Stream live since: &nbsp;</span>
+						<p>{createTimeString(streamRunningTime())}</p>
+					</div>
+
+					<div class="flex items-center">
+						<span>Watching since: &nbsp;</span>
+						<p>{createTimeString(streamWatchTime())}</p>
+					</div>
 				</div>
 
-				<div class="flex items-center">
-					<span>Watching since: &nbsp;</span>
-					<p>{createTimeString(streamWatchTime())}</p>
-				</div>
-			</div>
+				<div class="flex">
+					<div class="mr-20 flex items-center">
+						<span>Bits Received: &nbsp;</span>
+						<p>{formatNumber(totalAmountRecvBytes() * 8)}</p>
+					</div>
 
-			<div class="flex">
-				<div class="mr-20 flex items-center">
-					<span>Bits Received: &nbsp;</span>
-					<p>{formatNumber(totalAmountRecvBytes() * 8)}</p>
-				</div>
-
-				<div class="flex items-center">
-					<span>Bitrate: &nbsp;</span>
-					<p>{formatNumber(bitRate())} bps</p>
-				</div>
-			</div>
-
-			<div class="flex">
-				<div class="mr-20 flex items-center">
-					<span>Total Frames Received: &nbsp;</span>
-					<p>{receivedFrames().length}</p>
+					<div class="flex items-center">
+						<span>Bitrate: &nbsp;</span>
+						<p>{formatNumber(bitRate())} bps</p>
+					</div>
 				</div>
 
-				<div class="mr-20 flex items-center">
-					<span>Percentage of Frames Received: &nbsp;</span>
-					<p>{(percentageReceivedFrames() * 100).toFixed(2)}%</p>
+				<div class="flex">
+					<div class="mr-14 flex items-center">
+						<span>Total Frames Received: &nbsp;</span>
+						<p>{receivedFrames().length}</p>
+					</div>
+
+					<div class="mr-14 flex items-center">
+						<span>Percentage of Frames Received: &nbsp;</span>
+						<p>{(percentageReceivedFrames() * 100).toFixed(2)}%</p>
+					</div>
+
+					<div class="flex items-center">
+						<span>Frame Rate: &nbsp;</span>
+						<p>{framesPerSecond()} fps</p>
+					</div>
 				</div>
 
-				<div class="flex items-center">
-					<span>Frame Rate: &nbsp;</span>
-					<p>{framesPerSecond()} fps</p>
-				</div>
-			</div>
+				<div class="flex">
+					<div class="mr-20 flex items-center">
+						<span>Total Frames Skipped: &nbsp;</span>
+						<p>{totalSkippedFrames().length}</p>
+					</div>
 
-			<div class="flex">
-				<div class="mr-20 flex items-center">
-					<span>Total Frames Skipped: &nbsp;</span>
-					<p>{totalSkippedFrames().length}</p>
-				</div>
-
-				<div class="flex items-center">
-					<span>Latest Frames Skipped: &nbsp;</span>
-					<p>{latestSkippedFrames().length}</p>
+					<div class="flex items-center">
+						<span>Latest Frames Skipped: &nbsp;</span>
+						<p>{latestSkippedFrames().length}</p>
+					</div>
 				</div>
 			</div>
 
@@ -579,44 +581,49 @@ export default function Watch(props: { name: string }) {
 				<div class="p-5 text-center">{maxTotalTime()}</div>
 				<div class="p-5 text-center">{avgTotalTime().toFixed(2)}</div>
 			</div>
-		*/}
+			*/}
 
-			<h3>Last {LATEST_DATA_DISPLAY_INTERVAL} Seconds</h3>
+			<div>
+				<h3>Last {LATEST_DATA_DISPLAY_INTERVAL} Seconds</h3>
 
-			<div class="grid grid-cols-5 gap-6 border">
-				<div class="p-5 text-center" />
-				<div class="p-5 text-center">Min</div>
-				<div class="p-5 text-center">Max</div>
-				<div class="p-5 text-center">Last</div>
-				<div class="p-5 text-center">Avg</div>
+				<div class="grid grid-cols-5 gap-6 border">
+					<div class="p-4 text-center" />
+					<div class="p-4 text-center">Min</div>
+					<div class="p-4 text-center">Max</div>
+					<div class="p-4 text-center">Last</div>
+					<div class="p-4 text-center">Avg</div>
 
-				<div class="p-5 text-center">Segmentation Time:</div>
-				<div class="p-5 text-center">{minLatestSegmentationTime()}</div>
-				<div class="p-5 text-center">{maxLatestSegmentationTime()}</div>
-				<div class="p-5 text-center">{lastRenderedFrameSegmentationTime()}</div>
-				<div class="p-5 text-center">{avgLatestSegmentationTime().toFixed(2)}</div>
+					<div class="p-4 text-center">Segmentation Time:</div>
+					<div class="p-4 text-center">{minLatestSegmentationTime()}</div>
+					<div class="p-4 text-center">{maxLatestSegmentationTime()}</div>
+					<div class="p-4 text-center">{lastRenderedFrameSegmentationTime()}</div>
+					<div class="p-4 text-center">{avgLatestSegmentationTime().toFixed(2)}</div>
 
-				<div class="p-5 text-center">Propagation Time:</div>
-				<div class="p-5 text-center">{minLatestPropagationTime()}</div>
-				<div class="p-5 text-center">{maxLatestPropagationTime()}</div>
-				<div class="p-5 text-center">{lastRenderedFramePropagationTime()}</div>
-				<div class="p-5 text-center">{avgLatestPropagationTime().toFixed(2)}</div>
+					<div class="p-4 text-center">Propagation Time:</div>
+					<div class="p-4 text-center">{minLatestPropagationTime()}</div>
+					<div class="p-4 text-center">{maxLatestPropagationTime()}</div>
+					<div class="p-4 text-center">{lastRenderedFramePropagationTime()}</div>
+					<div class="p-4 text-center">{avgLatestPropagationTime().toFixed(2)}</div>
 
-				<div class="p-5 text-center">Render Time:</div>
-				<div class="p-5 text-center">{minLatestRenderTime()}</div>
-				<div class="p-5 text-center">{maxLatestRenderTime()}</div>
-				<div class="p-5 text-center">{lastRenderedFrameRenderTime()}</div>
-				<div class="p-5 text-center">{avgLatestRenderTime().toFixed(2)}</div>
+					<div class="p-4 text-center">Render Time:</div>
+					<div class="p-4 text-center">{minLatestRenderTime()}</div>
+					<div class="p-4 text-center">{maxLatestRenderTime()}</div>
+					<div class="p-4 text-center">{lastRenderedFrameRenderTime()}</div>
+					<div class="p-4 text-center">{avgLatestRenderTime().toFixed(2)}</div>
 
-				<div class="p-5 text-center">Total Time:</div>
-				<div class="p-5 text-center">{minLatestTotalTime()}</div>
-				<div class="p-5 text-center">{maxLatestTotalTime()}</div>
-				<div class="p-5 text-center">{lastRenderedFrameTotalTime()}</div>
-				<div class="p-5 text-center">{avgLatestTotalTime().toFixed(2)}</div>
+					<div class="p-4 text-center">Total Time:</div>
+					<div class="p-4 text-center">{minLatestTotalTime()}</div>
+					<div class="p-4 text-center">{maxLatestTotalTime()}</div>
+					<div class="p-4 text-center">{lastRenderedFrameTotalTime()}</div>
+					<div class="p-4 text-center">{avgLatestTotalTime().toFixed(2)}</div>
+				</div>
+				<button
+					class="bg-cyan-600"
+					onClick={async () => downloadFrameData(await retrieveFramesFromIndexedDB())}
+				>
+					Download data
+				</button>
 			</div>
-			<button class="bg-cyan-600" onClick={async () => downloadFrameData(await retrieveFramesFromIndexedDB())}>
-				Download data
-			</button>
-		</>
+		</div>
 	)
 }
