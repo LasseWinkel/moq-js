@@ -150,6 +150,7 @@ export default function Watch(props: { name: string }) {
 	const [allFrames, setAllFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [receivedFrames, setReceivedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [latestFrames, setLatestFrames] = createSignal<IndexedDBFramesSchema[]>([])
+	const [lastRenderedFrame, setLastRenderedFrame] = createSignal<IndexedDBFramesSchema>()
 	const [totalSkippedFrames, setTotalSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [latestSkippedFrames, setLatestSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [percentageReceivedFrames, setPercentageReceivedFrames] = createSignal<number>(0.0)
@@ -430,6 +431,7 @@ export default function Watch(props: { name: string }) {
 			const lastRenderedFrame = frames.findLast((frame) => frame._7_renderFrameTimestamp !== undefined)
 
 			if (lastRenderedFrame) {
+				setLastRenderedFrame(lastRenderedFrame)
 				setLastRenderedFrameSegmentationTime(lastRenderedFrame._2_segmentationTime)
 				setLastRenderedFramePropagationTime(lastRenderedFrame._4_propagationTime)
 				setLastRenderedFrameRenderTime(lastRenderedFrame._6_renderFrameTime)
@@ -482,11 +484,11 @@ export default function Watch(props: { name: string }) {
 	// TODO shrink it if needed via CSS
 	return (
 		<div class="flex">
-			<div>
+			<div class="w-1/2">
 				<Fail error={error()} />
 
 				{isRecording() && <div class="text-red-400">Recording</div>}
-				<canvas ref={canvas} onClick={play} class="aspect-video w-1/2 rounded-lg" />
+				<canvas ref={canvas} onClick={play} class="aspect-video w-3/4 rounded-lg" />
 
 				{/* {<h3>Charts</h3>}
 
@@ -512,31 +514,31 @@ export default function Watch(props: { name: string }) {
 				</div>
 
 				<div class="flex">
-					<div class="mr-20 flex items-center">
+					{/* <div class="mr-20 flex items-center">
 						<span>Bits Received: &nbsp;</span>
 						<p>{formatNumber(totalAmountRecvBytes() * 8)}</p>
-					</div>
+					</div> */}
 
-					<div class="flex items-center">
+					<div class="mr-20 flex items-center">
 						<span>Bitrate: &nbsp;</span>
 						<p>{formatNumber(bitRate())} bps</p>
-					</div>
-				</div>
-
-				<div class="flex">
-					<div class="mr-14 flex items-center">
-						<span>Total Frames Received: &nbsp;</span>
-						<p>{receivedFrames().length}</p>
-					</div>
-
-					<div class="mr-14 flex items-center">
-						<span>Percentage of Frames Received: &nbsp;</span>
-						<p>{(percentageReceivedFrames() * 100).toFixed(2)}%</p>
 					</div>
 
 					<div class="flex items-center">
 						<span>Frame Rate: &nbsp;</span>
 						<p>{framesPerSecond()} fps</p>
+					</div>
+				</div>
+
+				<div class="flex">
+					{/* <div class="mr-14 flex items-center">
+						<span>Total Frames Received: &nbsp;</span>
+						<p>{receivedFrames().length}</p>
+					</div> */}
+
+					<div class="mr-14 flex items-center">
+						<span>Percentage of Frames Received: &nbsp;</span>
+						<p>{(percentageReceivedFrames() * 100).toFixed(2)}%</p>
 					</div>
 				</div>
 
@@ -549,6 +551,15 @@ export default function Watch(props: { name: string }) {
 					<div class="flex items-center">
 						<span>Latest Frames Skipped: &nbsp;</span>
 						<p>{latestSkippedFrames().length}</p>
+					</div>
+				</div>
+
+				<div class="flex">
+					<div class="mr-20 flex items-center">
+						<span>Received video resolution: &nbsp;</span>
+						<p>
+							{lastRenderedFrame()?._17_width} x {lastRenderedFrame()?._18_height}
+						</p>
 					</div>
 				</div>
 			</div>
@@ -583,7 +594,7 @@ export default function Watch(props: { name: string }) {
 			</div>
 			*/}
 
-			<div>
+			<div class="flex w-1/2 flex-col items-center">
 				<h3>Last {LATEST_DATA_DISPLAY_INTERVAL} Seconds</h3>
 
 				<div class="grid grid-cols-5 gap-6 border">
@@ -618,7 +629,7 @@ export default function Watch(props: { name: string }) {
 					<div class="p-4 text-center">{avgLatestTotalTime().toFixed(2)}</div>
 				</div>
 				<button
-					class="bg-cyan-600"
+					class="m-3 bg-cyan-600"
 					onClick={async () => downloadFrameData(await retrieveFramesFromIndexedDB())}
 				>
 					Download data
