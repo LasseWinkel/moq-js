@@ -57,32 +57,16 @@ const initializeIndexedDB = () => {
 
 		const objectStore = transaction.objectStore(objectStoreName)
 
-		if (objectStoreName === (IndexedDBObjectStores.START_STREAM_TIME as string)) {
-			const initStartTime = objectStore.clear()
+		const initObjectStore = objectStore.clear()
 
-			// Handle the success event when the value is stored successfully
-			initStartTime.onsuccess = () => {
-				// console.log("Start time successfully reset")
-			}
-
-			// Handle any errors that occur during value storage
-			initStartTime.onerror = (event) => {
-				console.error("Error storing value:", (event.target as IDBRequest).error)
-			}
+		// Handle the success event when the store is reset successfully
+		initObjectStore.onsuccess = () => {
+			// console.log("Store successfully reset")
 		}
 
-		if (objectStore.name === (IndexedDBObjectStores.FRAMES as string)) {
-			const initFrames = objectStore.clear()
-
-			// Handle the success event when the value is stored successfully
-			initFrames.onsuccess = () => {
-				// console.log("Frames successfully reset")
-			}
-
-			// Handle any errors that occur during value storage
-			initFrames.onerror = (event) => {
-				console.error("Error storing value:", (event.target as IDBRequest).error)
-			}
+		// Handle any errors that occur during store reset
+		initObjectStore.onerror = (event) => {
+			console.error("Error during store reset:", (event.target as IDBRequest).error)
 		}
 	}
 }
@@ -103,7 +87,7 @@ const addStreamStartTime = (currentTimeInMilliseconds: number) => {
 		// console.log("Start time successfully set:", currentTimeInMilliseconds)
 	}
 
-	// Handle any errors that occur during value retrieval
+	// Handle any errors that occur during value storage
 	addRequest.onerror = (event) => {
 		console.error("Error adding start time:", (event.target as IDBRequest).error)
 	}
@@ -189,14 +173,17 @@ export default function Publish() {
 
 		db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
 		// Check if the object store already exists
-		if (!db.objectStoreNames.contains(IndexedDBObjectStores.START_STREAM_TIME)) {
-			// Create an object store (similar to a table in SQL databases)
-			db.createObjectStore(IndexedDBObjectStores.START_STREAM_TIME)
-		}
-
 		if (!db.objectStoreNames.contains(IndexedDBObjectStores.FRAMES)) {
 			// Create an object store (similar to a table in SQL databases)
 			db.createObjectStore(IndexedDBObjectStores.FRAMES, { autoIncrement: true })
+		}
+
+		if (!db.objectStoreNames.contains(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)) {
+			db.createObjectStore(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)
+		}
+
+		if (!db.objectStoreNames.contains(IndexedDBObjectStores.START_STREAM_TIME)) {
+			db.createObjectStore(IndexedDBObjectStores.START_STREAM_TIME)
 		}
 	}
 

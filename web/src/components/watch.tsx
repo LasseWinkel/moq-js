@@ -118,7 +118,7 @@ const getStreamStartTime = (): Promise<number> => {
 		const objectStore = transaction.objectStore(IndexedDBObjectStores.START_STREAM_TIME)
 		const getRequest = objectStore.get(1)
 
-		// Handle the success event when the updated value is stored successfully
+		// Handle the success event when the updated value is retrieved successfully
 		getRequest.onsuccess = (event) => {
 			const startTime = (event.target as IDBRequest).result as number
 			// console.log("Start time successfully retrieved:", startTime)
@@ -127,10 +127,32 @@ const getStreamStartTime = (): Promise<number> => {
 
 		// Handle any errors that occur during value retrieval
 		getRequest.onerror = (event) => {
-			console.error("Error adding start time:", (event.target as IDBRequest).error)
+			console.error("Error retrieving start time:", (event.target as IDBRequest).error)
 			reject((event.target as IDBRequest).error)
 		}
 	})
+}
+
+// Function to adjust the key frame interval size in IndexedDB
+const adjustKeyFrameIntervalSizeInIndexedDB = (keyFrameIntervalSize: number) => {
+	if (!db) {
+		console.error("IndexedDB is not initialized.")
+		return
+	}
+
+	const transaction = db.transaction(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE, "readwrite")
+	const objectStore = transaction.objectStore(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)
+	const addRequest = objectStore.add(keyFrameIntervalSize, 0)
+
+	// Handle the success event when the updated value is stored successfully
+	addRequest.onsuccess = () => {
+		// console.log("Key frame interval size successfully set:", keyFrameIntervalSize)
+	}
+
+	// Handle any errors that occur during value storage
+	addRequest.onerror = (event) => {
+		console.error("Error adding key frame interval size:", (event.target as IDBRequest).error)
+	}
 }
 
 export default function Watch(props: { name: string }) {
@@ -628,8 +650,22 @@ export default function Watch(props: { name: string }) {
 					<div class="p-4 text-center">{lastRenderedFrameTotalTime()}</div>
 					<div class="p-4 text-center">{avgLatestTotalTime().toFixed(2)}</div>
 				</div>
+
+				<button class="m-3 bg-cyan-600" onClick={() => adjustKeyFrameIntervalSizeInIndexedDB(1)}>
+					Adjust Key Frame Interval Size to 1
+				</button>
+
+				<button class="m-3 bg-cyan-600" onClick={() => adjustKeyFrameIntervalSizeInIndexedDB(30)}>
+					Adjust Key Frame Interval Size to 30
+				</button>
+
+				<button class="m-3 bg-cyan-600" onClick={() => adjustKeyFrameIntervalSizeInIndexedDB(60)}>
+					Adjust Key Frame Interval Size to 60
+				</button>
+
 				<button
 					class="m-3 bg-cyan-600"
+					// eslint-disable-next-line @typescript-eslint/no-misused-promises
 					onClick={async () => downloadFrameData(await retrieveFramesFromIndexedDB())}
 				>
 					Download data

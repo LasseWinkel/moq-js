@@ -28,8 +28,9 @@ function downloadData(data: any[]): void {
 export const IndexedDatabaseName = "IndexedDB"
 
 export enum IndexedDBObjectStores {
-	START_STREAM_TIME = "StartStreamTime",
 	FRAMES = "Frames",
+	KEY_FRAME_INTERVAL_SIZE = "KeyFrameIntervalSize",
+	START_STREAM_TIME = "StartStreamTime",
 }
 
 export interface IndexedDBFramesSchema {
@@ -124,6 +125,33 @@ export class Encoder {
 		}
 	}
 
+	// Function to retrieve the key frame interval size from IndexedDB
+	retrieveKeyFrameIntervalSize = (): Promise<number | undefined> => {
+		return new Promise((resolve, reject) => {
+			if (!db) {
+				console.error("IndexedDB is not initialized.")
+				return
+			}
+
+			const transaction = db.transaction(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE, "readonly")
+			const objectStore = transaction.objectStore(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)
+			const getRequest = objectStore.get(0)
+
+			// Handle the success event when the updated value is retrieved successfully
+			getRequest.onsuccess = (event) => {
+				const keyFrameIntervalSize = (event.target as IDBRequest).result as number
+				// console.log("Key frame interval size successfully retrieved:", keyFrameIntervalSize)
+				resolve(keyFrameIntervalSize)
+			}
+
+			// Handle any errors that occur during value retrieval
+			getRequest.onerror = (event) => {
+				console.error("Error retrieving key frame interval size:", (event.target as IDBRequest).error)
+				reject((event.target as IDBRequest).error)
+			}
+		})
+	}
+
 	static async isSupported(config: VideoEncoderConfig) {
 		// Check if we support a specific codec family
 		const short = config.codec.substring(0, 4)
@@ -175,7 +203,7 @@ export class Encoder {
 		frame.close()
 	}
 
-	#enqueue(
+	async #enqueue(
 		controller: TransformStreamDefaultController<VideoDecoderConfig | EncodedVideoChunk>,
 		frame: EncodedVideoChunk,
 		metadata?: EncodedVideoChunkMetadata,
@@ -188,11 +216,18 @@ export class Encoder {
 			this.#decoderConfig = config
 		}
 
+		const keyFrameIntervalSizeFromIndexedDB = await this.retrieveKeyFrameIntervalSize()
+		// console.log("Key frame interval size from IDB", keyFrameIntervalSizeFromIndexedDB)
+
+		const keyFrameIntervalSize = keyFrameIntervalSizeFromIndexedDB
+			? keyFrameIntervalSizeFromIndexedDB
+			: 2 * this.#encoderConfig.framerate!
+
 		if (frame.type === "key") {
 			this.#keyframeCounter = 0
 		} else {
 			this.#keyframeCounter += 1
-			if (this.#keyframeCounter + this.#encoder.encodeQueueSize >= 2 * this.#encoderConfig.framerate!) {
+			if (this.#keyframeCounter + this.#encoder.encodeQueueSize >= keyFrameIntervalSize) {
 				this.#keyframeNext = true
 			}
 		}
