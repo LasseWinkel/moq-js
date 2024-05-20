@@ -55,6 +55,18 @@ export class Connection {
 		return this.#subscriber.subscribe(namespace, track)
 	}
 
+	throttle() {
+		return this.#subscriber.throttle()
+	}
+
+	packet_loss(lossRate: number) {
+		return this.#subscriber.packet_loss(lossRate)
+	}
+
+	tc_reset() {
+		return this.#subscriber.tc_reset()
+	}
+
 	subscribed() {
 		return this.#publisher.subscribed()
 	}

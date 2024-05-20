@@ -4,8 +4,8 @@ import { Player } from "@kixelated/moq/playback"
 import { IndexedDatabaseName, IndexedDBObjectStores } from "@kixelated/moq/contribute"
 import type { IndexedDBFramesSchema } from "@kixelated/moq/contribute"
 
-import FramesPlot from "./frames"
-import BitratePlot from "./bitrate"
+/* import FramesPlot from "./frames"
+import BitratePlot from "./bitrate" */
 
 import Fail from "./fail"
 
@@ -142,7 +142,7 @@ const adjustKeyFrameIntervalSizeInIndexedDB = (keyFrameIntervalSize: number) => 
 
 	const transaction = db.transaction(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE, "readwrite")
 	const objectStore = transaction.objectStore(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)
-	const addRequest = objectStore.add(keyFrameIntervalSize, 0)
+	const addRequest = objectStore.put(keyFrameIntervalSize, 0)
 
 	// Handle the success event when the updated value is stored successfully
 	addRequest.onsuccess = () => {
@@ -167,17 +167,17 @@ export default function Watch(props: { name: string }) {
 	const [streamStartTime, setStreamStartTime] = createSignal<number>(0)
 	const [streamRunningTime, setStreamRunningTime] = createSignal<number>(0)
 	const [streamWatchTime, setStreamWatchTime] = createSignal<number>(0)
-	const [streamStartWatchTime, setStreamStartWatchTime] = createSignal<number>(0)
+	// const [streamStartWatchTime, setStreamStartWatchTime] = createSignal<number>(0)
 	const [totalAmountRecvBytes, setTotalAmountRecvBytes] = createSignal<number>(0)
-	const [allFrames, setAllFrames] = createSignal<IndexedDBFramesSchema[]>([])
-	const [receivedFrames, setReceivedFrames] = createSignal<IndexedDBFramesSchema[]>([])
+	// const [allFrames, setAllFrames] = createSignal<IndexedDBFramesSchema[]>([])
+	// const [receivedFrames, setReceivedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [latestFrames, setLatestFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [lastRenderedFrame, setLastRenderedFrame] = createSignal<IndexedDBFramesSchema>()
 	const [totalSkippedFrames, setTotalSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [latestSkippedFrames, setLatestSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [percentageReceivedFrames, setPercentageReceivedFrames] = createSignal<number>(0.0)
 
-	const [minSegmentationTime, setMinSegmentationTime] = createSignal<number>(0)
+	/* const [minSegmentationTime, setMinSegmentationTime] = createSignal<number>(0)
 	const [maxSegmentationTime, setMaxSegmentationTime] = createSignal<number>(0)
 	const [avgSegmentationTime, setAvgSegmentationTime] = createSignal<number>(0.0)
 	const [minPropagationTime, setMinPropagationTime] = createSignal<number>(0)
@@ -188,7 +188,7 @@ export default function Watch(props: { name: string }) {
 	const [avgRenderTime, setAvgRenderTime] = createSignal<number>(0.0)
 	const [minTotalTime, setMinTotalTime] = createSignal<number>(0)
 	const [maxTotalTime, setMaxTotalTime] = createSignal<number>(0)
-	const [avgTotalTime, setAvgTotalTime] = createSignal<number>(0.0)
+	const [avgTotalTime, setAvgTotalTime] = createSignal<number>(0.0) */
 
 	const [minLatestSegmentationTime, setMinLatestSegmentationTime] = createSignal<number>(0)
 	const [maxLatestSegmentationTime, setMaxLatestSegmentationTime] = createSignal<number>(0)
@@ -208,14 +208,14 @@ export default function Watch(props: { name: string }) {
 	const [lastRenderedFrameRenderTime, setLastRenderedFrameRenderTime] = createSignal<number>(0)
 	const [lastRenderedFrameTotalTime, setLastRenderedFrameTotalTime] = createSignal<number>(0)
 
-	const [showFramesPlot, setShowFramesPlot] = createSignal<boolean>(false)
+	/* const [showFramesPlot, setShowFramesPlot] = createSignal<boolean>(false)
 	const [showBitratePlot, setShowBitratePlot] = createSignal<boolean>(false)
 
-	const [bitratePlotData, setBitratePlotData] = createSignal<IndexedDBBitRateWithTimestampSchema[]>([])
+	const [bitratePlotData, setBitratePlotData] = createSignal<IndexedDBBitRateWithTimestampSchema[]>([]) */
 	const [bitRate, setBitRate] = createSignal<number>(0.0)
 	const [framesPerSecond, setFramesPerSecond] = createSignal<number>(0.0)
 
-	const [isRecording, setIsRecording] = createSignal<boolean>(false)
+	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 
 	// Define a function to update the data at regular times
 	const updateDataInterval = setInterval(() => {
@@ -223,7 +223,7 @@ export default function Watch(props: { name: string }) {
 		const retrieveData = async () => {
 			if (streamStartTime() === 0) {
 				setStreamStartTime(await getStreamStartTime())
-				setStreamStartWatchTime(Date.now())
+				// setStreamStartWatchTime(Date.now())
 
 				// Record the received video
 				/* setIsRecording(true)
@@ -275,8 +275,8 @@ export default function Watch(props: { name: string }) {
 
 			// ALL FRAMES
 
-			setAllFrames(frames)
-			setReceivedFrames(allReceivedFrames)
+			// setAllFrames(frames)
+			// setReceivedFrames(allReceivedFrames)
 			setTotalSkippedFrames(allSkippedFrames)
 			setPercentageReceivedFrames(allReceivedFrames.length / frames.length)
 
@@ -509,7 +509,7 @@ export default function Watch(props: { name: string }) {
 			<div class="w-1/2">
 				<Fail error={error()} />
 
-				{isRecording() && <div class="text-red-400">Recording</div>}
+				{/* {isRecording() && <div class="text-red-400">Recording</div>} */}
 				<canvas ref={canvas} onClick={play} class="aspect-video w-3/4 rounded-lg" />
 
 				{/* {<h3>Charts</h3>}
@@ -651,16 +651,39 @@ export default function Watch(props: { name: string }) {
 					<div class="p-4 text-center">{avgLatestTotalTime().toFixed(2)}</div>
 				</div>
 
-				<button class="m-3 bg-cyan-600" onClick={() => adjustKeyFrameIntervalSizeInIndexedDB(1)}>
-					Adjust Key Frame Interval Size to 1
-				</button>
+				<div class="flex items-center">
+					Key Frame Interval Size:
+					<select
+						class="m-3"
+						onChange={(event) => adjustKeyFrameIntervalSizeInIndexedDB(parseInt(event.target.value))}
+					>
+						<option selected disabled>
+							Adjust Key Frame Interval
+						</option>
+						<option value="1"> 1</option>
+						<option value="30">30</option>
+						<option value="60">60</option>
+					</select>
+				</div>
 
-				<button class="m-3 bg-cyan-600" onClick={() => adjustKeyFrameIntervalSizeInIndexedDB(30)}>
-					Adjust Key Frame Interval Size to 30
-				</button>
+				<div class="flex items-center">
+					Packet Loss (%):
+					<select class="m-3" onChange={(event) => usePlayer()?.packet_loss(parseInt(event.target.value))}>
+						<option selected disabled>
+							Adjust Packet Loss
+						</option>
+						<option value="5"> 5</option>
+						<option value="10">10</option>
+						<option value="20">20</option>
+					</select>
+				</div>
 
-				<button class="m-3 bg-cyan-600" onClick={() => adjustKeyFrameIntervalSizeInIndexedDB(60)}>
-					Adjust Key Frame Interval Size to 60
+				{/* <button class="m-3 bg-cyan-600" onClick={() => usePlayer()?.throttle()}>
+					Throttle connection
+				</button> */}
+
+				<button class="m-3 bg-cyan-600" onClick={() => usePlayer()?.tc_reset()}>
+					Reset tc/netem
 				</button>
 
 				<button

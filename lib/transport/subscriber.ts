@@ -81,6 +81,25 @@ export class Subscriber {
 		return subscribe
 	}
 
+	async throttle() {
+		await this.#control.send({
+			kind: Control.Msg.Throttle,
+		})
+	}
+
+	async packet_loss(lossRate: number) {
+		await this.#control.send({
+			kind: Control.Msg.PacketLoss,
+			lossRate: lossRate,
+		})
+	}
+
+	async tc_reset() {
+		await this.#control.send({
+			kind: Control.Msg.TcReset,
+		})
+	}
+
 	recvSubscribeOk(msg: Control.SubscribeOk) {
 		const subscribe = this.#subscribe.get(msg.id)
 		if (!subscribe) {

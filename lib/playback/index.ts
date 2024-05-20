@@ -151,6 +151,18 @@ export class Player {
 		}
 	}
 
+	throttle() {
+		this.#connection.throttle()
+	}
+
+	packet_loss(lossRate: number) {
+		this.#connection.packet_loss(lossRate)
+	}
+
+	tc_reset() {
+		this.#connection.tc_reset()
+	}
+
 	/*
 	play() {
 		this.#backend.play({ minBuffer: 0.5 }) // TODO configurable
@@ -162,7 +174,7 @@ export class Player {
 	*/
 
 	play() {
-		this.#backend.play()
+		void this.#backend.play()
 	}
 
 	/*

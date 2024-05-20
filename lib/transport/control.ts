@@ -3,11 +3,17 @@ import { Reader, Writer } from "./stream"
 export type Message = Subscriber | Publisher
 
 // Sent by subscriber
-export type Subscriber = Subscribe | Unsubscribe | AnnounceOk | AnnounceError
+export type Subscriber = Subscribe | Unsubscribe | AnnounceOk | AnnounceError | Throttle | PacketLoss | TcReset
 
 export function isSubscriber(m: Message): m is Subscriber {
 	return (
-		m.kind == Msg.Subscribe || m.kind == Msg.Unsubscribe || m.kind == Msg.AnnounceOk || m.kind == Msg.AnnounceError
+		m.kind == Msg.Subscribe ||
+		m.kind == Msg.Unsubscribe ||
+		m.kind == Msg.AnnounceOk ||
+		m.kind == Msg.AnnounceError ||
+		m.kind == Msg.Throttle ||
+		m.kind == Msg.PacketLoss ||
+		m.kind == Msg.TcReset
 	)
 }
 
@@ -39,6 +45,9 @@ export enum Msg {
 	AnnounceError = "announce_error",
 	Unannounce = "unannounce",
 	GoAway = "go_away",
+	Throttle = "throttle",
+	PacketLoss = "packet_loss",
+	TcReset = "tc_reset",
 }
 
 enum Id {
@@ -56,6 +65,9 @@ enum Id {
 	AnnounceError = 0x8,
 	Unannounce = 0x9,
 	GoAway = 0x10,
+	Throttle = 0x11,
+	PacketLoss = 0x13,
+	TcReset = 0x12,
 }
 
 export interface Subscribe {
@@ -129,6 +141,19 @@ export interface AnnounceError {
 export interface Unannounce {
 	kind: Msg.Unannounce
 	namespace: string
+}
+
+export interface Throttle {
+	kind: Msg.Throttle
+}
+
+export interface PacketLoss {
+	kind: Msg.PacketLoss
+	lossRate: number
+}
+
+export interface TcReset {
+	kind: Msg.TcReset
 }
 
 export class Stream {
@@ -207,6 +232,12 @@ export class Decoder {
 				return Msg.Unannounce
 			case Id.GoAway:
 				return Msg.GoAway
+			case Id.Throttle:
+				return Msg.Throttle
+			case Id.PacketLoss:
+				return Msg.PacketLoss
+			case Id.TcReset:
+				return Msg.TcReset
 		}
 
 		throw new Error(`unknown control message type: ${t}`)
@@ -235,6 +266,12 @@ export class Decoder {
 				return this.announce_error()
 			case Msg.GoAway:
 				throw new Error("TODO: implement go away")
+			case Msg.Throttle:
+				return this.throttle()
+			case Msg.PacketLoss:
+				return this.packet_loss()
+			case Msg.TcReset:
+				return this.tc_reset()
 		}
 	}
 
@@ -381,6 +418,27 @@ export class Decoder {
 			namespace: await this.r.string(),
 		}
 	}
+
+	// eslint-disable-next-line @typescript-eslint/require-await
+	private async throttle(): Promise<Throttle> {
+		return {
+			kind: Msg.Throttle,
+		}
+	}
+
+	private async packet_loss(): Promise<PacketLoss> {
+		return {
+			kind: Msg.PacketLoss,
+			lossRate: await this.r.u53(),
+		}
+	}
+
+	// eslint-disable-next-line @typescript-eslint/require-await
+	private async tc_reset(): Promise<TcReset> {
+		return {
+			kind: Msg.TcReset,
+		}
+	}
 }
 
 export class Encoder {
@@ -410,6 +468,12 @@ export class Encoder {
 				return this.announce_error(m)
 			case Msg.Unannounce:
 				return this.unannounce(m)
+			case Msg.Throttle:
+				return this.throttle()
+			case Msg.PacketLoss:
+				return this.packet_loss(m)
+			case Msg.TcReset:
+				return this.tc_reset()
 		}
 	}
 
@@ -515,5 +579,18 @@ export class Encoder {
 	async unannounce(a: Unannounce) {
 		await this.w.u53(Id.Unannounce)
 		await this.w.string(a.namespace)
+	}
+
+	async throttle() {
+		await this.w.u53(Id.Throttle)
+	}
+
+	async packet_loss(p: PacketLoss) {
+		await this.w.u53(Id.PacketLoss)
+		await this.w.u53(p.lossRate)
+	}
+
+	async tc_reset() {
+		await this.w.u53(Id.TcReset)
 	}
 }
