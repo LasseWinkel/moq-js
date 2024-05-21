@@ -203,7 +203,7 @@ export default function Publish() {
 	const [copied, setCopied] = createSignal<boolean>()
 	const [active, setActive] = createSignal<boolean>()
 	const [error, setError] = createSignal<Error | undefined>()
-	const [isRecording, setIsRecording] = createSignal<boolean>(false)
+	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 	const [fps, setFps] = createSignal(30)
 
 	const audioTrack = createMemo(() => {
@@ -477,7 +477,7 @@ export default function Publish() {
 					stopStream={stopStreaming}
 					fps={fps()}
 				/>
-				{isRecording() && <div class="text-red-400">Recording</div>}
+				{/* {isRecording() && <div class="text-red-400">Recording</div>} */}
 
 				<Show when={videoTrack()}>
 					{(track) => (
@@ -597,6 +597,7 @@ function Device(props: {
 			.then(setDevice)
 			.catch(props.setError)
 			.catch(() => setMode("none"))
+			// eslint-disable-next-line solid/reactivity
 			.finally(() => props.setDeviceLoading(false))
 	}
 
@@ -623,6 +624,7 @@ function Device(props: {
 			.then(setDevice)
 			.catch(props.setError)
 			.catch(() => setMode("none"))
+			// eslint-disable-next-line solid/reactivity
 			.finally(() => props.setDeviceLoading(false))
 	}
 

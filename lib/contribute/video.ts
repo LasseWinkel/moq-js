@@ -139,7 +139,7 @@ export class Encoder {
 
 			// Handle the success event when the updated value is retrieved successfully
 			getRequest.onsuccess = (event) => {
-				const keyFrameIntervalSize = (event.target as IDBRequest).result as number
+				const keyFrameIntervalSize: number | undefined = (event.target as IDBRequest).result
 				// console.log("Key frame interval size successfully retrieved:", keyFrameIntervalSize)
 				resolve(keyFrameIntervalSize)
 			}
@@ -173,7 +173,7 @@ export class Encoder {
 	#start(controller: TransformStreamDefaultController<EncodedVideoChunk>) {
 		this.#encoder = new VideoEncoder({
 			output: (frame, metadata) => {
-				this.#enqueue(controller, frame, metadata)
+				this.#enqueue(controller, frame, metadata).catch((e) => console.warn(e))
 			},
 			error: (err) => {
 				throw err
