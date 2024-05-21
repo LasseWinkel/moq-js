@@ -13,6 +13,8 @@
 		@apply prose-h1:mb-8 prose-h1:mt-12 prose-h1:decoration-8;
 		@apply prose-h2:decoration-4;
 		@apply prose-h3:decoration-2;
+		@apply prose-h3:mt-0;
+		@apply prose-h3:mb-2;
 		@apply prose-li:my-1;
 		@apply prose-img:rounded-lg;
 		@apply prose-figure:object-center prose-figure:text-center prose-img:m-auto;
