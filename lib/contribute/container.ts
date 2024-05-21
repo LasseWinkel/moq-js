@@ -12,6 +12,8 @@ export class Container {
 
 	encode: TransformStream<DecoderConfig | EncodedChunk, Chunk>
 
+	#frameId = 0
+
 	constructor() {
 		this.#mp4 = new MP4.ISOFile()
 		this.#mp4.init()
@@ -110,7 +112,7 @@ export class Container {
 
 		// Add the sample to the container
 		this.#mp4.addSample(this.#track, buffer, {
-			duration: this.#frame.timestamp, // TODO: Don't manipulate the duration field in order to add a frame ID
+			duration: this.#frameId, // TODO: Don't manipulate the duration field in order to add a frame ID
 			dts: this.#frame.timestamp,
 			cts: this.#frame.timestamp, // Static values here lead to these values on the receiving side: 4293440496 4274800177 4293040498 4293176284
 			is_sync: this.#frame.type == "key",
@@ -142,6 +144,7 @@ export class Container {
 			data,
 		})
 
+		this.#frameId++
 		this.#frame = frame
 	}
 

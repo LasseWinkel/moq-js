@@ -12,7 +12,7 @@ import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDatabaseName } fro
 let db: IDBDatabase
 
 // Function to add the time for each frame when they are written to the stream in IndexedDB
-const addFrameToStreamTimestamp = (frame: Chunk, currentDateTime: number, segmentID: number) => {
+const addFrameToStreamTimestamp = (frame: Chunk, currentDateTime: number, segmentID: number, frameId: number) => {
 	if (!db) {
 		console.error("IndexedDB is not initialized.")
 		return
@@ -20,7 +20,7 @@ const addFrameToStreamTimestamp = (frame: Chunk, currentDateTime: number, segmen
 
 	const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readwrite")
 	const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
-	const updateRequest = objectStore.get(frame.timestamp)
+	const updateRequest = objectStore.get(frameId)
 
 	// Handle the success event when the current value is retrieved successfully
 	updateRequest.onsuccess = (event) => {
@@ -36,7 +36,7 @@ const addFrameToStreamTimestamp = (frame: Chunk, currentDateTime: number, segmen
 			_19_segmentID: segmentID,
 		} as IndexedDBFramesSchema
 
-		const putRequest = objectStore.put(updatedFrame, frame.timestamp) // Store the updated value back into the database
+		const putRequest = objectStore.put(updatedFrame, frameId) // Store the updated value back into the database
 
 		// Handle the success event when the updated value is stored successfully
 		putRequest.onsuccess = () => {
@@ -65,6 +65,8 @@ export class Track {
 	#closed = false
 	#error?: Error
 	#notify = new Notify()
+
+	#frameId = 0
 
 	constructor(media: MediaStreamTrack, config: BroadcastConfig) {
 		// Open IndexedDB
@@ -161,7 +163,8 @@ export class Track {
 			await writer.write(chunk)
 			// Check whether the frame is a video frame
 			if (chunk.duration === 0) {
-				addFrameToStreamTimestamp(chunk, Date.now(), segmentID)
+				addFrameToStreamTimestamp(chunk, Date.now(), segmentID, this.#frameId)
+				this.#frameId++
 			}
 		} else {
 			console.warn("dropping chunk", writer.desiredSize)
