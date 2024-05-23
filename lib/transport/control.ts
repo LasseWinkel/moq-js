@@ -147,6 +147,7 @@ export interface Throttle {
 	kind: Msg.Throttle
 	lossRate: number
 	delay: number
+	bandwidthLimit: string
 }
 
 export interface PacketLoss {
@@ -426,6 +427,7 @@ export class Decoder {
 			kind: Msg.Throttle,
 			lossRate: await this.r.u53(),
 			delay: await this.r.u53(),
+			bandwidthLimit: await this.r.string(),
 		}
 	}
 
@@ -588,6 +590,7 @@ export class Encoder {
 		await this.w.u53(Id.Throttle)
 		await this.w.u53(t.lossRate)
 		await this.w.u53(t.delay)
+		await this.w.string(t.bandwidthLimit)
 	}
 
 	async packet_loss(p: PacketLoss) {

@@ -34,6 +34,9 @@ const SUPPORTED_PACKET_LOSS = [0, 1, 5, 10, 20]
 // The supported additional network delays in milliseconds
 const SUPPORTED_ADDITIONAL_DELAYS = [0, 20, 50, 100, 200, 500]
 
+// The supported network bandwidth limits in Mbit/s
+const SUPPORTED_BANDWIDTHS = [0.5, 1, 2, 5, 10, 20, 100]
+
 // Helper function to nicely display large numbers
 function formatNumber(number: number): string {
 	const suffixes = ["", "k", "M", "B", "T"] // Add more suffixes as needed
@@ -227,6 +230,9 @@ export default function Watch(props: { name: string }) {
 	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(2)
 	const [packetLoss, setPacketLoss] = createSignal<number>(0)
 	const [delay, setDelay] = createSignal<number>(0)
+	const [bandwidthLimit, setBandwidthLimit] = createSignal<number>(
+		SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1],
+	)
 
 	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 
@@ -505,7 +511,7 @@ export default function Watch(props: { name: string }) {
 	}, DATA_UPDATE_RATE)
 
 	const throttleConnection = () => {
-		usePlayer()?.throttle(packetLoss(), delay())
+		usePlayer()?.throttle(packetLoss(), delay(), bandwidthLimit().toString())
 	}
 
 	let canvas!: HTMLCanvasElement
@@ -739,12 +745,32 @@ export default function Watch(props: { name: string }) {
 					</select>
 				</div>
 
+				<div class="flex w-1/2 items-center">
+					Bandwidth Limit (Mbit/s):
+					<select
+						class="m-3 w-1/4"
+						onChange={(event) => {
+							setBandwidthLimit(parseFloat(event.target.value))
+							throttleConnection()
+						}}
+					>
+						<For each={SUPPORTED_BANDWIDTHS}>
+							{(value) => (
+								<option value={value} selected={value === bandwidthLimit()}>
+									{value}
+								</option>
+							)}
+						</For>
+					</select>
+				</div>
+
 				<button
 					class="m-3 bg-cyan-600"
 					onClick={() => {
 						usePlayer()?.tc_reset()
 						setPacketLoss(0)
 						setDelay(0)
+						setBandwidthLimit(SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1])
 					}}
 				>
 					Reset tc/netem
