@@ -9,7 +9,7 @@ import BitratePlot from "./bitrate" */
 
 import Fail from "./fail"
 
-import { createEffect, createSignal, onCleanup } from "solid-js"
+import { createEffect, createSignal, For, onCleanup } from "solid-js"
 
 export interface IndexedDBBitRateWithTimestampSchema {
 	bitrate: number
@@ -24,6 +24,12 @@ const LATEST_DATA_DISPLAY_INTERVAL = 5
 
 // Time until data download in seconds
 const DATA_DOWNLOAD_TIME = 60
+
+// The supported rates of network packet loss
+const SUPPORTED_PACKET_LOSS = [0, 1, 5, 10, 20]
+
+// The supported key frame intervals in seconds
+const SUPPORTED_KEY_FRAME_INTERVALS = [0.5, 0.8, 1, 2, 4]
 
 // Helper function to nicely display large numbers
 function formatNumber(number: number): string {
@@ -214,6 +220,9 @@ export default function Watch(props: { name: string }) {
 	const [bitratePlotData, setBitratePlotData] = createSignal<IndexedDBBitRateWithTimestampSchema[]>([]) */
 	const [bitRate, setBitRate] = createSignal<number>(0.0)
 	const [framesPerSecond, setFramesPerSecond] = createSignal<number>(0.0)
+
+	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(2)
+	const [packetLoss, setPacketLoss] = createSignal<number>(0)
 
 	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 
@@ -472,6 +481,22 @@ export default function Watch(props: { name: string }) {
 		setBitRate(parseFloat(((totalAmountRecvBytes() * 8) / LATEST_DATA_DISPLAY_INTERVAL).toFixed(2)))
 		setFramesPerSecond(parseFloat((latestFrames().length / LATEST_DATA_DISPLAY_INTERVAL).toFixed(2)))
 
+		// Adjust key frame interval if number of received frames changes
+		let newKeyFrameInterval: number
+		if (percentageReceivedFrames() < 0.9) {
+			newKeyFrameInterval = 1
+
+			if (percentageReceivedFrames() < 0.8) {
+				newKeyFrameInterval = 0.5
+			}
+		} else {
+			newKeyFrameInterval = 2
+		}
+		if (newKeyFrameInterval !== keyFrameInterval()) {
+			setKeyFrameInterval(newKeyFrameInterval)
+			adjustKeyFrameIntervalSizeInIndexedDB(keyFrameInterval())
+		}
+
 		// setBitratePlotData(bitratePlotData().concat([{ bitrate: bitRate(), timestamp: totalMillisecondsWatched }]))
 	}, DATA_UPDATE_RATE)
 
@@ -651,30 +676,39 @@ export default function Watch(props: { name: string }) {
 					<div class="p-4 text-center">{avgLatestTotalTime().toFixed(2)}</div>
 				</div>
 
-				<div class="flex items-center">
-					Key Frame Interval Size:
+				<div class="flex w-1/2 items-center">
+					Key Frame Interval (s):
 					<select
-						class="m-3"
-						onChange={(event) => adjustKeyFrameIntervalSizeInIndexedDB(parseInt(event.target.value))}
+						disabled
+						class="m-3 w-1/4"
+						onChange={(event) => adjustKeyFrameIntervalSizeInIndexedDB(parseFloat(event.target.value))}
 					>
-						<option selected disabled>
-							Adjust Key Frame Interval
-						</option>
-						<option value="1"> 1</option>
-						<option value="30">30</option>
-						<option value="60">60</option>
+						<For each={SUPPORTED_KEY_FRAME_INTERVALS}>
+							{(value) => (
+								<option value={value} selected={value === keyFrameInterval()}>
+									{value}
+								</option>
+							)}
+						</For>
 					</select>
 				</div>
 
-				<div class="flex items-center">
+				<div class="flex w-1/2 items-center">
 					Packet Loss (%):
-					<select class="m-3" onChange={(event) => usePlayer()?.packet_loss(parseInt(event.target.value))}>
-						<option selected disabled>
-							Adjust Packet Loss
-						</option>
-						<option value="5"> 5</option>
-						<option value="10">10</option>
-						<option value="20">20</option>
+					<select
+						class="m-3 w-1/4"
+						onChange={(event) => {
+							usePlayer()?.packet_loss(parseInt(event.target.value))
+							setPacketLoss(parseInt(event.target.value))
+						}}
+					>
+						<For each={SUPPORTED_PACKET_LOSS}>
+							{(value) => (
+								<option value={value} selected={value === packetLoss()}>
+									{value}
+								</option>
+							)}
+						</For>
 					</select>
 				</div>
 
@@ -682,7 +716,13 @@ export default function Watch(props: { name: string }) {
 					Throttle connection
 				</button> */}
 
-				<button class="m-3 bg-cyan-600" onClick={() => usePlayer()?.tc_reset()}>
+				<button
+					class="m-3 bg-cyan-600"
+					onClick={() => {
+						usePlayer()?.tc_reset()
+						setPacketLoss(0)
+					}}
+				>
 					Reset tc/netem
 				</button>
 

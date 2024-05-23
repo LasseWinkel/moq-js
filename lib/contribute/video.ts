@@ -222,15 +222,22 @@ export class Encoder {
 		const keyFrameIntervalSizeFromIndexedDB = await this.retrieveKeyFrameIntervalSize()
 		// console.log("Key frame interval size from IDB", keyFrameIntervalSizeFromIndexedDB)
 
-		const keyFrameIntervalSize = keyFrameIntervalSizeFromIndexedDB
-			? keyFrameIntervalSizeFromIndexedDB
-			: 2 * this.#encoderConfig.framerate!
+		const keyFrameIntervalSize = keyFrameIntervalSizeFromIndexedDB ? keyFrameIntervalSizeFromIndexedDB : 2
+
+		/* console.log(
+			keyFrameIntervalSize,
+			this.#encoderConfig.framerate!,
+			keyFrameIntervalSize * this.#encoderConfig.framerate!,
+		) */
 
 		if (frame.type === "key") {
 			this.#keyframeCounter = 0
 		} else {
 			this.#keyframeCounter += 1
-			if (this.#keyframeCounter + this.#encoder.encodeQueueSize >= keyFrameIntervalSize) {
+			if (
+				this.#keyframeCounter + this.#encoder.encodeQueueSize >=
+				keyFrameIntervalSize * this.#encoderConfig.framerate!
+			) {
 				this.#keyframeNext = true
 			}
 		}
