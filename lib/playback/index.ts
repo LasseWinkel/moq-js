@@ -151,8 +151,8 @@ export class Player {
 		}
 	}
 
-	throttle() {
-		this.#connection.throttle()
+	throttle(lossRate: number, delay: number) {
+		this.#connection.throttle(lossRate, delay)
 	}
 
 	packet_loss(lossRate: number) {

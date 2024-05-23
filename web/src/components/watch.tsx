@@ -25,11 +25,14 @@ const LATEST_DATA_DISPLAY_INTERVAL = 5
 // Time until data download in seconds
 const DATA_DOWNLOAD_TIME = 60
 
+// The supported key frame intervals in seconds
+const SUPPORTED_KEY_FRAME_INTERVALS = [0.5, 0.8, 1, 2, 4]
+
 // The supported rates of network packet loss
 const SUPPORTED_PACKET_LOSS = [0, 1, 5, 10, 20]
 
-// The supported key frame intervals in seconds
-const SUPPORTED_KEY_FRAME_INTERVALS = [0.5, 0.8, 1, 2, 4]
+// The supported additional network delays in milliseconds
+const SUPPORTED_ADDITIONAL_DELAYS = [0, 20, 50, 100, 200, 500]
 
 // Helper function to nicely display large numbers
 function formatNumber(number: number): string {
@@ -223,6 +226,7 @@ export default function Watch(props: { name: string }) {
 
 	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(2)
 	const [packetLoss, setPacketLoss] = createSignal<number>(0)
+	const [delay, setDelay] = createSignal<number>(0)
 
 	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 
@@ -500,6 +504,10 @@ export default function Watch(props: { name: string }) {
 		// setBitratePlotData(bitratePlotData().concat([{ bitrate: bitRate(), timestamp: totalMillisecondsWatched }]))
 	}, DATA_UPDATE_RATE)
 
+	const throttleConnection = () => {
+		usePlayer()?.throttle(packetLoss(), delay())
+	}
+
 	let canvas!: HTMLCanvasElement
 
 	const [usePlayer, setPlayer] = createSignal<Player | undefined>()
@@ -698,8 +706,8 @@ export default function Watch(props: { name: string }) {
 					<select
 						class="m-3 w-1/4"
 						onChange={(event) => {
-							usePlayer()?.packet_loss(parseInt(event.target.value))
 							setPacketLoss(parseInt(event.target.value))
+							throttleConnection()
 						}}
 					>
 						<For each={SUPPORTED_PACKET_LOSS}>
@@ -712,15 +720,31 @@ export default function Watch(props: { name: string }) {
 					</select>
 				</div>
 
-				{/* <button class="m-3 bg-cyan-600" onClick={() => usePlayer()?.throttle()}>
-					Throttle connection
-				</button> */}
+				<div class="flex w-1/2 items-center">
+					Network Delay (ms):
+					<select
+						class="m-3 w-1/4"
+						onChange={(event) => {
+							setDelay(parseInt(event.target.value))
+							throttleConnection()
+						}}
+					>
+						<For each={SUPPORTED_ADDITIONAL_DELAYS}>
+							{(value) => (
+								<option value={value} selected={value === delay()}>
+									{value}
+								</option>
+							)}
+						</For>
+					</select>
+				</div>
 
 				<button
 					class="m-3 bg-cyan-600"
 					onClick={() => {
 						usePlayer()?.tc_reset()
 						setPacketLoss(0)
+						setDelay(0)
 					}}
 				>
 					Reset tc/netem

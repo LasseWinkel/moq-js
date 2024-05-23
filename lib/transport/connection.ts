@@ -55,8 +55,8 @@ export class Connection {
 		return this.#subscriber.subscribe(namespace, track)
 	}
 
-	throttle() {
-		return this.#subscriber.throttle()
+	throttle(lossRate: number, delay: number) {
+		return this.#subscriber.throttle(lossRate, delay)
 	}
 
 	packet_loss(lossRate: number) {

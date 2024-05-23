@@ -145,6 +145,8 @@ export interface Unannounce {
 
 export interface Throttle {
 	kind: Msg.Throttle
+	lossRate: number
+	delay: number
 }
 
 export interface PacketLoss {
@@ -419,10 +421,11 @@ export class Decoder {
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/require-await
 	private async throttle(): Promise<Throttle> {
 		return {
 			kind: Msg.Throttle,
+			lossRate: await this.r.u53(),
+			delay: await this.r.u53(),
 		}
 	}
 
@@ -469,7 +472,7 @@ export class Encoder {
 			case Msg.Unannounce:
 				return this.unannounce(m)
 			case Msg.Throttle:
-				return this.throttle()
+				return this.throttle(m)
 			case Msg.PacketLoss:
 				return this.packet_loss(m)
 			case Msg.TcReset:
@@ -581,8 +584,10 @@ export class Encoder {
 		await this.w.string(a.namespace)
 	}
 
-	async throttle() {
+	async throttle(t: Throttle) {
 		await this.w.u53(Id.Throttle)
+		await this.w.u53(t.lossRate)
+		await this.w.u53(t.delay)
 	}
 
 	async packet_loss(p: PacketLoss) {

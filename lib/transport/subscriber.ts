@@ -81,16 +81,18 @@ export class Subscriber {
 		return subscribe
 	}
 
-	async throttle() {
+	async throttle(lossRate: number, delay: number) {
 		await this.#control.send({
 			kind: Control.Msg.Throttle,
+			lossRate,
+			delay,
 		})
 	}
 
 	async packet_loss(lossRate: number) {
 		await this.#control.send({
 			kind: Control.Msg.PacketLoss,
-			lossRate: lossRate,
+			lossRate,
 		})
 	}
 
