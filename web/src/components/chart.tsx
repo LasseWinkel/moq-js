@@ -37,7 +37,7 @@ const Plot = (props: ChartProps) => {
 					},
 					{
 						label: "Frame Segmentation Time",
-						data: frames.map((aFrame) => aFrame._2_segmentationTime),
+						data: frames.map((aFrame) => aFrame._2_encodingTime),
 						borderColor: "blue",
 						tension: 0,
 					},
@@ -49,7 +49,7 @@ const Plot = (props: ChartProps) => {
 					},
 					{
 						label: "Frame Render Time",
-						data: frames.map((aFrame) => aFrame._6_renderFrameTime),
+						data: frames.map((aFrame) => aFrame._6_decodingTime),
 						borderColor: "yellow",
 						tension: 0.1,
 					},

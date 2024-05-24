@@ -38,7 +38,7 @@ function addRenderFrameTimestamp(frame: VideoFrame, currentTimeInMilliseconds: n
 
 			const updatedFrame = {
 				...currentFrame,
-				_6_renderFrameTime: currentTimeInMilliseconds - currentFrame._5_receiveMp4FrameTimestamp,
+				_6_decodingTime: currentTimeInMilliseconds - currentFrame._5_receiveMp4FrameTimestamp,
 				_7_renderFrameTimestamp: currentTimeInMilliseconds,
 				_8_totalTime: currentTimeInMilliseconds - currentFrame._1_rawVideoTimestamp,
 				_12_renderTimestampAttribute: frame.timestamp,

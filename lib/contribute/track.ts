@@ -28,7 +28,7 @@ const addFrameToStreamTimestamp = (frame: Chunk, currentDateTime: number, segmen
 
 		const updatedFrame = {
 			...currentFrame,
-			_2_segmentationTime: currentDateTime - currentFrame._1_rawVideoTimestamp,
+			_2_encodingTime: currentDateTime - currentFrame._1_rawVideoTimestamp,
 			_3_segmentationTimestamp: currentDateTime,
 			_10_encodedTimestampAttribute: frame.timestamp,
 			_13_sentBytes: frame.data.byteLength - 108, // 108 bytes are somehow added along the path but not received

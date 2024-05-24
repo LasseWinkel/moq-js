@@ -12,7 +12,7 @@ const ChartComponent = (props: ChartProps) => {
 		const trace = [
 			{
 				x: props.frames.map((aFrame) => (aFrame._7_renderFrameTimestamp - props.watchStartTime) / 1000),
-				y: props.frames.map((aFrame) => aFrame._2_segmentationTime),
+				y: props.frames.map((aFrame) => aFrame._2_encodingTime),
 				name: "Segmentation Time",
 				mode: "markers",
 				marker: { color: "green" },
@@ -26,7 +26,7 @@ const ChartComponent = (props: ChartProps) => {
 			},
 			{
 				x: props.frames.map((aFrame) => (aFrame._7_renderFrameTimestamp - props.watchStartTime) / 1000),
-				y: props.frames.map((aFrame) => aFrame._6_renderFrameTime),
+				y: props.frames.map((aFrame) => aFrame._6_decodingTime),
 				name: "Render time",
 				mode: "markers",
 				marker: { color: "blue" },

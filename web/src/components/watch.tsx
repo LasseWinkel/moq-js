@@ -189,35 +189,35 @@ export default function Watch(props: { name: string }) {
 	const [latestSkippedFrames, setLatestSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [percentageReceivedFrames, setPercentageReceivedFrames] = createSignal<number>(0.0)
 
-	/* const [minSegmentationTime, setMinSegmentationTime] = createSignal<number>(0)
-	const [maxSegmentationTime, setMaxSegmentationTime] = createSignal<number>(0)
-	const [avgSegmentationTime, setAvgSegmentationTime] = createSignal<number>(0.0)
+	/* const [minEncodingTime, setMinEncodingTime] = createSignal<number>(0)
+	const [maxEncodingTime, setMaxEncodingTime] = createSignal<number>(0)
+	const [avgEncodingTime, setAvgEncodingTime] = createSignal<number>(0.0)
 	const [minPropagationTime, setMinPropagationTime] = createSignal<number>(0)
 	const [maxPropagationTime, setMaxPropagationTime] = createSignal<number>(0)
 	const [avgPropagationTime, setAvgPropagationTime] = createSignal<number>(0.0)
-	const [minRenderTime, setMinRenderTime] = createSignal<number>(0)
-	const [maxRenderTime, setMaxRenderTime] = createSignal<number>(0)
-	const [avgRenderTime, setAvgRenderTime] = createSignal<number>(0.0)
+	const [minDecodingTime, setMinDecodingTime] = createSignal<number>(0)
+	const [maxDecodingTime, setMaxDecodingTime] = createSignal<number>(0)
+	const [avgDecodingTime, setAvgDecodingTime] = createSignal<number>(0.0)
 	const [minTotalTime, setMinTotalTime] = createSignal<number>(0)
 	const [maxTotalTime, setMaxTotalTime] = createSignal<number>(0)
 	const [avgTotalTime, setAvgTotalTime] = createSignal<number>(0.0) */
 
-	const [minLatestSegmentationTime, setMinLatestSegmentationTime] = createSignal<number>(0)
-	const [maxLatestSegmentationTime, setMaxLatestSegmentationTime] = createSignal<number>(0)
-	const [avgLatestSegmentationTime, setAvgLatestSegmentationTime] = createSignal<number>(0.0)
+	const [minLatestEncodingTime, setMinLatestEncodingTime] = createSignal<number>(0)
+	const [maxLatestEncodingTime, setMaxLatestEncodingTime] = createSignal<number>(0)
+	const [avgLatestEncodingTime, setAvgLatestEncodingTime] = createSignal<number>(0.0)
 	const [minLatestPropagationTime, setMinLatestPropagationTime] = createSignal<number>(0)
 	const [maxLatestPropagationTime, setMaxLatestPropagationTime] = createSignal<number>(0)
 	const [avgLatestPropagationTime, setAvgLatestPropagationTime] = createSignal<number>(0.0)
-	const [minLatestRenderTime, setMinLatestRenderTime] = createSignal<number>(0)
-	const [maxLatestRenderTime, setMaxLatestRenderTime] = createSignal<number>(0)
-	const [avgLatestRenderTime, setAvgLatestRenderTime] = createSignal<number>(0.0)
+	const [minLatestDecodingTime, setMinLatestDecodingTime] = createSignal<number>(0)
+	const [maxLatestDecodingTime, setMaxLatestDecodingTime] = createSignal<number>(0)
+	const [avgLatestDecodingTime, setAvgLatestDecodingTime] = createSignal<number>(0.0)
 	const [minLatestTotalTime, setMinLatestTotalTime] = createSignal<number>(0)
 	const [maxLatestTotalTime, setMaxLatestTotalTime] = createSignal<number>(0)
 	const [avgLatestTotalTime, setAvgLatestTotalTime] = createSignal<number>(0.0)
 
-	const [lastRenderedFrameSegmentationTime, setLastRenderedFrameSegmentationTime] = createSignal<number>(0)
+	const [lastRenderedFrameEncodingTime, setLastRenderedFrameEncodingTime] = createSignal<number>(0)
 	const [lastRenderedFramePropagationTime, setLastRenderedFramePropagationTime] = createSignal<number>(0)
-	const [lastRenderedFrameRenderTime, setLastRenderedFrameRenderTime] = createSignal<number>(0)
+	const [lastRenderedFrameDecodingTime, setLastRenderedFrameDecodingTime] = createSignal<number>(0)
 	const [lastRenderedFrameTotalTime, setLastRenderedFrameTotalTime] = createSignal<number>(0)
 
 	/* const [showFramesPlot, setShowFramesPlot] = createSignal<boolean>(false)
@@ -299,28 +299,28 @@ export default function Watch(props: { name: string }) {
 			setTotalSkippedFrames(allSkippedFrames)
 			setPercentageReceivedFrames(allReceivedFrames.length / frames.length)
 
-			/* let minSegmentationTime = Number.MAX_SAFE_INTEGER
-			let maxSegmentationTime = Number.MIN_SAFE_INTEGER
-			let sumSegmentationTime = 0
+			/* let minEncodingTime = Number.MAX_SAFE_INTEGER
+			let maxEncodingTime = Number.MIN_SAFE_INTEGER
+			let sumEncodingTime = 0
 			let minPropagationTime = Number.MAX_SAFE_INTEGER
 			let maxPropagationTime = Number.MIN_SAFE_INTEGER
 			let sumPropagationTime = 0
-			let minRenderTime = Number.MAX_SAFE_INTEGER
-			let maxRenderTime = Number.MIN_SAFE_INTEGER
-			let sumRenderTime = 0
+			let minDecodingTime = Number.MAX_SAFE_INTEGER
+			let maxDecodingTime = Number.MIN_SAFE_INTEGER
+			let sumDecodingTime = 0
 			let minTotalTime = Number.MAX_SAFE_INTEGER
 			let maxTotalTime = Number.MIN_SAFE_INTEGER
 			let sumTotalTime = 0
 			allReceivedFrames.forEach((frame) => {
-				const frameSegmentationTime = frame._2_segmentationTime
-				if (frameSegmentationTime < minSegmentationTime) {
-					minSegmentationTime = frameSegmentationTime
+				const frameEncodingTime = frame._2_encodingTime
+				if (frameEncodingTime < minEncodingTime) {
+					minEncodingTime = frameEncodingTime
 				}
-				if (frameSegmentationTime > maxSegmentationTime) {
-					maxSegmentationTime = frameSegmentationTime
+				if (frameEncodingTime > maxEncodingTime) {
+					maxEncodingTime = frameEncodingTime
 				}
-				if (frameSegmentationTime) {
-					sumSegmentationTime += frameSegmentationTime
+				if (frameEncodingTime) {
+					sumEncodingTime += frameEncodingTime
 				}
 
 				const framePropagationTime = frame._4_propagationTime
@@ -334,15 +334,15 @@ export default function Watch(props: { name: string }) {
 					sumPropagationTime += framePropagationTime
 				}
 
-				const frameRenderTime = frame._6_renderFrameTime
-				if (frameRenderTime < minRenderTime) {
-					minRenderTime = frameRenderTime
+				const frameDecodingTime = frame._6_decodingTime
+				if (frameDecodingTime < minDecodingTime) {
+					minDecodingTime = frameDecodingTime
 				}
-				if (frameRenderTime > maxRenderTime) {
-					maxRenderTime = frameRenderTime
+				if (frameDecodingTime > maxDecodingTime) {
+					maxDecodingTime = frameDecodingTime
 				}
-				if (frameRenderTime) {
-					sumRenderTime += frameRenderTime
+				if (frameDecodingTime) {
+					sumDecodingTime += frameDecodingTime
 				}
 
 				const frameTotalTime = frame._8_totalTime
@@ -358,17 +358,17 @@ export default function Watch(props: { name: string }) {
 			})
 
 
-			setMinSegmentationTime(minSegmentationTime)
-			setMaxSegmentationTime(maxSegmentationTime)
-			setAvgSegmentationTime(sumSegmentationTime / allReceivedFrames.length)
+			setMinEncodingTime(minEncodingTime)
+			setMaxEncodingTime(maxEncodingTime)
+			setAvgEncodingTime(sumEncodingTime / allReceivedFrames.length)
 
 			setMinPropagationTime(minPropagationTime)
 			setMaxPropagationTime(maxPropagationTime)
 			setAvgPropagationTime(sumPropagationTime / allReceivedFrames.length)
 
-			setMinRenderTime(minRenderTime)
-			setMaxRenderTime(maxRenderTime)
-			setAvgRenderTime(sumRenderTime / allReceivedFrames.length)
+			setMinDecodingTime(minDecodingTime)
+			setMaxDecodingTime(maxDecodingTime)
+			setAvgDecodingTime(sumDecodingTime / allReceivedFrames.length)
 
 			setMinTotalTime(minTotalTime)
 			setMaxTotalTime(maxTotalTime)
@@ -389,30 +389,30 @@ export default function Watch(props: { name: string }) {
 
 			let totalAmountRecvBytes = 0
 
-			let maxLatestSegmentationTime = Number.MIN_SAFE_INTEGER
-			let minLatestSegmentationTime = Number.MAX_SAFE_INTEGER
-			let sumLatestSegmentationTime = 0
+			let maxLatestEncodingTime = Number.MIN_SAFE_INTEGER
+			let minLatestEncodingTime = Number.MAX_SAFE_INTEGER
+			let sumLatestEncodingTime = 0
 			let minLatestPropagationTime = Number.MAX_SAFE_INTEGER
 			let maxLatestPropagationTime = Number.MIN_SAFE_INTEGER
 			let sumLatestPropagationTime = 0
-			let minLatestRenderTime = Number.MAX_SAFE_INTEGER
-			let maxLatestRenderTime = Number.MIN_SAFE_INTEGER
-			let sumLatestRenderTime = 0
+			let minLatestDecodingTime = Number.MAX_SAFE_INTEGER
+			let maxLatestDecodingTime = Number.MIN_SAFE_INTEGER
+			let sumLatestDecodingTime = 0
 			let minLatestTotalTime = Number.MAX_SAFE_INTEGER
 			let maxLatestTotalTime = Number.MIN_SAFE_INTEGER
 			let sumLatestTotalTime = 0
 			latestFrames.forEach((frame) => {
 				totalAmountRecvBytes += frame._14_receivedBytes
 
-				const frameSegmentationTime = frame._2_segmentationTime
-				if (frameSegmentationTime < minLatestSegmentationTime) {
-					minLatestSegmentationTime = frameSegmentationTime
+				const frameEncodingTime = frame._2_encodingTime
+				if (frameEncodingTime < minLatestEncodingTime) {
+					minLatestEncodingTime = frameEncodingTime
 				}
-				if (frameSegmentationTime > maxLatestSegmentationTime) {
-					maxLatestSegmentationTime = frameSegmentationTime
+				if (frameEncodingTime > maxLatestEncodingTime) {
+					maxLatestEncodingTime = frameEncodingTime
 				}
-				if (frameSegmentationTime) {
-					sumLatestSegmentationTime += frameSegmentationTime
+				if (frameEncodingTime) {
+					sumLatestEncodingTime += frameEncodingTime
 				}
 
 				const framePropagationTime = frame._4_propagationTime
@@ -426,15 +426,15 @@ export default function Watch(props: { name: string }) {
 					sumLatestPropagationTime += framePropagationTime
 				}
 
-				const frameRenderTime = frame._6_renderFrameTime
-				if (frameRenderTime < minLatestRenderTime) {
-					minLatestRenderTime = frameRenderTime
+				const frameDecodingTime = frame._6_decodingTime
+				if (frameDecodingTime < minLatestDecodingTime) {
+					minLatestDecodingTime = frameDecodingTime
 				}
-				if (frameRenderTime > maxLatestRenderTime) {
-					maxLatestRenderTime = frameRenderTime
+				if (frameDecodingTime > maxLatestDecodingTime) {
+					maxLatestDecodingTime = frameDecodingTime
 				}
-				if (frameRenderTime) {
-					sumLatestRenderTime += frameRenderTime
+				if (frameDecodingTime) {
+					sumLatestDecodingTime += frameDecodingTime
 				}
 
 				const frameTotalTime = frame._8_totalTime
@@ -451,17 +451,17 @@ export default function Watch(props: { name: string }) {
 
 			setTotalAmountRecvBytes(totalAmountRecvBytes)
 
-			setMinLatestSegmentationTime(minLatestSegmentationTime)
-			setMaxLatestSegmentationTime(maxLatestSegmentationTime)
-			setAvgLatestSegmentationTime(sumLatestSegmentationTime / latestFrames.length)
+			setMinLatestEncodingTime(minLatestEncodingTime)
+			setMaxLatestEncodingTime(maxLatestEncodingTime)
+			setAvgLatestEncodingTime(sumLatestEncodingTime / latestFrames.length)
 
 			setMinLatestPropagationTime(minLatestPropagationTime)
 			setMaxLatestPropagationTime(maxLatestPropagationTime)
 			setAvgLatestPropagationTime(sumLatestPropagationTime / latestFrames.length)
 
-			setMinLatestRenderTime(minLatestRenderTime)
-			setMaxLatestRenderTime(maxLatestRenderTime)
-			setAvgLatestRenderTime(sumLatestRenderTime / latestFrames.length)
+			setMinLatestDecodingTime(minLatestDecodingTime)
+			setMaxLatestDecodingTime(maxLatestDecodingTime)
+			setAvgLatestDecodingTime(sumLatestDecodingTime / latestFrames.length)
 
 			setMinLatestTotalTime(minLatestTotalTime)
 			setMaxLatestTotalTime(maxLatestTotalTime)
@@ -473,9 +473,9 @@ export default function Watch(props: { name: string }) {
 
 			if (lastRenderedFrame) {
 				setLastRenderedFrame(lastRenderedFrame)
-				setLastRenderedFrameSegmentationTime(lastRenderedFrame._2_segmentationTime)
+				setLastRenderedFrameEncodingTime(lastRenderedFrame._2_encodingTime)
 				setLastRenderedFramePropagationTime(lastRenderedFrame._4_propagationTime)
-				setLastRenderedFrameRenderTime(lastRenderedFrame._6_renderFrameTime)
+				setLastRenderedFrameDecodingTime(lastRenderedFrame._6_decodingTime)
 				setLastRenderedFrameTotalTime(lastRenderedFrame._8_totalTime)
 			}
 		}
@@ -633,10 +633,10 @@ export default function Watch(props: { name: string }) {
 				<div class="p-5 text-center">Max</div>
 				<div class="p-5 text-center">Avg</div>
 
-				<div class="p-5 text-center">Segmentation Time:</div>
-				<div class="p-5 text-center">{minSegmentationTime()}</div>
-				<div class="p-5 text-center">{maxSegmentationTime()}</div>
-				<div class="p-5 text-center">{avgSegmentationTime().toFixed(2)}</div>
+				<div class="p-5 text-center">Encoding Time:</div>
+				<div class="p-5 text-center">{minEncodingTime()}</div>
+				<div class="p-5 text-center">{maxEncodingTime()}</div>
+				<div class="p-5 text-center">{avgEncodingTime().toFixed(2)}</div>
 
 				<div class="p-5 text-center">Propagation Time:</div>
 				<div class="p-5 text-center">{minPropagationTime()}</div>
@@ -644,9 +644,9 @@ export default function Watch(props: { name: string }) {
 				<div class="p-5 text-center">{avgPropagationTime().toFixed(2)}</div>
 
 				<div class="p-5 text-center">Render Time:</div>
-				<div class="p-5 text-center">{minRenderTime()}</div>
-				<div class="p-5 text-center">{maxRenderTime()}</div>
-				<div class="p-5 text-center">{avgRenderTime().toFixed(2)}</div>
+				<div class="p-5 text-center">{minDecodingTime()}</div>
+				<div class="p-5 text-center">{maxDecodingTime()}</div>
+				<div class="p-5 text-center">{avgDecodingTime().toFixed(2)}</div>
 
 				<div class="p-5 text-center">Total Time:</div>
 				<div class="p-5 text-center">{minTotalTime()}</div>
@@ -665,29 +665,29 @@ export default function Watch(props: { name: string }) {
 					<div class="p-4 text-center">Last</div>
 					<div class="p-4 text-center">Avg</div>
 
-					<div class="p-4 text-center">Segmentation Time:</div>
-					<div class="p-4 text-center">{minLatestSegmentationTime()}</div>
-					<div class="p-4 text-center">{maxLatestSegmentationTime()}</div>
-					<div class="p-4 text-center">{lastRenderedFrameSegmentationTime()}</div>
-					<div class="p-4 text-center">{avgLatestSegmentationTime().toFixed(2)}</div>
+					<div class="p-4 text-center">Encoding Time:</div>
+					<div class="p-4 text-center">{minLatestEncodingTime()} ms</div>
+					<div class="p-4 text-center">{maxLatestEncodingTime()} ms</div>
+					<div class="p-4 text-center">{lastRenderedFrameEncodingTime()} ms</div>
+					<div class="p-4 text-center">{avgLatestEncodingTime().toFixed(2)} ms</div>
 
 					<div class="p-4 text-center">Propagation Time:</div>
-					<div class="p-4 text-center">{minLatestPropagationTime()}</div>
-					<div class="p-4 text-center">{maxLatestPropagationTime()}</div>
-					<div class="p-4 text-center">{lastRenderedFramePropagationTime()}</div>
-					<div class="p-4 text-center">{avgLatestPropagationTime().toFixed(2)}</div>
+					<div class="p-4 text-center">{minLatestPropagationTime()} ms</div>
+					<div class="p-4 text-center">{maxLatestPropagationTime()} ms</div>
+					<div class="p-4 text-center">{lastRenderedFramePropagationTime()} ms</div>
+					<div class="p-4 text-center">{avgLatestPropagationTime().toFixed(2)} ms</div>
 
-					<div class="p-4 text-center">Render Time:</div>
-					<div class="p-4 text-center">{minLatestRenderTime()}</div>
-					<div class="p-4 text-center">{maxLatestRenderTime()}</div>
-					<div class="p-4 text-center">{lastRenderedFrameRenderTime()}</div>
-					<div class="p-4 text-center">{avgLatestRenderTime().toFixed(2)}</div>
+					<div class="p-4 text-center">Decoding Time:</div>
+					<div class="p-4 text-center">{minLatestDecodingTime()} ms</div>
+					<div class="p-4 text-center">{maxLatestDecodingTime()} ms</div>
+					<div class="p-4 text-center">{lastRenderedFrameDecodingTime()} ms</div>
+					<div class="p-4 text-center">{avgLatestDecodingTime().toFixed(2)} ms</div>
 
 					<div class="p-4 text-center">Total Time:</div>
-					<div class="p-4 text-center">{minLatestTotalTime()}</div>
-					<div class="p-4 text-center">{maxLatestTotalTime()}</div>
-					<div class="p-4 text-center">{lastRenderedFrameTotalTime()}</div>
-					<div class="p-4 text-center">{avgLatestTotalTime().toFixed(2)}</div>
+					<div class="p-4 text-center">{minLatestTotalTime()} ms</div>
+					<div class="p-4 text-center">{maxLatestTotalTime()} ms</div>
+					<div class="p-4 text-center">{lastRenderedFrameTotalTime()} ms</div>
+					<div class="p-4 text-center">{avgLatestTotalTime().toFixed(2)} ms</div>
 				</div>
 
 				<div class="flex w-full">
