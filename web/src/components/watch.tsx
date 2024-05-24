@@ -690,99 +690,107 @@ export default function Watch(props: { name: string }) {
 					<div class="p-4 text-center">{avgLatestTotalTime().toFixed(2)}</div>
 				</div>
 
-				<div class="flex w-1/2 items-center">
-					Key Frame Interval (s):
-					<select
-						disabled
-						class="m-3 w-1/4"
-						onChange={(event) => adjustKeyFrameIntervalSizeInIndexedDB(parseFloat(event.target.value))}
-					>
-						<For each={SUPPORTED_KEY_FRAME_INTERVALS}>
-							{(value) => (
-								<option value={value} selected={value === keyFrameInterval()}>
-									{value}
-								</option>
-							)}
-						</For>
-					</select>
+				<div class="flex w-full">
+					<div class="w-1/2">
+						<div class="flex items-center">
+							Key Frame Interval (s):
+							<select
+								disabled
+								class="m-3 w-1/3"
+								onChange={(event) =>
+									adjustKeyFrameIntervalSizeInIndexedDB(parseFloat(event.target.value))
+								}
+							>
+								<For each={SUPPORTED_KEY_FRAME_INTERVALS}>
+									{(value) => (
+										<option value={value} selected={value === keyFrameInterval()}>
+											{value}
+										</option>
+									)}
+								</For>
+							</select>
+						</div>
+
+						<div class="flex items-center">
+							Packet Loss (%):
+							<select
+								class="m-3 w-1/3"
+								onChange={(event) => {
+									setPacketLoss(parseInt(event.target.value))
+									throttleConnection()
+								}}
+							>
+								<For each={SUPPORTED_PACKET_LOSS}>
+									{(value) => (
+										<option value={value} selected={value === packetLoss()}>
+											{value}
+										</option>
+									)}
+								</For>
+							</select>
+						</div>
+
+						<div class="flex items-center">
+							Network Delay (ms):
+							<select
+								class="m-3 w-1/3"
+								onChange={(event) => {
+									setDelay(parseInt(event.target.value))
+									throttleConnection()
+								}}
+							>
+								<For each={SUPPORTED_ADDITIONAL_DELAYS}>
+									{(value) => (
+										<option value={value} selected={value === delay()}>
+											{value}
+										</option>
+									)}
+								</For>
+							</select>
+						</div>
+
+						<div class="flex items-center">
+							Bandwidth Limit (Mbit/s):
+							<select
+								class="m-3 w-1/3"
+								onChange={(event) => {
+									setBandwidthLimit(parseFloat(event.target.value))
+									throttleConnection()
+								}}
+							>
+								<For each={SUPPORTED_BANDWIDTHS}>
+									{(value) => (
+										<option value={value} selected={value === bandwidthLimit()}>
+											{value}
+										</option>
+									)}
+								</For>
+							</select>
+						</div>
+					</div>
+
+					<div class="flex w-1/2 flex-col items-center justify-center">
+						<button
+							class="m-3 bg-cyan-600 hover:bg-cyan-800"
+							onClick={() => {
+								usePlayer()?.tc_reset()
+								setPacketLoss(0)
+								setDelay(0)
+								setBandwidthLimit(SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1])
+							}}
+						>
+							Reset tc/netem
+						</button>
+
+						<button
+							class="m-3 bg-cyan-600 hover:bg-cyan-800"
+							// eslint-disable-next-line @typescript-eslint/no-misused-promises
+							onClick={async () => downloadFrameData(await retrieveFramesFromIndexedDB())}
+						>
+							Download data
+						</button>
+					</div>
 				</div>
-
-				<div class="flex w-1/2 items-center">
-					Packet Loss (%):
-					<select
-						class="m-3 w-1/4"
-						onChange={(event) => {
-							setPacketLoss(parseInt(event.target.value))
-							throttleConnection()
-						}}
-					>
-						<For each={SUPPORTED_PACKET_LOSS}>
-							{(value) => (
-								<option value={value} selected={value === packetLoss()}>
-									{value}
-								</option>
-							)}
-						</For>
-					</select>
-				</div>
-
-				<div class="flex w-1/2 items-center">
-					Network Delay (ms):
-					<select
-						class="m-3 w-1/4"
-						onChange={(event) => {
-							setDelay(parseInt(event.target.value))
-							throttleConnection()
-						}}
-					>
-						<For each={SUPPORTED_ADDITIONAL_DELAYS}>
-							{(value) => (
-								<option value={value} selected={value === delay()}>
-									{value}
-								</option>
-							)}
-						</For>
-					</select>
-				</div>
-
-				<div class="flex w-1/2 items-center">
-					Bandwidth Limit (Mbit/s):
-					<select
-						class="m-3 w-1/4"
-						onChange={(event) => {
-							setBandwidthLimit(parseFloat(event.target.value))
-							throttleConnection()
-						}}
-					>
-						<For each={SUPPORTED_BANDWIDTHS}>
-							{(value) => (
-								<option value={value} selected={value === bandwidthLimit()}>
-									{value}
-								</option>
-							)}
-						</For>
-					</select>
-				</div>
-
-				<button
-					class="m-3 bg-cyan-600"
-					onClick={() => {
-						usePlayer()?.tc_reset()
-						setPacketLoss(0)
-						setDelay(0)
-						setBandwidthLimit(SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1])
-					}}
-				>
-					Reset tc/netem
-				</button>
-
-				<button
-					class="m-3 bg-cyan-600"
-					// eslint-disable-next-line @typescript-eslint/no-misused-promises
-					onClick={async () => downloadFrameData(await retrieveFramesFromIndexedDB())}
-				>
-					Download data
-				</button>
 			</div>
 		</div>
 	)
