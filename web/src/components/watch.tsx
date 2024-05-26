@@ -181,7 +181,7 @@ export default function Watch(props: { name: string }) {
 	const [streamWatchTime, setStreamWatchTime] = createSignal<number>(0)
 	// const [streamStartWatchTime, setStreamStartWatchTime] = createSignal<number>(0)
 	const [totalAmountRecvBytes, setTotalAmountRecvBytes] = createSignal<number>(0)
-	// const [allFrames, setAllFrames] = createSignal<IndexedDBFramesSchema[]>([])
+	const [allFrames, setAllFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	// const [receivedFrames, setReceivedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [latestFrames, setLatestFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [lastRenderedFrame, setLastRenderedFrame] = createSignal<IndexedDBFramesSchema>()
@@ -276,7 +276,7 @@ export default function Watch(props: { name: string }) {
 
 				setTimeout(() => {
 					// mediaRecorder.stop()
-					// downloadFrameData(allFrames())
+					downloadFrameData(allFrames())
 					// clearInterval(updateDataInterval)
 				}, DATA_DOWNLOAD_TIME * 1000)
 			}
@@ -294,7 +294,7 @@ export default function Watch(props: { name: string }) {
 
 			// ALL FRAMES
 
-			// setAllFrames(frames)
+			setAllFrames(frames)
 			// setReceivedFrames(allReceivedFrames)
 			setTotalSkippedFrames(allSkippedFrames)
 			setPercentageReceivedFrames(allReceivedFrames.length / frames.length)
