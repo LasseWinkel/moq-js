@@ -25,6 +25,9 @@ const LATEST_DATA_DISPLAY_INTERVAL = 5
 // Time until data download in seconds
 const DATA_DOWNLOAD_TIME = 60
 
+// Stall event threshold
+const STALL_EVENT_THRESHOLD = 35
+
 // The supported key frame intervals in seconds
 const SUPPORTED_KEY_FRAME_INTERVALS = [0.5, 0.8, 1, 2, 4]
 
@@ -187,6 +190,8 @@ export default function Watch(props: { name: string }) {
 	const [lastRenderedFrame, setLastRenderedFrame] = createSignal<IndexedDBFramesSchema>()
 	const [totalSkippedFrames, setTotalSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [latestSkippedFrames, setLatestSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
+	const [totalStallDuration, setTotalStallDuration] = createSignal<number>(0)
+	const [latestStallDuration, setLatestStallDuration] = createSignal<number>(0)
 	const [percentageReceivedFrames, setPercentageReceivedFrames] = createSignal<number>(0.0)
 
 	/* const [minEncodingTime, setMinEncodingTime] = createSignal<number>(0)
@@ -291,6 +296,7 @@ export default function Watch(props: { name: string }) {
 
 			const allReceivedFrames = frames.filter((frame) => frame._5_receiveMp4FrameTimestamp !== undefined)
 			const allSkippedFrames = frames.filter((frame) => frame._5_receiveMp4FrameTimestamp === undefined)
+			const allRenderedFrames = frames.filter((frame) => frame._7_renderFrameTimestamp !== undefined)
 
 			// ALL FRAMES
 
@@ -298,6 +304,20 @@ export default function Watch(props: { name: string }) {
 			// setReceivedFrames(allReceivedFrames)
 			setTotalSkippedFrames(allSkippedFrames)
 			setPercentageReceivedFrames(allReceivedFrames.length / frames.length)
+
+			let totalSumRenderDifference = 0
+
+			for (let i = 0; i < allRenderedFrames.length - 1; i++) {
+				const currentTimestamp = allRenderedFrames[i]._7_renderFrameTimestamp
+				const nextTimestamp = allRenderedFrames[i + 1]._7_renderFrameTimestamp
+				const difference = nextTimestamp - currentTimestamp
+
+				if (difference > STALL_EVENT_THRESHOLD) {
+					totalSumRenderDifference += difference - STALL_EVENT_THRESHOLD
+				}
+			}
+
+			setTotalStallDuration(totalSumRenderDifference)
 
 			/* let minEncodingTime = Number.MAX_SAFE_INTEGER
 			let maxEncodingTime = Number.MIN_SAFE_INTEGER
@@ -383,9 +403,26 @@ export default function Watch(props: { name: string }) {
 			const latestSkippedFrames = allSkippedFrames.filter(
 				(frame) => timeOfDataRetrieval - frame._3_segmentationTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
 			)
+			const latestRenderedFrames = allRenderedFrames.filter(
+				(frame) => timeOfDataRetrieval - frame._7_renderFrameTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
+			)
 
 			setLatestFrames(latestFrames)
 			setLatestSkippedFrames(latestSkippedFrames)
+
+			let latestSumRenderDifference = 0
+
+			for (let i = 0; i < latestRenderedFrames.length - 1; i++) {
+				const currentTimestamp = latestRenderedFrames[i]._7_renderFrameTimestamp
+				const nextTimestamp = latestRenderedFrames[i + 1]._7_renderFrameTimestamp
+				const difference = nextTimestamp - currentTimestamp
+
+				if (difference > STALL_EVENT_THRESHOLD) {
+					latestSumRenderDifference += difference - STALL_EVENT_THRESHOLD
+				}
+			}
+
+			setLatestStallDuration(latestSumRenderDifference)
 
 			let totalAmountRecvBytes = 0
 
@@ -612,6 +649,18 @@ export default function Watch(props: { name: string }) {
 					<div class="flex items-center">
 						<span>Latest Frames Skipped: &nbsp;</span>
 						<p>{latestSkippedFrames().length}</p>
+					</div>
+				</div>
+
+				<div class="flex">
+					<div class="mr-20 flex items-center">
+						<span>Total Stall Duration: &nbsp;</span>
+						<p>{(totalStallDuration() / 1000).toFixed(2)}s</p>
+					</div>
+
+					<div class="flex items-center">
+						<span>Latest Stall Duration: &nbsp;</span>
+						<p>{(latestStallDuration() / 1000).toFixed(2)}s</p>
 					</div>
 				</div>
 
