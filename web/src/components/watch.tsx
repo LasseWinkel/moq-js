@@ -256,7 +256,7 @@ export default function Watch(props: { name: string }) {
 
 				const recordedBlobs: BlobPart[] = []
 				const mediaRecorder = new MediaRecorder(stream, {
-					videoBitsPerSecond: 4000000,
+					videoBitsPerSecond: 2_000_000,
 					videoKeyFrameIntervalCount: 60,
 				})
 				console.log("Video bits per second", mediaRecorder.videoBitsPerSecond)
@@ -270,14 +270,18 @@ export default function Watch(props: { name: string }) {
 
 				mediaRecorder.onstop = function () {
 					setIsRecording(false)
-					const blob = new Blob(recordedBlobs, { type: "video/mp4" })
+					const blob = new Blob(recordedBlobs, { type: "video/webm" })
 					const url = URL.createObjectURL(blob)
 					const a = document.createElement("a")
 					a.href = url
-					a.download = "received_video.mp4"
+					a.download = "received_video.webm"
 					a.click()
 					URL.revokeObjectURL(url)
-				} */
+				}
+
+				setTimeout(() => {
+					mediaRecorder.stop()
+				}, 5000) */
 
 				setTimeout(() => {
 					// mediaRecorder.stop()

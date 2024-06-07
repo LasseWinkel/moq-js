@@ -245,7 +245,7 @@ export default function Publish() {
 		setIsRecording(true)
 		const recordedBlobs: BlobPart[] = []
 		const mediaRecorder = new MediaRecorder(stream, {
-			videoBitsPerSecond: 4000000,
+			videoBitsPerSecond: 2_000_000,
 			videoKeyFrameIntervalCount: 60,
 		})
 		console.log("Recorder", mediaRecorder)
@@ -263,18 +263,18 @@ export default function Publish() {
 			setIsRecording(false)
 			console.log("Recorded", recordedBlobs)
 
-			const blob = new Blob(recordedBlobs, { type: "video/mp4" })
+			const blob = new Blob(recordedBlobs, { type: "video/webm" })
 			const url = URL.createObjectURL(blob)
 			const a = document.createElement("a")
 			a.href = url
-			a.download = "published_video.mp4"
+			a.download = "published_video.webm"
 			a.click()
 			URL.revokeObjectURL(url)
 		}
 
 		setTimeout(() => {
 			mediaRecorder.stop()
-		}, 20000)
+		}, 5000)
 	} */
 
 	/*  const getCaptureFrameTime = (videoElement: HTMLVideoElement) => {
