@@ -307,7 +307,6 @@ export default function Watch(props: { name: string }) {
 			setAllFrames(frames)
 			// setReceivedFrames(allReceivedFrames)
 			setTotalSkippedFrames(allSkippedFrames)
-			setPercentageReceivedFrames(allReceivedFrames.length / frames.length)
 
 			let totalSumRenderDifference = 0
 
@@ -400,7 +399,10 @@ export default function Watch(props: { name: string }) {
 
 			// LATEST FRAMES
 
-			const latestFrames = allReceivedFrames.filter(
+			const latestFrames = frames.filter(
+				(frame) => timeOfDataRetrieval - frame._3_segmentationTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
+			)
+			const latestReceivedFrames = allReceivedFrames.filter(
 				(frame) =>
 					timeOfDataRetrieval - frame._5_receiveMp4FrameTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
 			)
@@ -413,6 +415,8 @@ export default function Watch(props: { name: string }) {
 
 			setLatestFrames(latestFrames)
 			setLatestSkippedFrames(latestSkippedFrames)
+
+			setPercentageReceivedFrames(Math.min(latestReceivedFrames.length / latestFrames.length, 1))
 
 			let latestSumRenderDifference = 0
 
@@ -443,7 +447,9 @@ export default function Watch(props: { name: string }) {
 			let maxLatestTotalTime = Number.MIN_SAFE_INTEGER
 			let sumLatestTotalTime = 0
 			latestFrames.forEach((frame) => {
-				totalAmountRecvBytes += frame._14_receivedBytes
+				if (frame._5_receiveMp4FrameTimestamp) {
+					totalAmountRecvBytes += frame._14_receivedBytes
+				}
 
 				const frameEncodingTime = frame._2_encodingTime
 				if (frameEncodingTime < minLatestEncodingTime) {
@@ -590,6 +596,9 @@ export default function Watch(props: { name: string }) {
 				<Fail error={error()} />
 
 				{/* {isRecording() && <div class="text-red-400">Recording</div>} */}
+				<span>
+					{lastRenderedFrame()?._17_width} x {lastRenderedFrame()?._18_height}
+				</span>
 				<canvas ref={canvas} onClick={play} class="aspect-video w-3/4 rounded-lg" />
 
 				{/* {<h3>Charts</h3>}
@@ -602,7 +611,6 @@ export default function Watch(props: { name: string }) {
 
 				*/}
 
-				<h3>Meta Data</h3>
 				<div class="flex">
 					<div class="mr-20 flex items-center">
 						<span>Stream live since: &nbsp;</span>
@@ -616,131 +624,14 @@ export default function Watch(props: { name: string }) {
 				</div>
 
 				<div class="flex">
-					{/* <div class="mr-20 flex items-center">
-						<span>Bits Received: &nbsp;</span>
-						<p>{formatNumber(totalAmountRecvBytes() * 8)}</p>
-					</div> */}
-
-					<div class="mr-20 flex items-center">
-						<span>Bitrate: &nbsp;</span>
-						<p>{formatNumber(bitRate())} bps</p>
-					</div>
-
-					<div class="flex items-center">
-						<span>Frame Rate: &nbsp;</span>
-						<p>{framesPerSecond()} fps</p>
-					</div>
-				</div>
-
-				<div class="flex">
-					{/* <div class="mr-14 flex items-center">
-						<span>Total Frames Received: &nbsp;</span>
-						<p>{receivedFrames().length}</p>
-					</div> */}
-
-					<div class="mr-14 flex items-center">
-						<span>Percentage of Frames Received: &nbsp;</span>
-						<p>{(percentageReceivedFrames() * 100).toFixed(2)}%</p>
-					</div>
-				</div>
-
-				<div class="flex">
 					<div class="mr-20 flex items-center">
 						<span>Total Frames Skipped: &nbsp;</span>
 						<p>{totalSkippedFrames().length}</p>
 					</div>
-
 					<div class="flex items-center">
-						<span>Latest Frames Skipped: &nbsp;</span>
-						<p>{latestSkippedFrames().length}</p>
-					</div>
-				</div>
-
-				<div class="flex">
-					<div class="mr-20 flex items-center">
 						<span>Total Stall Duration: &nbsp;</span>
 						<p>{(totalStallDuration() / 1000).toFixed(2)}s</p>
 					</div>
-
-					<div class="flex items-center">
-						<span>Latest Stall Duration: &nbsp;</span>
-						<p>{(latestStallDuration() / 1000).toFixed(2)}s</p>
-					</div>
-				</div>
-
-				<div class="flex">
-					<div class="mr-20 flex items-center">
-						<span>Received video resolution: &nbsp;</span>
-						<p>
-							{lastRenderedFrame()?._17_width} x {lastRenderedFrame()?._18_height}
-						</p>
-					</div>
-				</div>
-			</div>
-
-			{/*
-
-			<div class="grid grid-cols-4 gap-5 border">
-				<div class="p-5 text-center" />
-				<div class="p-5 text-center">Min</div>
-				<div class="p-5 text-center">Max</div>
-				<div class="p-5 text-center">Avg</div>
-
-				<div class="p-5 text-center">Encoding Time:</div>
-				<div class="p-5 text-center">{minEncodingTime()}</div>
-				<div class="p-5 text-center">{maxEncodingTime()}</div>
-				<div class="p-5 text-center">{avgEncodingTime().toFixed(2)}</div>
-
-				<div class="p-5 text-center">Propagation Time:</div>
-				<div class="p-5 text-center">{minPropagationTime()}</div>
-				<div class="p-5 text-center">{maxPropagationTime()}</div>
-				<div class="p-5 text-center">{avgPropagationTime().toFixed(2)}</div>
-
-				<div class="p-5 text-center">Render Time:</div>
-				<div class="p-5 text-center">{minDecodingTime()}</div>
-				<div class="p-5 text-center">{maxDecodingTime()}</div>
-				<div class="p-5 text-center">{avgDecodingTime().toFixed(2)}</div>
-
-				<div class="p-5 text-center">Total Time:</div>
-				<div class="p-5 text-center">{minTotalTime()}</div>
-				<div class="p-5 text-center">{maxTotalTime()}</div>
-				<div class="p-5 text-center">{avgTotalTime().toFixed(2)}</div>
-			</div>
-			*/}
-
-			<div class="flex w-1/2 flex-col items-center">
-				<h3>Last {LATEST_DATA_DISPLAY_INTERVAL} Seconds</h3>
-
-				<div class="grid grid-cols-5 gap-6 border">
-					<div class="p-4 text-center" />
-					<div class="p-4 text-center">Min</div>
-					<div class="p-4 text-center">Max</div>
-					<div class="p-4 text-center">Last</div>
-					<div class="p-4 text-center">Avg</div>
-
-					<div class="p-4 text-center">Encoding Time:</div>
-					<div class="p-4 text-center">{minLatestEncodingTime()} ms</div>
-					<div class="p-4 text-center">{maxLatestEncodingTime()} ms</div>
-					<div class="p-4 text-center">{lastRenderedFrameEncodingTime()} ms</div>
-					<div class="p-4 text-center">{avgLatestEncodingTime().toFixed(2)} ms</div>
-
-					<div class="p-4 text-center">Propagation Time:</div>
-					<div class="p-4 text-center">{minLatestPropagationTime()} ms</div>
-					<div class="p-4 text-center">{maxLatestPropagationTime()} ms</div>
-					<div class="p-4 text-center">{lastRenderedFramePropagationTime()} ms</div>
-					<div class="p-4 text-center">{avgLatestPropagationTime().toFixed(2)} ms</div>
-
-					<div class="p-4 text-center">Decoding Time:</div>
-					<div class="p-4 text-center">{minLatestDecodingTime()} ms</div>
-					<div class="p-4 text-center">{maxLatestDecodingTime()} ms</div>
-					<div class="p-4 text-center">{lastRenderedFrameDecodingTime()} ms</div>
-					<div class="p-4 text-center">{avgLatestDecodingTime().toFixed(2)} ms</div>
-
-					<div class="p-4 text-center">Total Time:</div>
-					<div class="p-4 text-center">{minLatestTotalTime()} ms</div>
-					<div class="p-4 text-center">{maxLatestTotalTime()} ms</div>
-					<div class="p-4 text-center">{lastRenderedFrameTotalTime()} ms</div>
-					<div class="p-4 text-center">{avgLatestTotalTime().toFixed(2)} ms</div>
 				</div>
 
 				<div class="flex w-full">
@@ -842,6 +733,112 @@ export default function Watch(props: { name: string }) {
 						>
 							Download data
 						</button>
+					</div>
+				</div>
+			</div>
+
+			{/*
+
+			<div class="grid grid-cols-4 gap-5 border">
+				<div class="p-5 text-center" />
+				<div class="p-5 text-center">Min</div>
+				<div class="p-5 text-center">Max</div>
+				<div class="p-5 text-center">Avg</div>
+
+				<div class="p-5 text-center">Encoding Time:</div>
+				<div class="p-5 text-center">{minEncodingTime()}</div>
+				<div class="p-5 text-center">{maxEncodingTime()}</div>
+				<div class="p-5 text-center">{avgEncodingTime().toFixed(2)}</div>
+
+				<div class="p-5 text-center">Propagation Time:</div>
+				<div class="p-5 text-center">{minPropagationTime()}</div>
+				<div class="p-5 text-center">{maxPropagationTime()}</div>
+				<div class="p-5 text-center">{avgPropagationTime().toFixed(2)}</div>
+
+				<div class="p-5 text-center">Render Time:</div>
+				<div class="p-5 text-center">{minDecodingTime()}</div>
+				<div class="p-5 text-center">{maxDecodingTime()}</div>
+				<div class="p-5 text-center">{avgDecodingTime().toFixed(2)}</div>
+
+				<div class="p-5 text-center">Total Time:</div>
+				<div class="p-5 text-center">{minTotalTime()}</div>
+				<div class="p-5 text-center">{maxTotalTime()}</div>
+				<div class="p-5 text-center">{avgTotalTime().toFixed(2)}</div>
+			</div>
+			*/}
+
+			<div class="flex w-1/2 flex-col items-center">
+				<h3>Meta Data of Last {LATEST_DATA_DISPLAY_INTERVAL} Seconds</h3>
+
+				<div class="grid grid-cols-5 gap-6 border">
+					<div class="p-4 text-center" />
+					<div class="p-4 text-center">Min</div>
+					<div class="p-4 text-center">Max</div>
+					<div class="p-4 text-center">Last</div>
+					<div class="p-4 text-center">Avg</div>
+
+					<div class="p-4 text-center">Encoding Time:</div>
+					<div class="p-4 text-center">{minLatestEncodingTime()} ms</div>
+					<div class="p-4 text-center">{maxLatestEncodingTime()} ms</div>
+					<div class="p-4 text-center">{lastRenderedFrameEncodingTime()} ms</div>
+					<div class="p-4 text-center">{avgLatestEncodingTime().toFixed(2)} ms</div>
+
+					<div class="p-4 text-center">Propagation Time:</div>
+					<div class="p-4 text-center">{minLatestPropagationTime()} ms</div>
+					<div class="p-4 text-center">{maxLatestPropagationTime()} ms</div>
+					<div class="p-4 text-center">{lastRenderedFramePropagationTime()} ms</div>
+					<div class="p-4 text-center">{avgLatestPropagationTime().toFixed(2)} ms</div>
+
+					<div class="p-4 text-center">Decoding Time:</div>
+					<div class="p-4 text-center">{minLatestDecodingTime()} ms</div>
+					<div class="p-4 text-center">{maxLatestDecodingTime()} ms</div>
+					<div class="p-4 text-center">{lastRenderedFrameDecodingTime()} ms</div>
+					<div class="p-4 text-center">{avgLatestDecodingTime().toFixed(2)} ms</div>
+
+					<div class="p-4 text-center">Total Time:</div>
+					<div class="p-4 text-center">{minLatestTotalTime()} ms</div>
+					<div class="p-4 text-center">{maxLatestTotalTime()} ms</div>
+					<div class="p-4 text-center">{lastRenderedFrameTotalTime()} ms</div>
+					<div class="p-4 text-center">{avgLatestTotalTime().toFixed(2)} ms</div>
+				</div>
+
+				<div class="flex">
+					{/* <div class="mr-20 flex items-center">
+						<span>Bits Received: &nbsp;</span>
+						<p>{formatNumber(totalAmountRecvBytes() * 8)}</p>
+					</div> */}
+
+					<div class="mr-20 flex items-center">
+						<span>Bitrate: &nbsp;</span>
+						<p>{formatNumber(bitRate())} bps</p>
+					</div>
+
+					<div class="flex items-center">
+						<span>Frame Rate: &nbsp;</span>
+						<p>{framesPerSecond()} fps</p>
+					</div>
+				</div>
+
+				<div class="flex">
+					{/* <div class="mr-14 flex items-center">
+						<span>Total Frames Received: &nbsp;</span>
+						<p>{receivedFrames().length}</p>
+					</div> */}
+
+					<div class="mr-14 flex items-center">
+						<span>Percentage of Frames Received: &nbsp;</span>
+						<p>{(percentageReceivedFrames() * 100).toFixed(2)}%</p>
+					</div>
+				</div>
+
+				<div class="flex">
+					<div class="mr-20 flex items-center">
+						<span>Latest Frames Skipped: &nbsp;</span>
+						<p>{latestSkippedFrames().length}</p>
+					</div>
+					<div class="flex items-center">
+						<span>Latest Stall Duration: &nbsp;</span>
+						<p>{(latestStallDuration() / 1000).toFixed(2)}s</p>
 					</div>
 				</div>
 			</div>
