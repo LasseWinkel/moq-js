@@ -25,11 +25,8 @@ const LATEST_DATA_DISPLAY_INTERVAL = 5
 // Time until data download in seconds
 const DATA_DOWNLOAD_TIME = 60
 
-// Stall event threshold
+// Stall event threshold in milliseconds
 const STALL_EVENT_THRESHOLD = 35
-
-// The supported key frame intervals in seconds
-const SUPPORTED_KEY_FRAME_INTERVALS = [0.5, 0.8, 1, 2, 4]
 
 // The supported rates of network packet loss
 const SUPPORTED_PACKET_LOSS = [0, 1, 5, 10, 20]
@@ -233,6 +230,8 @@ export default function Watch(props: { name: string }) {
 	const [framesPerSecond, setFramesPerSecond] = createSignal<number>(0.0)
 
 	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(2)
+	const [gop1sThreshold, setGop1sThreshold] = createSignal<number>(90)
+	const [gop0_5sThreshold, setGop0_5sThreshold] = createSignal<number>(80)
 	const [packetLoss, setPacketLoss] = createSignal<number>(0)
 	const [delay, setDelay] = createSignal<number>(0)
 	const [bandwidthLimit, setBandwidthLimit] = createSignal<number>(
@@ -540,10 +539,10 @@ export default function Watch(props: { name: string }) {
 
 		// Adjust key frame interval if number of received frames changes
 		let newKeyFrameInterval: number
-		if (percentageReceivedFrames() < 0.9) {
+		if (percentageReceivedFrames() < gop1sThreshold() / 100) {
 			newKeyFrameInterval = 1
 
-			if (percentageReceivedFrames() < 0.8) {
+			if (percentageReceivedFrames() < gop0_5sThreshold() / 100) {
 				newKeyFrameInterval = 0.5
 			}
 		} else {
@@ -637,22 +636,40 @@ export default function Watch(props: { name: string }) {
 				<div class="flex w-full">
 					<div class="w-1/2">
 						<div class="flex items-center">
-							Key Frame Interval (s):
-							<select
-								disabled
+							<span>Key Frame Interval (s): &nbsp;</span>
+							<p>{keyFrameInterval()}</p>
+						</div>
+
+						<div class="flex items-center">
+							GoP size 1s Received Frames:
+							<input
 								class="m-3 w-1/3"
-								onChange={(event) =>
-									adjustKeyFrameIntervalSizeInIndexedDB(parseFloat(event.target.value))
-								}
-							>
-								<For each={SUPPORTED_KEY_FRAME_INTERVALS}>
-									{(value) => (
-										<option value={value} selected={value === keyFrameInterval()}>
-											{value}
-										</option>
-									)}
-								</For>
-							</select>
+								type="range"
+								min="15"
+								max="95"
+								value={gop1sThreshold()}
+								onChange={(event) => {
+									const value = parseInt(event.target.value, 10)
+									setGop1sThreshold(value)
+								}}
+							/>
+							<div class="mt-2 text-center">{gop1sThreshold()}%</div>
+						</div>
+
+						<div class="flex items-center">
+							GoP size 0.5s Received Frames:
+							<input
+								class="m-3 w-1/3"
+								type="range"
+								min="10"
+								max="90"
+								value={gop0_5sThreshold()}
+								onChange={(event) => {
+									const value = parseInt(event.target.value, 10)
+									setGop0_5sThreshold(value)
+								}}
+							/>
+							<div class="mt-2 text-center">{gop0_5sThreshold()}%</div>
 						</div>
 
 						<div class="flex items-center">
