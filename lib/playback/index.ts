@@ -151,16 +151,16 @@ export class Player {
 		}
 	}
 
-	throttle(lossRate: number, delay: number, bandwidthLimit: string) {
-		this.#connection.throttle(lossRate, delay, bandwidthLimit)
+	throttle(lossRate: number, delay: number, bandwidthLimit: string, networkNamespace: string) {
+		this.#connection.throttle(lossRate, delay, bandwidthLimit, networkNamespace)
 	}
 
 	packet_loss(lossRate: number) {
 		this.#connection.packet_loss(lossRate)
 	}
 
-	tc_reset() {
-		this.#connection.tc_reset()
+	tc_reset(networkNamespace: string) {
+		this.#connection.tc_reset(networkNamespace)
 	}
 
 	/*

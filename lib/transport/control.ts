@@ -148,6 +148,7 @@ export interface Throttle {
 	lossRate: number
 	delay: number
 	bandwidthLimit: string
+	networkNamespace: string
 }
 
 export interface PacketLoss {
@@ -157,6 +158,7 @@ export interface PacketLoss {
 
 export interface TcReset {
 	kind: Msg.TcReset
+	networkNamespace: string
 }
 
 export class Stream {
@@ -428,6 +430,7 @@ export class Decoder {
 			lossRate: await this.r.u53(),
 			delay: await this.r.u53(),
 			bandwidthLimit: await this.r.string(),
+			networkNamespace: await this.r.string(),
 		}
 	}
 
@@ -442,6 +445,7 @@ export class Decoder {
 	private async tc_reset(): Promise<TcReset> {
 		return {
 			kind: Msg.TcReset,
+			networkNamespace: await this.r.string(),
 		}
 	}
 }
@@ -478,7 +482,7 @@ export class Encoder {
 			case Msg.PacketLoss:
 				return this.packet_loss(m)
 			case Msg.TcReset:
-				return this.tc_reset()
+				return this.tc_reset(m)
 		}
 	}
 
@@ -591,6 +595,7 @@ export class Encoder {
 		await this.w.u53(t.lossRate)
 		await this.w.u53(t.delay)
 		await this.w.string(t.bandwidthLimit)
+		await this.w.string(t.networkNamespace)
 	}
 
 	async packet_loss(p: PacketLoss) {
@@ -598,7 +603,8 @@ export class Encoder {
 		await this.w.u53(p.lossRate)
 	}
 
-	async tc_reset() {
+	async tc_reset(r: TcReset) {
 		await this.w.u53(Id.TcReset)
+		await this.w.string(r.networkNamespace)
 	}
 }

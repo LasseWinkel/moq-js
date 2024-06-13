@@ -37,6 +37,12 @@ const SUPPORTED_ADDITIONAL_DELAYS = [0, 20, 50, 100, 200, 500]
 // The supported network bandwidth limits in Mbit/s
 const SUPPORTED_BANDWIDTHS = [0.5, 1, 2, 5, 10, 20, 100]
 
+// The created network namespaces
+enum NetworkNamespaces {
+	PUBLISHER = "ns-js",
+	SERVER = "ns-rs",
+}
+
 // Helper function to nicely display large numbers
 function formatNumber(number: number): string {
 	const suffixes = ["", "k", "M", "B", "T"] // Add more suffixes as needed
@@ -232,9 +238,14 @@ export default function Watch(props: { name: string }) {
 	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(2)
 	const [gop1sThreshold, setGop1sThreshold] = createSignal<number>(90)
 	const [gop0_5sThreshold, setGop0_5sThreshold] = createSignal<number>(80)
-	const [packetLoss, setPacketLoss] = createSignal<number>(0)
-	const [delay, setDelay] = createSignal<number>(0)
-	const [bandwidthLimit, setBandwidthLimit] = createSignal<number>(
+	const [packetLossPublisher, setPacketLossPublisher] = createSignal<number>(0)
+	const [delayPublisher, setDelayPublisher] = createSignal<number>(0)
+	const [bandwidthLimitPublisher, setBandwidthLimitPublisher] = createSignal<number>(
+		SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1],
+	)
+	const [packetLossServer, setPacketLossServer] = createSignal<number>(0)
+	const [delayServer, setDelayServer] = createSignal<number>(0)
+	const [bandwidthLimitServer, setBandwidthLimitServer] = createSignal<number>(
 		SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1],
 	)
 
@@ -556,8 +567,26 @@ export default function Watch(props: { name: string }) {
 		// setBitratePlotData(bitratePlotData().concat([{ bitrate: bitRate(), timestamp: totalMillisecondsWatched }]))
 	}, DATA_UPDATE_RATE)
 
-	const throttleConnection = () => {
-		usePlayer()?.throttle(packetLoss(), delay(), bandwidthLimit().toString())
+	const throttleConnection = (networkNamespace: NetworkNamespaces) => {
+		if (networkNamespace === NetworkNamespaces.PUBLISHER) {
+			usePlayer()?.throttle(
+				packetLossPublisher(),
+				delayPublisher(),
+				bandwidthLimitPublisher().toString(),
+				networkNamespace,
+			)
+		} else if (networkNamespace === NetworkNamespaces.SERVER) {
+			usePlayer()?.throttle(
+				packetLossServer(),
+				delayServer(),
+				bandwidthLimitServer().toString(),
+				networkNamespace,
+			)
+		}
+	}
+
+	const tc_reset = (networkNamespace: NetworkNamespaces) => {
+		usePlayer()?.tc_reset(networkNamespace)
 	}
 
 	let canvas!: HTMLCanvasElement
@@ -633,125 +662,194 @@ export default function Watch(props: { name: string }) {
 					</div>
 				</div>
 
-				<div class="flex w-full">
-					<div class="w-1/2">
-						<div class="flex items-center">
-							<span>Key Frame Interval (s): &nbsp;</span>
-							<p>{keyFrameInterval()}</p>
-						</div>
-
-						<div class="flex items-center">
-							GoP size 1s Received Frames:
-							<input
-								class="m-3 w-1/3"
-								type="range"
-								min="15"
-								max="95"
-								value={gop1sThreshold()}
-								onChange={(event) => {
-									const value = parseInt(event.target.value, 10)
-									setGop1sThreshold(value)
-								}}
-							/>
-							<div class="mt-2 text-center">{gop1sThreshold()}%</div>
-						</div>
-
-						<div class="flex items-center">
-							GoP size 0.5s Received Frames:
-							<input
-								class="m-3 w-1/3"
-								type="range"
-								min="10"
-								max="90"
-								value={gop0_5sThreshold()}
-								onChange={(event) => {
-									const value = parseInt(event.target.value, 10)
-									setGop0_5sThreshold(value)
-								}}
-							/>
-							<div class="mt-2 text-center">{gop0_5sThreshold()}%</div>
-						</div>
-
-						<div class="flex items-center">
-							Packet Loss (%):
-							<select
-								class="m-3 w-1/3"
-								onChange={(event) => {
-									setPacketLoss(parseInt(event.target.value))
-									throttleConnection()
-								}}
-							>
-								<For each={SUPPORTED_PACKET_LOSS}>
-									{(value) => (
-										<option value={value} selected={value === packetLoss()}>
-											{value}
-										</option>
-									)}
-								</For>
-							</select>
-						</div>
-
-						<div class="flex items-center">
-							Network Delay (ms):
-							<select
-								class="m-3 w-1/3"
-								onChange={(event) => {
-									setDelay(parseInt(event.target.value))
-									throttleConnection()
-								}}
-							>
-								<For each={SUPPORTED_ADDITIONAL_DELAYS}>
-									{(value) => (
-										<option value={value} selected={value === delay()}>
-											{value}
-										</option>
-									)}
-								</For>
-							</select>
-						</div>
-
-						<div class="flex items-center">
-							Bandwidth Limit (Mbit/s):
-							<select
-								class="m-3 w-1/3"
-								onChange={(event) => {
-									setBandwidthLimit(parseFloat(event.target.value))
-									throttleConnection()
-								}}
-							>
-								<For each={SUPPORTED_BANDWIDTHS}>
-									{(value) => (
-										<option value={value} selected={value === bandwidthLimit()}>
-											{value}
-										</option>
-									)}
-								</For>
-							</select>
-						</div>
+				<div class="w-full">
+					<div class="flex items-center">
+						<span>Key Frame Interval (s): &nbsp;</span>
+						<p>{keyFrameInterval()}</p>
 					</div>
 
-					<div class="flex w-1/2 flex-col items-center justify-center">
-						<button
-							class="m-3 bg-cyan-600 hover:bg-cyan-800"
-							onClick={() => {
-								usePlayer()?.tc_reset()
-								setPacketLoss(0)
-								setDelay(0)
-								setBandwidthLimit(SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1])
+					<div class="flex items-center">
+						GoP size 1s Received Frames:
+						<input
+							class="m-3 w-1/3"
+							type="range"
+							min="15"
+							max="95"
+							value={gop1sThreshold()}
+							onChange={(event) => {
+								const value = parseInt(event.target.value, 10)
+								setGop1sThreshold(value)
 							}}
-						>
-							Reset tc/netem
-						</button>
+						/>
+						<div class="mt-2 text-center">{gop1sThreshold()}%</div>
+					</div>
 
-						<button
-							class="m-3 bg-cyan-600 hover:bg-cyan-800"
-							// eslint-disable-next-line @typescript-eslint/no-misused-promises
-							onClick={async () => downloadFrameData(await retrieveFramesFromIndexedDB())}
-						>
-							Download data
-						</button>
+					<div class="flex items-center">
+						GoP size 0.5s Received Frames:
+						<input
+							class="m-3 w-1/3"
+							type="range"
+							min="10"
+							max="90"
+							value={gop0_5sThreshold()}
+							onChange={(event) => {
+								const value = parseInt(event.target.value, 10)
+								setGop0_5sThreshold(value)
+							}}
+						/>
+						<div class="mt-2 text-center">{gop0_5sThreshold()}%</div>
+					</div>
+
+					<div class="flex items-center">
+						<div class="mr-5 w-1/2 border p-2">
+							<h3>Publisher Network</h3>
+							<div class="flex items-center">
+								Packet Loss (%):
+								<select
+									class="m-3 w-1/3"
+									onChange={(event) => {
+										setPacketLossPublisher(parseInt(event.target.value))
+										throttleConnection(NetworkNamespaces.PUBLISHER)
+									}}
+								>
+									<For each={SUPPORTED_PACKET_LOSS}>
+										{(value) => (
+											<option value={value} selected={value === packetLossPublisher()}>
+												{value}
+											</option>
+										)}
+									</For>
+								</select>
+							</div>
+							<div class="flex items-center">
+								Network Delay (ms):
+								<select
+									class="m-3 w-1/3"
+									onChange={(event) => {
+										setDelayPublisher(parseInt(event.target.value))
+										throttleConnection(NetworkNamespaces.PUBLISHER)
+									}}
+								>
+									<For each={SUPPORTED_ADDITIONAL_DELAYS}>
+										{(value) => (
+											<option value={value} selected={value === delayPublisher()}>
+												{value}
+											</option>
+										)}
+									</For>
+								</select>
+							</div>
+							<div class="flex items-center">
+								Bandwidth Limit (Mbit/s):
+								<select
+									class="m-3 w-1/3"
+									onChange={(event) => {
+										setBandwidthLimitPublisher(parseFloat(event.target.value))
+										throttleConnection(NetworkNamespaces.PUBLISHER)
+									}}
+								>
+									<For each={SUPPORTED_BANDWIDTHS}>
+										{(value) => (
+											<option value={value} selected={value === bandwidthLimitPublisher()}>
+												{value}
+											</option>
+										)}
+									</For>
+								</select>
+							</div>
+							<button
+								class="m-3 bg-cyan-600 hover:bg-cyan-800"
+								onClick={() => {
+									tc_reset(NetworkNamespaces.PUBLISHER)
+									setPacketLossPublisher(0)
+									setDelayPublisher(0)
+									setBandwidthLimitPublisher(SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1])
+								}}
+							>
+								Reset tc rules
+							</button>
+						</div>
+
+						<div class="w-1/2 border p-2">
+							<h3>Server Network</h3>
+							<div class="flex items-center">
+								Packet Loss (%):
+								<select
+									class="m-3 w-1/3"
+									onChange={(event) => {
+										setPacketLossServer(parseInt(event.target.value))
+										throttleConnection(NetworkNamespaces.SERVER)
+									}}
+								>
+									<For each={SUPPORTED_PACKET_LOSS}>
+										{(value) => (
+											<option value={value} selected={value === packetLossServer()}>
+												{value}
+											</option>
+										)}
+									</For>
+								</select>
+							</div>
+							<div class="flex items-center">
+								Network Delay (ms):
+								<select
+									class="m-3 w-1/3"
+									onChange={(event) => {
+										setDelayServer(parseInt(event.target.value))
+										throttleConnection(NetworkNamespaces.SERVER)
+									}}
+								>
+									<For each={SUPPORTED_ADDITIONAL_DELAYS}>
+										{(value) => (
+											<option value={value} selected={value === delayServer()}>
+												{value}
+											</option>
+										)}
+									</For>
+								</select>
+							</div>
+							<div class="flex items-center">
+								Bandwidth Limit (Mbit/s):
+								<select
+									class="m-3 w-1/3"
+									onChange={(event) => {
+										setBandwidthLimitServer(parseFloat(event.target.value))
+										throttleConnection(NetworkNamespaces.SERVER)
+									}}
+								>
+									<For each={SUPPORTED_BANDWIDTHS}>
+										{(value) => (
+											<option value={value} selected={value === bandwidthLimitServer()}>
+												{value}
+											</option>
+										)}
+									</For>
+								</select>
+							</div>
+							<button
+								class="m-3 bg-cyan-600 hover:bg-cyan-800"
+								onClick={() => {
+									tc_reset(NetworkNamespaces.SERVER)
+									setPacketLossServer(0)
+									setDelayServer(0)
+									setBandwidthLimitServer(SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1])
+								}}
+							>
+								Reset tc rules
+							</button>
+						</div>
 					</div>
 				</div>
+
+				{/* <div class="flex w-1/2 flex-col items-center justify-center">
+					<button
+						class="m-3 bg-cyan-600 hover:bg-cyan-800"
+						// eslint-disable-next-line @typescript-eslint/no-misused-promises
+						onClick={async () => downloadFrameData(await retrieveFramesFromIndexedDB())}
+					>
+						Download data
+					</button>
+				</div> */}
 			</div>
 
 			{/*

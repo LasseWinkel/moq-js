@@ -55,16 +55,16 @@ export class Connection {
 		return this.#subscriber.subscribe(namespace, track)
 	}
 
-	throttle(lossRate: number, delay: number, bandwidthLimit: string) {
-		return this.#subscriber.throttle(lossRate, delay, bandwidthLimit)
+	throttle(lossRate: number, delay: number, bandwidthLimit: string, networkNamespace: string) {
+		return this.#subscriber.throttle(lossRate, delay, bandwidthLimit, networkNamespace)
 	}
 
 	packet_loss(lossRate: number) {
 		return this.#subscriber.packet_loss(lossRate)
 	}
 
-	tc_reset() {
-		return this.#subscriber.tc_reset()
+	tc_reset(networkNamespace: string) {
+		return this.#subscriber.tc_reset(networkNamespace)
 	}
 
 	subscribed() {

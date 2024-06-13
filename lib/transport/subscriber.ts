@@ -81,12 +81,13 @@ export class Subscriber {
 		return subscribe
 	}
 
-	async throttle(lossRate: number, delay: number, bandwidthLimit: string) {
+	async throttle(lossRate: number, delay: number, bandwidthLimit: string, networkNamespace: string) {
 		await this.#control.send({
 			kind: Control.Msg.Throttle,
 			lossRate,
 			delay,
 			bandwidthLimit,
+			networkNamespace,
 		})
 	}
 
@@ -97,9 +98,10 @@ export class Subscriber {
 		})
 	}
 
-	async tc_reset() {
+	async tc_reset(networkNamespace: string) {
 		await this.#control.send({
 			kind: Control.Msg.TcReset,
+			networkNamespace,
 		})
 	}
 
