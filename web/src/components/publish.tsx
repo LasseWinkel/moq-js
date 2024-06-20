@@ -21,6 +21,9 @@ import {
 } from "solid-js"
 
 import Fail from "./fail"
+
+import { EVALUATION_SCENARIO } from "@kixelated/moq/common/evaluationscenarios"
+
 /*
 // Utility function to download collected data.
 function downloadData(data: { timestamp: string; captureTime: number }[]): void {
@@ -151,9 +154,9 @@ const VIDEO_CODECS: VideoCodec[] = [
 ]
 
 const SUPPORTED_HEIGHT = [240, 360, 480, 720, 1080, 1440]
-const SUPPORTED_FPS = [5, 15, 30, 60, 90]
+const SUPPORTED_FPS = [5, 10, 15, 20, 25, 30, 60, 90]
 
-const DEFAULT_HEIGHT = 1440
+const DEFAULT_HEIGHT = EVALUATION_SCENARIO.resolution
 // const DEFAULT_FPS = 30
 
 export default function Publish() {
@@ -204,7 +207,7 @@ export default function Publish() {
 	const [active, setActive] = createSignal<boolean>()
 	const [error, setError] = createSignal<Error | undefined>()
 	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
-	const [fps, setFps] = createSignal(30)
+	const [fps, setFps] = createSignal(EVALUATION_SCENARIO.frameRate)
 
 	const audioTrack = createMemo(() => {
 		const tracks = device()?.getAudioTracks()
@@ -842,7 +845,7 @@ function Video(props: {
 	// Default values
 	const [height, setHeight] = createSignal(0) // use track default
 	const [fps, setFps] = createSignal(0) // use fps default
-	const [bitrate, setBitrate] = createSignal(2_000_000)
+	const [bitrate, setBitrate] = createSignal(EVALUATION_SCENARIO.bitrate)
 	const [codec, setCodec] = createSignal("")
 	const [profile, setProfile] = createSignal("")
 	const [supported, setSupported] = createSignal<VideoCodec[]>()

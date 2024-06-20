@@ -1,3 +1,5 @@
+import { EVALUATION_SCENARIO } from "@kixelated/moq/common/evaluationscenarios"
+
 const SUPPORTED = [
 	"avc1", // H.264
 	"hev1", // HEVC (aka h.265)
@@ -222,7 +224,9 @@ export class Encoder {
 		const keyFrameIntervalSizeFromIndexedDB = await this.retrieveKeyFrameIntervalSize()
 		// console.log("Key frame interval size from IDB", keyFrameIntervalSizeFromIndexedDB)
 
-		const keyFrameIntervalSize = keyFrameIntervalSizeFromIndexedDB ? keyFrameIntervalSizeFromIndexedDB : 2
+		const keyFrameIntervalSize = keyFrameIntervalSizeFromIndexedDB
+			? keyFrameIntervalSizeFromIndexedDB
+			: EVALUATION_SCENARIO.gopDefault
 
 		/* console.log(
 			keyFrameIntervalSize,

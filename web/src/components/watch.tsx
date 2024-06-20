@@ -11,6 +11,8 @@ import Fail from "./fail"
 
 import { createEffect, createSignal, For, onCleanup } from "solid-js"
 
+import { EVALUATION_SCENARIO } from "@kixelated/moq/common/evaluationscenarios"
+
 export interface IndexedDBBitRateWithTimestampSchema {
 	bitrate: number
 	timestamp: number
@@ -23,7 +25,7 @@ const DATA_UPDATE_RATE = 1000
 const LATEST_DATA_DISPLAY_INTERVAL = 5
 
 // Time until data download in seconds
-const DATA_DOWNLOAD_TIME = 60
+const DATA_DOWNLOAD_TIME = 80
 
 // Stall event threshold in milliseconds
 const STALL_EVENT_THRESHOLD = 35
@@ -35,7 +37,7 @@ const SUPPORTED_PACKET_LOSS = [0, 1, 5, 10, 20]
 const SUPPORTED_ADDITIONAL_DELAYS = [0, 20, 50, 100, 200, 500]
 
 // The supported network bandwidth limits in Mbit/s
-const SUPPORTED_BANDWIDTHS = [0.5, 1, 2, 5, 10, 20, 100]
+const SUPPORTED_BANDWIDTHS = [0.5, 1, 1.5, 2, 3, 4.5, 5, 6, 10, 20, 100]
 
 // The created network namespaces
 enum NetworkNamespaces {
@@ -76,7 +78,14 @@ function downloadFrameData(frames: IndexedDBFramesSchema[]): void {
 
 	const link = document.createElement("a")
 	link.href = URL.createObjectURL(blob)
-	link.download = "frame_metadata"
+	const downloadName = `res${EVALUATION_SCENARIO.resolution}fps${EVALUATION_SCENARIO.frameRate}bit${
+		EVALUATION_SCENARIO.bitrate / 1_000_000
+	}gop(${EVALUATION_SCENARIO.gopDefault},${EVALUATION_SCENARIO.gopThresholds[0] * 100},${
+		EVALUATION_SCENARIO.gopThresholds[1] * 100
+	})loss${EVALUATION_SCENARIO.packetLossServerLink}delay${EVALUATION_SCENARIO.delayServerLink}bw${
+		EVALUATION_SCENARIO.bandwidthConstraintServerLink / 1_000_000
+	}`
+	link.download = downloadName
 
 	// Append the link to the body
 	document.body.appendChild(link)
@@ -236,8 +245,8 @@ export default function Watch(props: { name: string }) {
 	const [framesPerSecond, setFramesPerSecond] = createSignal<number>(0.0)
 
 	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(2)
-	const [gop1sThreshold, setGop1sThreshold] = createSignal<number>(90)
-	const [gop0_5sThreshold, setGop0_5sThreshold] = createSignal<number>(80)
+	const [gop1sThreshold, setGop1sThreshold] = createSignal<number>(EVALUATION_SCENARIO.gopThresholds[0] * 100)
+	const [gop0_5sThreshold, setGop0_5sThreshold] = createSignal<number>(EVALUATION_SCENARIO.gopThresholds[1] * 100)
 	const [packetLossPublisher, setPacketLossPublisher] = createSignal<number>(0)
 	const [delayPublisher, setDelayPublisher] = createSignal<number>(0)
 	const [bandwidthLimitPublisher, setBandwidthLimitPublisher] = createSignal<number>(
@@ -557,7 +566,7 @@ export default function Watch(props: { name: string }) {
 				newKeyFrameInterval = 0.5
 			}
 		} else {
-			newKeyFrameInterval = 2
+			newKeyFrameInterval = EVALUATION_SCENARIO.gopDefault
 		}
 		if (newKeyFrameInterval !== keyFrameInterval()) {
 			setKeyFrameInterval(newKeyFrameInterval)
