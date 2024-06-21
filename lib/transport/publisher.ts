@@ -92,6 +92,13 @@ export class Publisher {
 	recvUnsubscribe(_msg: Control.Unsubscribe) {
 		throw new Error("TODO unsubscribe")
 	}
+
+	async latency(currentPublisherTime: number) {
+		await this.#control.send({
+			kind: Control.Msg.Latency,
+			currentPublisherTime,
+		})
+	}
 }
 
 export class AnnounceSend {

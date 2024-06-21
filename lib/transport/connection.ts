@@ -67,6 +67,10 @@ export class Connection {
 		return this.#subscriber.tc_reset(networkNamespace)
 	}
 
+	latency(currentPublisherTime: number) {
+		return this.#publisher.latency(currentPublisherTime)
+	}
+
 	subscribed() {
 		return this.#publisher.subscribed()
 	}

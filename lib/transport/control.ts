@@ -18,7 +18,7 @@ export function isSubscriber(m: Message): m is Subscriber {
 }
 
 // Sent by publisher
-export type Publisher = SubscribeOk | SubscribeError | SubscribeDone | Announce | Unannounce
+export type Publisher = SubscribeOk | SubscribeError | SubscribeDone | Announce | Unannounce | Latency
 
 export function isPublisher(m: Message): m is Publisher {
 	return (
@@ -26,7 +26,8 @@ export function isPublisher(m: Message): m is Publisher {
 		m.kind == Msg.SubscribeError ||
 		m.kind == Msg.SubscribeDone ||
 		m.kind == Msg.Announce ||
-		m.kind == Msg.Unannounce
+		m.kind == Msg.Unannounce ||
+		m.kind == Msg.Latency
 	)
 }
 
@@ -48,6 +49,7 @@ export enum Msg {
 	Throttle = "throttle",
 	PacketLoss = "packet_loss",
 	TcReset = "tc_reset",
+	Latency = "latency",
 }
 
 enum Id {
@@ -68,6 +70,7 @@ enum Id {
 	Throttle = 0x11,
 	PacketLoss = 0x13,
 	TcReset = 0x12,
+	Latency = 0x14,
 }
 
 export interface Subscribe {
@@ -161,6 +164,11 @@ export interface TcReset {
 	networkNamespace: string
 }
 
+export interface Latency {
+	kind: Msg.Latency
+	currentPublisherTime: number
+}
+
 export class Stream {
 	private decoder: Decoder
 	private encoder: Encoder
@@ -243,6 +251,8 @@ export class Decoder {
 				return Msg.PacketLoss
 			case Id.TcReset:
 				return Msg.TcReset
+			case Id.Latency:
+				return Msg.Latency
 		}
 
 		throw new Error(`unknown control message type: ${t}`)
@@ -277,6 +287,8 @@ export class Decoder {
 				return this.packet_loss()
 			case Msg.TcReset:
 				return this.tc_reset()
+			case Msg.Latency:
+				return this.latency()
 		}
 	}
 
@@ -441,11 +453,17 @@ export class Decoder {
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/require-await
 	private async tc_reset(): Promise<TcReset> {
 		return {
 			kind: Msg.TcReset,
 			networkNamespace: await this.r.string(),
+		}
+	}
+
+	private async latency(): Promise<Latency> {
+		return {
+			kind: Msg.Latency,
+			currentPublisherTime: await this.r.u53(),
 		}
 	}
 }
@@ -483,6 +501,8 @@ export class Encoder {
 				return this.packet_loss(m)
 			case Msg.TcReset:
 				return this.tc_reset(m)
+			case Msg.Latency:
+				return this.latency(m)
 		}
 	}
 
@@ -606,5 +626,10 @@ export class Encoder {
 	async tc_reset(r: TcReset) {
 		await this.w.u53(Id.TcReset)
 		await this.w.string(r.networkNamespace)
+	}
+
+	async latency(l: Latency) {
+		await this.w.u53(Id.Latency)
+		await this.w.u53(l.currentPublisherTime)
 	}
 }
