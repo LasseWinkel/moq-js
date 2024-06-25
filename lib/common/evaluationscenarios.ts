@@ -26,7 +26,7 @@ const delayServerLink = DELAYS_SERVER_LINK[1]
 const BANDWIDTH_CONSTRAINTS_SERVER_LINK = [100_000_000, 50_000_000, 10_000_000]
 const bandwidthConstraintServerLink = BANDWIDTH_CONSTRAINTS_SERVER_LINK[0]
 
-// Total number of experiments: 1 + 4 + 2 + 3 + 2 + 9 + 3 + 2 = 26. Each experiment 3 times -> 3 * 26 = 78.
+// Total number of experiments: 1 + 4 + 2 + 3 + 2 + 9 + 2 + 2 = 25. Each experiment 3 times -> 3 * 25 = 75.
 
 interface EvaluationSceanrio {
 	resolution: number
