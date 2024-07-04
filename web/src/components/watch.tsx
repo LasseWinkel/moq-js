@@ -1,8 +1,8 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { Player } from "@kixelated/moq/playback"
 
-import { IndexedDatabaseName, IndexedDBObjectStores } from "@kixelated/moq/contribute"
-import type { IndexedDBFramesSchema } from "@kixelated/moq/contribute"
+import { IndexedDatabaseName, IndexedDBObjectStores, IndexedDBObjectStoresSubscriber } from "@kixelated/moq/contribute"
+import type { FrameData, IndexedDBFramesSchema } from "@kixelated/moq/contribute"
 
 /* import FramesPlot from "./frames"
 import BitratePlot from "./bitrate" */
@@ -12,6 +12,7 @@ import Fail from "./fail"
 import { createEffect, createSignal, For, onCleanup } from "solid-js"
 
 import { EVALUATION_SCENARIO } from "@kixelated/moq/common/evaluationscenarios"
+import type { SegmentData } from "@kixelated/moq/contribute"
 
 export interface IndexedDBBitRateWithTimestampSchema {
 	bitrate: number
@@ -108,7 +109,7 @@ openRequest.onsuccess = (event) => {
 }
 
 // Function to retrieve all frame data from IndexedDB
-function retrieveFramesFromIndexedDB(): Promise<IndexedDBFramesSchema[]> {
+function retrieveFramesFromIndexedDB(): Promise<FrameData[]> {
 	return new Promise((resolve, reject) => {
 		if (!db) {
 			reject(new Error("IndexedDB is not initialized."))
@@ -117,11 +118,37 @@ function retrieveFramesFromIndexedDB(): Promise<IndexedDBFramesSchema[]> {
 
 		const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readonly")
 		const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
-		const getRequest = objectStore.getAll() // Get all stored values from the database
+		const getRequest = objectStore.get(1) // Get all stored values from the database
 
 		// Handle the success event when the values are retrieved successfully
 		getRequest.onsuccess = (event) => {
-			const storedValues = (event.target as IDBRequest).result as IndexedDBFramesSchema[]
+			const storedValues = (event.target as IDBRequest).result as FrameData[]
+			resolve(storedValues)
+		}
+
+		// Handle any errors that occur during value retrieval
+		getRequest.onerror = (event) => {
+			console.error("Error retrieving value:", (event.target as IDBRequest).error)
+			reject((event.target as IDBRequest).error)
+		}
+	})
+}
+
+// Function to retrieve all segment data from IndexedDB
+function retrieveSegmentsFromIndexedDB(): Promise<SegmentData[]> {
+	return new Promise((resolve, reject) => {
+		if (!db) {
+			reject(new Error("IndexedDB is not initialized."))
+			return
+		}
+
+		const transaction = db.transaction(IndexedDBObjectStoresSubscriber.SEGMENTS, "readonly")
+		const objectStore = transaction.objectStore(IndexedDBObjectStoresSubscriber.SEGMENTS)
+		const getRequest = objectStore.get(1) // Get all stored values from the database
+
+		// Handle the success event when the values are retrieved successfully
+		getRequest.onsuccess = (event) => {
+			const storedValues = (event.target as IDBRequest).result as SegmentData[]
 			resolve(storedValues)
 		}
 
@@ -191,15 +218,22 @@ export default function Watch(props: { name: string }) {
 	const [error, setError] = createSignal<Error | undefined>()
 
 	// Various dynamic meta data to be displayed next to the video
-	const [streamStartTime, setStreamStartTime] = createSignal<number>(0)
-	const [streamRunningTime, setStreamRunningTime] = createSignal<number>(0)
-	const [streamWatchTime, setStreamWatchTime] = createSignal<number>(0)
-	// const [streamStartWatchTime, setStreamStartWatchTime] = createSignal<number>(0)
+	const [totalSegments, setTotalSegments] = createSignal<number>(0)
+	const [minPropagationTime, setMinPropagationTime] = createSignal<number>(0)
+	const [maxPropagationTime, setMaxPropagationTime] = createSignal<number>(0)
+	const [avgPropagationTime, setAvgPropagationTime] = createSignal<number>(0)
+
+	const [frameRate, setFrameRate] = createSignal<number>(0)
+	const [bitrate, setBitrate] = createSignal<number>(0)
+	const [gopSize, setGopSize] = createSignal<number>(0)
+	const [lostFrames, setLostFrames] = createSignal<number>(0)
+	const [frameDeliveryRate, setFrameDeliveryRate] = createSignal<number>(0)
+
 	const [totalAmountRecvBytes, setTotalAmountRecvBytes] = createSignal<number>(0)
 	const [allFrames, setAllFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	// const [receivedFrames, setReceivedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [latestFrames, setLatestFrames] = createSignal<IndexedDBFramesSchema[]>([])
-	const [lastRenderedFrame, setLastRenderedFrame] = createSignal<IndexedDBFramesSchema>()
+	const [lastRenderedFrame, setLastRenderedFrame] = createSignal<FrameData>()
 	const [totalSkippedFrames, setTotalSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [latestSkippedFrames, setLatestSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [totalStallDuration, setTotalStallDuration] = createSignal<number>(0)
@@ -261,6 +295,7 @@ export default function Watch(props: { name: string }) {
 	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 
 	// Define a function to update the data at regular times
+	/*
 	const updateDataInterval = setInterval(() => {
 		// Function to retrieve data from the IndexedDB
 		const retrieveData = async () => {
@@ -269,7 +304,7 @@ export default function Watch(props: { name: string }) {
 				// setStreamStartWatchTime(Date.now())
 
 				// Record the received video
-				/* setIsRecording(true)
+				setIsRecording(true)
 				const stream = canvas.captureStream()
 				console.log(stream)
 
@@ -300,7 +335,7 @@ export default function Watch(props: { name: string }) {
 
 				setTimeout(() => {
 					mediaRecorder.stop()
-				}, 5000) */
+				}, 5000)
 
 				setTimeout(() => {
 					// mediaRecorder.stop()
@@ -341,7 +376,7 @@ export default function Watch(props: { name: string }) {
 
 			setTotalStallDuration(totalSumRenderDifference)
 
-			/* let minEncodingTime = Number.MAX_SAFE_INTEGER
+			let minEncodingTime = Number.MAX_SAFE_INTEGER
 			let maxEncodingTime = Number.MIN_SAFE_INTEGER
 			let sumEncodingTime = 0
 			let minPropagationTime = Number.MAX_SAFE_INTEGER
@@ -414,7 +449,7 @@ export default function Watch(props: { name: string }) {
 
 			setMinTotalTime(minTotalTime)
 			setMaxTotalTime(maxTotalTime)
-			setAvgTotalTime(sumTotalTime / allReceivedFrames.length) */
+			setAvgTotalTime(sumTotalTime / allReceivedFrames.length)
 
 			// LATEST FRAMES
 
@@ -597,6 +632,95 @@ export default function Watch(props: { name: string }) {
 	const tc_reset = (networkNamespace: NetworkNamespaces) => {
 		usePlayer()?.tc_reset(networkNamespace)
 	}
+	*/
+
+	// Define a function to update the data at regular times
+	const updateDataInterval = setInterval(async () => {
+		const allReceivedSegments = await retrieveSegmentsFromIndexedDB()
+
+		const totalSegments = allReceivedSegments.length
+
+		const propagationTimes = allReceivedSegments.map((segment) => segment.propagationTime)
+
+		const minPropagationTime = Math.min(...propagationTimes)
+		const maxPropagationTime = Math.max(...propagationTimes)
+		const averagePropagationTime = propagationTimes.reduce((sum, time) => sum + time, 0) / totalSegments
+
+		const minSegment = allReceivedSegments.find((segment) => segment.propagationTime === minPropagationTime)
+
+		const maxSegment = allReceivedSegments.find((segment) => segment.propagationTime === maxPropagationTime)
+
+		setTotalSegments(totalSegments)
+		setMinPropagationTime(minPropagationTime)
+		setMaxPropagationTime(maxPropagationTime)
+		setAvgPropagationTime(averagePropagationTime)
+
+		const allReceivedFrames = await retrieveFramesFromIndexedDB()
+
+		const metrics = {
+			frameRate: 0,
+			bitrate: 0,
+			avgGopSize: 0,
+			lostFrames: 0,
+			frameDeliverRate: 0,
+		}
+
+		let totalSize = 0
+		let totalDuration = 0
+		let keyFrameCount = 0
+		let totalGopSize = 0
+		let lastFrameId = allReceivedFrames[0].frameId
+		let lastKeyFrameIndex = -1
+
+		for (let i = 0; i < allReceivedFrames.length; i++) {
+			const frame = allReceivedFrames[i]
+			totalSize += frame.size
+
+			if (i > 0) {
+				const duration = frame.receiveTime - allReceivedFrames[i - 1].receiveTime
+				totalDuration += duration
+
+				// Detect frame loss
+				if (frame.frameId !== lastFrameId + 1) {
+					metrics.lostFrames += frame.frameId - lastFrameId - 1
+				}
+			}
+
+			// GoP size calculation
+			if (frame.type === "key") {
+				if (lastKeyFrameIndex !== -1) {
+					totalGopSize += i - lastKeyFrameIndex
+				}
+				lastKeyFrameIndex = i
+				keyFrameCount++
+			}
+
+			lastFrameId = frame.frameId
+		}
+
+		const totalTimeInSeconds = totalDuration / 1000
+
+		const numberOfSentFrames =
+			allReceivedFrames[allReceivedFrames.length - 1].frameId - allReceivedFrames[0].frameId + 1
+
+		// Frame rate calculation
+		metrics.frameRate = allReceivedFrames.length / totalTimeInSeconds
+
+		// Bitrate calculation (size in bits, time in seconds)
+		metrics.bitrate = (totalSize * 8) / totalTimeInSeconds / 1_000_000
+
+		// Average GoP size calculation
+		metrics.avgGopSize = keyFrameCount > 1 ? totalGopSize / (keyFrameCount - 1) : 0
+
+		metrics.frameDeliverRate = Math.min(allReceivedFrames.length / numberOfSentFrames, 1) * 100
+
+		setFrameRate(metrics.frameRate)
+		setBitrate(metrics.bitrate)
+		setGopSize(metrics.avgGopSize)
+		setLostFrames(metrics.lostFrames)
+		setFrameDeliveryRate(metrics.frameDeliverRate)
+		setLastRenderedFrame(allReceivedFrames[allReceivedFrames.length - 1])
+	}, DATA_UPDATE_RATE)
 
 	let canvas!: HTMLCanvasElement
 
@@ -618,7 +742,7 @@ export default function Watch(props: { name: string }) {
 
 		onCleanup(() => {
 			player.close().then(setError).catch(setError)
-			clearInterval(updateDataInterval)
+			// clearInterval(updateDataInterval)
 		})
 		player.closed().then(setError).catch(setError)
 	})
@@ -629,12 +753,12 @@ export default function Watch(props: { name: string }) {
 	// TODO shrink it if needed via CSS
 	return (
 		<div class="flex">
-			<div class="w-1/2">
+			<div class="flex w-1/2 flex-col items-center">
 				<Fail error={error()} />
 
 				{/* {isRecording() && <div class="text-red-400">Recording</div>} */}
 				<span>
-					{lastRenderedFrame()?._17_width} x {lastRenderedFrame()?._18_height}
+					{lastRenderedFrame()?.width} x {lastRenderedFrame()?.height}
 				</span>
 				<canvas ref={canvas} onClick={play} class="aspect-video w-3/4 rounded-lg" />
 
@@ -648,7 +772,7 @@ export default function Watch(props: { name: string }) {
 
 				*/}
 
-				<div class="flex">
+				{/* <div class="flex">
 					<div class="mr-20 flex items-center">
 						<span>Stream live since: &nbsp;</span>
 						<p>{createTimeString(streamRunningTime())}</p>
@@ -849,7 +973,7 @@ export default function Watch(props: { name: string }) {
 						</div>
 					</div>
 				</div>
-
+ */}
 				{/* <div class="flex w-1/2 flex-col items-center justify-center">
 					<button
 						class="m-3 bg-cyan-600 hover:bg-cyan-800"
@@ -859,6 +983,23 @@ export default function Watch(props: { name: string }) {
 						Download data
 					</button>
 				</div> */}
+				{<h3>Segment Data</h3>}
+
+				<div class="flex ">
+					<div class="mr-20 flex items-center">
+						<span>Total segments: &nbsp;</span>
+						<p>{totalSegments()}</p>
+					</div>
+				</div>
+
+				<div class="flex">
+					<div class="mr-20 flex items-center">
+						<span>Propagation Time (min | max | avg): &nbsp;</span>
+						<span>{minPropagationTime()} ms | &nbsp;</span>
+						<span>{maxPropagationTime()} ms | &nbsp;</span>
+						<span>{avgPropagationTime().toFixed(2)} ms&nbsp;</span>
+					</div>
+				</div>
 			</div>
 
 			{/*
@@ -891,7 +1032,7 @@ export default function Watch(props: { name: string }) {
 			</div>
 			*/}
 
-			<div class="flex w-1/2 flex-col items-center">
+			{/* <div class="flex w-1/2 flex-col items-center">
 				<h3>Meta Data of Last {LATEST_DATA_DISPLAY_INTERVAL} Seconds</h3>
 
 				<div class="grid grid-cols-5 gap-6 border">
@@ -927,10 +1068,10 @@ export default function Watch(props: { name: string }) {
 				</div>
 
 				<div class="flex">
-					{/* <div class="mr-20 flex items-center">
+					<div class="mr-20 flex items-center">
 						<span>Bits Received: &nbsp;</span>
 						<p>{formatNumber(totalAmountRecvBytes() * 8)}</p>
-					</div> */}
+					</div>
 
 					<div class="mr-20 flex items-center">
 						<span>Bitrate: &nbsp;</span>
@@ -944,10 +1085,10 @@ export default function Watch(props: { name: string }) {
 				</div>
 
 				<div class="flex">
-					{/* <div class="mr-14 flex items-center">
+					<div class="mr-14 flex items-center">
 						<span>Total Frames Received: &nbsp;</span>
 						<p>{receivedFrames().length}</p>
-					</div> */}
+					</div>
 
 					<div class="mr-14 flex items-center">
 						<span>Percentage of Frames Received: &nbsp;</span>
@@ -963,6 +1104,40 @@ export default function Watch(props: { name: string }) {
 					<div class="flex items-center">
 						<span>Latest Stall Duration: &nbsp;</span>
 						<p>{(latestStallDuration() / 1000).toFixed(2)}s</p>
+					</div>
+				</div>
+			</div> */}
+			<div class="flex w-1/2 flex-col items-center">
+				<h3>Frame Data</h3>
+
+				<div class="flex">
+					<div class="mr-14 flex items-center">
+						<span>Frame Rate: &nbsp;</span>
+						<p>{frameRate().toFixed(2)} Fps</p>
+					</div>
+
+					<div class="mr-14 flex items-center">
+						<span>Bitrate: &nbsp;</span>
+						<p>{bitrate().toFixed(2)} Mbps</p>
+					</div>
+				</div>
+
+				<div class="flex">
+					<div class="mr-14 flex items-center">
+						<span>Dropped Frames: &nbsp;</span>
+						<p>{lostFrames()}</p>
+					</div>
+
+					<div class="mr-14 flex items-center">
+						<span>Frame Delivery Rate: &nbsp;</span>
+						<p>{frameDeliveryRate().toFixed(2)} %</p>
+					</div>
+				</div>
+
+				<div class="flex">
+					<div class="mr-20 flex items-center">
+						<span>GoP Size: &nbsp;</span>
+						<p>{gopSize().toFixed(2)}</p>
 					</div>
 				</div>
 			</div>

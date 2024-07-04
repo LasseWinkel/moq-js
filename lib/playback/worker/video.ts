@@ -96,7 +96,7 @@ export class Renderer {
 				const ctx = this.#canvas.getContext("2d")
 				if (!ctx) throw new Error("failed to get canvas context")
 
-				addRenderFrameTimestamp(frame, Date.now())
+				// addRenderFrameTimestamp(frame, Date.now())
 
 				ctx.drawImage(frame, 0, 0, frame.displayWidth, frame.displayHeight) // TODO respect aspect ratio
 				frame.close()

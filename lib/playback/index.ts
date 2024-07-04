@@ -8,6 +8,58 @@ import Backend from "./backend"
 
 import { Client } from "../transport/client"
 import { GroupReader } from "../transport/objects"
+import { IndexedDatabaseName, IndexedDBObjectStoresSubscriber } from "../contribute"
+import { SegmentData } from "../contribute"
+
+let db: IDBDatabase
+
+// Function to initialize the IndexedDB
+const initializeIndexedDB = () => {
+	if (!db) {
+		console.error("IndexedDB is not initialized.")
+		return
+	}
+
+	for (const objectStoreName of db.objectStoreNames) {
+		const transaction = db.transaction(objectStoreName, "readwrite")
+
+		const objectStore = transaction.objectStore(objectStoreName)
+
+		const initObjectStore = objectStore.clear()
+
+		// Handle the success event when the store is reset successfully
+		initObjectStore.onsuccess = () => {
+			// console.log("Store successfully reset")
+		}
+
+		// Handle any errors that occur during store reset
+		initObjectStore.onerror = (event) => {
+			console.error("Error during store reset:", (event.target as IDBRequest).error)
+		}
+	}
+}
+
+// Function to add received segments to the IndexedDB
+const addSegments = (segments: SegmentData[]) => {
+	if (!db) {
+		console.error("IndexedDB is not initialized.")
+		return
+	}
+
+	const transaction = db.transaction(IndexedDBObjectStoresSubscriber.SEGMENTS, "readwrite")
+	const objectStore = transaction.objectStore(IndexedDBObjectStoresSubscriber.SEGMENTS)
+	const addRequest = objectStore.put(segments, 1)
+
+	// Handle the success event when the updated value is stored successfully
+	addRequest.onsuccess = () => {
+		// console.log("Segments successfully set:", currentTimeInMilliseconds)
+	}
+
+	// Handle any errors that occur during value storage
+	addRequest.onerror = (event) => {
+		console.error("Error adding segments:", (event.target as IDBRequest).error)
+	}
+}
 
 export type Range = Message.Range
 export type Timeline = Message.Timeline
@@ -35,7 +87,34 @@ export class Player {
 	#close!: () => void
 	#abort!: (err: Error) => void
 
+	segmentPropagationTimes: SegmentData[] = []
+
 	private constructor(connection: Connection, catalog: Catalog, backend: Backend) {
+		// Open IndexedDB
+		const openRequest = indexedDB.open(IndexedDatabaseName, 1)
+
+		// Handle the success event when the database is successfully opened
+		openRequest.onsuccess = (event) => {
+			db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
+
+			initializeIndexedDB()
+		}
+
+		// Handle the upgrade needed event to create or upgrade the database schema
+		openRequest.onupgradeneeded = (event) => {
+			console.log("UPGRADE_NEEDED")
+
+			db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
+			// Check if the object store already exists
+			if (!db.objectStoreNames.contains(IndexedDBObjectStoresSubscriber.SEGMENTS)) {
+				// Create an object store (similar to a table in SQL databases)
+				db.createObjectStore(IndexedDBObjectStoresSubscriber.SEGMENTS)
+			}
+			if (!db.objectStoreNames.contains(IndexedDBObjectStoresSubscriber.FRAMES)) {
+				db.createObjectStore(IndexedDBObjectStoresSubscriber.FRAMES)
+			}
+		}
+
 		this.#connection = connection
 		this.#catalog = catalog
 		this.#backend = backend
@@ -113,6 +192,13 @@ export class Player {
 				if (!(segment instanceof GroupReader)) {
 					throw new Error(`expected group reader for segment: ${track.data_track}`)
 				}
+
+				this.segmentPropagationTimes.push({
+					id: segment.header.group,
+					propagationTime: Date.now() - segment.header.priority,
+				})
+
+				addSegments(this.segmentPropagationTimes)
 
 				const [buffer, stream] = segment.stream.release()
 

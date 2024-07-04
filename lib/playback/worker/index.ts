@@ -10,7 +10,7 @@ import { asError } from "../../common/error"
 import { Deferred } from "../../common/async"
 import { GroupReader, Reader } from "../../transport/objects"
 
-import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDatabaseName } from "../../contribute"
+import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDatabaseName, FrameData } from "../../contribute"
 
 let db: IDBDatabase
 
@@ -25,6 +25,28 @@ openRequest.onsuccess = (event) => {
 // Handle any errors that occur during database opening
 openRequest.onerror = (event) => {
 	console.error("Error opening database:", (event.target as IDBOpenDBRequest).error)
+}
+
+// Function to add received frames to the IndexedDB
+const addFrames = (frames: FrameData[]) => {
+	if (!db) {
+		console.error("IndexedDB is not initialized.")
+		return
+	}
+
+	const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readwrite")
+	const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
+	const addRequest = objectStore.put(frames, 1)
+
+	// Handle the success event when the updated value is stored successfully
+	addRequest.onsuccess = () => {
+		// console.log("Frames successfully set:", currentTimeInMilliseconds)
+	}
+
+	// Handle any errors that occur during value storage
+	addRequest.onerror = (event) => {
+		console.error("Error adding frames:", (event.target as IDBRequest).error)
+	}
 }
 
 // Function to add the decode timestamp of a frame in IndexedDB
@@ -83,6 +105,8 @@ class Worker {
 	// Renderer requests samples, rendering video frames and emitting audio frames.
 	#audio?: Audio.Renderer
 	#video?: Video.Renderer
+
+	allReceivedFrames: FrameData[] = []
 
 	on(e: MessageEvent) {
 		const msg = e.data as Message.ToWorker
@@ -146,6 +170,8 @@ class Worker {
 			segments.releaseLock()
 		}
 
+		addFrames(this.allReceivedFrames)
+
 		// Read each chunk, decoding the MP4 frames and adding them to the queue.
 		for (;;) {
 			const chunk = await reader.read()
@@ -157,7 +183,15 @@ class Worker {
 			const frames = container.decode(chunk.payload)
 			for (const frame of frames) {
 				if (MP4.isVideoTrack(frame.track)) {
-					addReceiveMP4FrameTimestamp(frame, Date.now())
+					// addReceiveMP4FrameTimestamp(frame, Date.now())
+					this.allReceivedFrames.push({
+						frameId: frame.sample.duration,
+						size: frame.sample.size,
+						type: frame.sample.is_sync ? "key" : "delta",
+						receiveTime: Date.now(),
+						width: frame.sample.description.width,
+						height: frame.sample.description.height,
+					})
 				}
 
 				await segment.write(frame)
