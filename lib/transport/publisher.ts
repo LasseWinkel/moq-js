@@ -218,7 +218,7 @@ export class SubscribeRecv {
 			sub: this.#id,
 			track: this.#trackId,
 			group: props.group,
-			priority: props.priority ?? 0,
+			priority: Date.now(),
 		})
 	}
 
