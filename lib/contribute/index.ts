@@ -22,6 +22,8 @@ export interface SegmentData {
 	propagationTime: number
 }
 
+export const IndexedDBNameSubscriber = "IndexedDBSubscriber"
+
 export enum IndexedDBObjectStoresSubscriber {
 	SEGMENTS = "Segments",
 	FRAMES = "Frames",

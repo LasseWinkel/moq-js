@@ -10,12 +10,12 @@ import { asError } from "../../common/error"
 import { Deferred } from "../../common/async"
 import { GroupReader, Reader } from "../../transport/objects"
 
-import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDatabaseName, FrameData } from "../../contribute"
+import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDBNameSubscriber, FrameData } from "../../contribute"
 
 let db: IDBDatabase
 
 // Open or create a database
-const openRequest = indexedDB.open(IndexedDatabaseName, 1)
+const openRequest = indexedDB.open(IndexedDBNameSubscriber, 1)
 
 // Handle the success event when the database is successfully opened
 openRequest.onsuccess = (event) => {

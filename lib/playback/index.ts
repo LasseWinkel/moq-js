@@ -8,7 +8,7 @@ import Backend from "./backend"
 
 import { Client } from "../transport/client"
 import { GroupReader } from "../transport/objects"
-import { IndexedDatabaseName, IndexedDBObjectStoresSubscriber } from "../contribute"
+import { IndexedDBNameSubscriber, IndexedDBObjectStoresSubscriber } from "../contribute"
 import { SegmentData } from "../contribute"
 
 let db: IDBDatabase
@@ -91,7 +91,7 @@ export class Player {
 
 	private constructor(connection: Connection, catalog: Catalog, backend: Backend) {
 		// Open IndexedDB
-		const openRequest = indexedDB.open(IndexedDatabaseName, 1)
+		const openRequest = indexedDB.open(IndexedDBNameSubscriber, 1)
 
 		// Handle the success event when the database is successfully opened
 		openRequest.onsuccess = (event) => {
