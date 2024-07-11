@@ -181,6 +181,10 @@ export default function Publish() {
 			db.createObjectStore(IndexedDBObjectStores.FRAMES, { autoIncrement: true })
 		}
 
+		if (!db.objectStoreNames.contains(IndexedDBObjectStores.SEGMENTS)) {
+			db.createObjectStore(IndexedDBObjectStores.SEGMENTS)
+		}
+
 		if (!db.objectStoreNames.contains(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)) {
 			db.createObjectStore(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)
 		}

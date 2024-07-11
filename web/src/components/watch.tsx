@@ -2,7 +2,7 @@
 import { Player } from "@kixelated/moq/playback"
 
 import { IndexedDatabaseName, IndexedDBObjectStores } from "@kixelated/moq/contribute"
-import type { IndexedDBFramesSchema } from "@kixelated/moq/contribute"
+import type { IndexedDBFramesSchema, IndexedDBSegmentsSchema } from "@kixelated/moq/contribute"
 
 /* import FramesPlot from "./frames"
 import BitratePlot from "./bitrate" */
@@ -70,6 +70,34 @@ function createTimeString(millisecondsInput: number): string {
 }
 
 // Utility function to download collected data.
+function downloadSegmentData(segments: IndexedDBSegmentsSchema[]): void {
+	const jsonData = JSON.stringify(segments)
+	const blob = new Blob([jsonData], {
+		type: "application/json",
+	})
+
+	const link = document.createElement("a")
+	link.href = URL.createObjectURL(blob)
+	const downloadName = `segmentsres${EVALUATION_SCENARIO.resolution}fps${EVALUATION_SCENARIO.frameRate}bit${
+		EVALUATION_SCENARIO.bitrate / 1_000_000
+	}gop(${EVALUATION_SCENARIO.gopDefault},${EVALUATION_SCENARIO.gopThresholds[0] * 100},${
+		EVALUATION_SCENARIO.gopThresholds[1] * 100
+	})loss${EVALUATION_SCENARIO.packetLossServerLink}delay${EVALUATION_SCENARIO.delayServerLink}bw${
+		EVALUATION_SCENARIO.bandwidthConstraintServerLink / 1_000_000
+	}`
+	link.download = downloadName
+
+	// Append the link to the body
+	document.body.appendChild(link)
+
+	// Programmatically click the link to trigger the download
+	link.click()
+
+	// Clean up
+	document.body.removeChild(link)
+}
+
+// Utility function to download collected data.
 function downloadFrameData(frames: IndexedDBFramesSchema[]): void {
 	const jsonData = JSON.stringify(frames)
 	const blob = new Blob([jsonData], {
@@ -105,6 +133,32 @@ const openRequest = indexedDB.open(IndexedDatabaseName, 1)
 // Handle the success event when the database is successfully opened
 openRequest.onsuccess = (event) => {
 	db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
+}
+
+// Function to retrieve all segment data from IndexedDB
+function retrieveSegmentsFromIndexedDB(): Promise<IndexedDBSegmentsSchema[]> {
+	return new Promise((resolve, reject) => {
+		if (!db) {
+			reject(new Error("IndexedDB is not initialized."))
+			return
+		}
+
+		const transaction = db.transaction(IndexedDBObjectStores.SEGMENTS, "readonly")
+		const objectStore = transaction.objectStore(IndexedDBObjectStores.SEGMENTS)
+		const getRequest = objectStore.getAll() // Get all stored values from the database
+
+		// Handle the success event when the values are retrieved successfully
+		getRequest.onsuccess = (event) => {
+			const storedValues = (event.target as IDBRequest).result as IndexedDBSegmentsSchema[]
+			resolve(storedValues)
+		}
+
+		// Handle any errors that occur during value retrieval
+		getRequest.onerror = (event) => {
+			console.error("Error retrieving value:", (event.target as IDBRequest).error)
+			reject((event.target as IDBRequest).error)
+		}
+	})
 }
 
 // Function to retrieve all frame data from IndexedDB
@@ -305,6 +359,7 @@ export default function Watch(props: { name: string }) {
 				setTimeout(() => {
 					// mediaRecorder.stop()
 					downloadFrameData(allFrames())
+					// downloadSegmentData(await retrieveSegmentsFromIndexedDB())
 					// clearInterval(updateDataInterval)
 				}, DATA_DOWNLOAD_TIME * 1000)
 			}

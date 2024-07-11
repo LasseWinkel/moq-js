@@ -10,7 +10,12 @@ import { asError } from "../../common/error"
 import { Deferred } from "../../common/async"
 import { GroupReader, Reader } from "../../transport/objects"
 
-import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDatabaseName } from "../../contribute"
+import {
+	IndexedDBObjectStores,
+	IndexedDBFramesSchema,
+	IndexedDatabaseName,
+	IndexedDBSegmentsSchema,
+} from "../../contribute"
 
 let db: IDBDatabase
 
@@ -25,6 +30,46 @@ openRequest.onsuccess = (event) => {
 // Handle any errors that occur during database opening
 openRequest.onerror = (event) => {
 	console.error("Error opening database:", (event.target as IDBOpenDBRequest).error)
+}
+
+// Function to add the receive timestamp for each segment to the IndexedDB
+const receiveSegment = (segment: Message.Segment, currentDateTime: number) => {
+	if (!db) {
+		console.error("IndexedDB is not initialized.")
+		return
+	}
+
+	const transaction = db.transaction(IndexedDBObjectStores.SEGMENTS, "readwrite")
+	const objectStore = transaction.objectStore(IndexedDBObjectStores.SEGMENTS)
+	const updateRequest = objectStore.get(segment.header.group)
+
+	// Handle the success event when the current value is retrieved successfully
+	updateRequest.onsuccess = (event) => {
+		const currentSegment: IndexedDBSegmentsSchema = (event.target as IDBRequest).result ?? {} // Retrieve the current value
+
+		const updatedSegment = {
+			...currentSegment,
+			propagationTime: currentDateTime - currentSegment.sentTimestamp,
+			receivedTimestamp: currentDateTime,
+		} as IndexedDBSegmentsSchema
+
+		const putRequest = objectStore.put(updatedSegment, segment.header.group) // Store the updated value back into the database
+
+		// Handle the success event when the updated value is stored successfully
+		putRequest.onsuccess = () => {
+			// console.log("Segment updated successfully. New value:", updatedSegment)
+		}
+
+		// Handle any errors that occur during value storage
+		putRequest.onerror = (event) => {
+			console.error("Error storing updated value:", (event.target as IDBRequest).error)
+		}
+	}
+
+	// Handle any errors that occur during value retrieval
+	updateRequest.onerror = (event) => {
+		console.error("Error updating segment:", (event.target as IDBRequest).error)
+	}
 }
 
 // Function to add the decode timestamp of a frame in IndexedDB
@@ -120,6 +165,8 @@ class Worker {
 	}
 
 	async #onSegment(msg: Message.Segment) {
+		receiveSegment(msg, Date.now())
+
 		let init = this.#inits.get(msg.init)
 		if (!init) {
 			init = new Deferred()

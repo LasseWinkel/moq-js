@@ -6,6 +6,36 @@ import { Catalog, Mp4Track, VideoTrack, Track as CatalogTrack, AudioTrack } from
 
 import { isAudioTrackSettings, isVideoTrackSettings } from "../common/settings"
 
+import { IndexedDBObjectStores, IndexedDatabaseName, IndexedDBSegmentsSchema } from "./video"
+
+let db: IDBDatabase
+
+// Function to add the time for each segment when they are written to the stream in IndexedDB
+const addSegmentToStreamTimestamp = (segment: Segment, currentDateTime: number) => {
+	if (!db) {
+		console.error("IndexedDB is not initialized.")
+		return
+	}
+
+	const transaction = db.transaction(IndexedDBObjectStores.SEGMENTS, "readwrite")
+	const objectStore = transaction.objectStore(IndexedDBObjectStores.SEGMENTS)
+	const newSegment = {
+		segmentID: segment.id,
+		sentTimestamp: currentDateTime,
+	} as IndexedDBSegmentsSchema
+	const addRequest = objectStore.add(newSegment, segment.id)
+
+	// Handle the success event when the updated value is stored successfully
+	addRequest.onsuccess = () => {
+		// console.log("Segment added successfully. New segment:", newSegment, segment.id)
+	}
+
+	// Handle any errors that occur during value storage
+	addRequest.onerror = (event) => {
+		console.error("Error adding current segment:", (event.target as IDBRequest).error)
+	}
+}
+
 export interface BroadcastConfig {
 	namespace: string
 	connection: Connection
@@ -30,6 +60,14 @@ export class Broadcast {
 	#running: Promise<void>
 
 	constructor(config: BroadcastConfig) {
+		// Open IndexedDB
+		const openRequest = indexedDB.open(IndexedDatabaseName, 1)
+
+		// Handle the success event when the database is successfully opened
+		openRequest.onsuccess = (event) => {
+			db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
+		}
+
 		this.connection = config.connection
 		this.config = config
 		this.catalog = new Catalog(config.namespace)
@@ -182,6 +220,8 @@ export class Broadcast {
 			group: segment.id,
 			priority: 0, // TODO
 		})
+
+		addSegmentToStreamTimestamp(segment, Date.now())
 
 		let object = 0
 

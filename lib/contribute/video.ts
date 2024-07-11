@@ -31,6 +31,7 @@ export const IndexedDatabaseName = "IndexedDB"
 
 export enum IndexedDBObjectStores {
 	FRAMES = "Frames",
+	SEGMENTS = "Segments",
 	KEY_FRAME_INTERVAL_SIZE = "KeyFrameIntervalSize",
 	START_STREAM_TIME = "StartStreamTime",
 }
@@ -55,6 +56,13 @@ export interface IndexedDBFramesSchema {
 	_17_width: number
 	_18_height: number
 	_19_segmentID: number
+}
+
+export interface IndexedDBSegmentsSchema {
+	segmentID: number
+	sentTimestamp: number
+	propagationTime: number
+	receivedTimestamp: number
 }
 
 let db: IDBDatabase
@@ -94,6 +102,11 @@ export class Encoder {
 		config.bitrateMode ??= "constant"
 		config.latencyMode ??= "realtime"
 
+		/* setTimeout(() => {
+			this.#encoderConfig = { ...config, bitrate: 1_000_000 }
+			this.#encoder.configure(this.#encoderConfig)
+		}, 10_000) */
+
 		this.#encoderConfig = config
 
 		this.frames = new TransformStream({
@@ -123,7 +136,7 @@ export class Encoder {
 			// console.log("Frame added successfully. New frame:", newFrame, frameId)
 		}
 
-		// Handle any errors that occur during value retrieval
+		// Handle any errors that occur during value storage
 		addRequest.onerror = (event) => {
 			console.error("Error adding current frame:", (event.target as IDBRequest).error)
 		}
