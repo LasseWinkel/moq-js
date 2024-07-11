@@ -101,11 +101,20 @@ export class Encoder {
 		this.#encoder.configure(this.#encoderConfig)
 	}
 
-	#transform(frame: VideoFrame) {
+	async #transform(frame: VideoFrame) {
 		const encoder = this.#encoder
 
 		IDBService.addRawVideoFrameTimestamp(frame, Date.now(), this.#frameId)
 		this.#frameId++
+
+		const bitrateSettings = await IDBService.retrieveBitrateSettings()
+
+		this.#encoder.configure({
+			...this.#encoderConfig,
+			bitrateMode: bitrateSettings.bitrateMode.toLowerCase() as VideoEncoderBitrateMode,
+			bitrate: bitrateSettings.bitrate,
+		})
+
 		/* 	this.#seenFrames.push({ timestamp: frame.timestamp, transformTime: performance.now() })
 
 		setTimeout(() => {

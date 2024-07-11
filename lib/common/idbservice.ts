@@ -1,3 +1,5 @@
+import { EVALUATION_SCENARIO } from "./evaluationscenarios"
+
 export const IndexedDatabaseName = "IndexedDB"
 
 export enum IndexedDBObjectStores {
@@ -5,6 +7,12 @@ export enum IndexedDBObjectStores {
 	SEGMENTS = "Segments",
 	KEY_FRAME_INTERVAL_SIZE = "KeyFrameIntervalSize",
 	START_STREAM_TIME = "StartStreamTime",
+	BITRATE_OPTIONS = "Bitrate",
+}
+
+export enum BitrateMode {
+	CONSTANT = "Constant",
+	VARIABLE = "Variable",
 }
 
 export interface IndexedDBFramesSchema {
@@ -34,6 +42,11 @@ export interface IndexedDBSegmentsSchema {
 	sentTimestamp: number
 	propagationTime: number
 	receivedTimestamp: number
+}
+
+export interface BitrateOptions {
+	bitrateMode: BitrateMode
+	bitrate: number
 }
 
 let db: IDBDatabase
@@ -71,6 +84,10 @@ export class IDBService {
 			if (!db.objectStoreNames.contains(IndexedDBObjectStores.START_STREAM_TIME)) {
 				db.createObjectStore(IndexedDBObjectStores.START_STREAM_TIME)
 			}
+
+			if (!db.objectStoreNames.contains(IndexedDBObjectStores.BITRATE_OPTIONS)) {
+				db.createObjectStore(IndexedDBObjectStores.BITRATE_OPTIONS)
+			}
 		}
 	}
 
@@ -100,6 +117,9 @@ export class IDBService {
 				console.error("Error during store reset:", (event.target as IDBRequest).error)
 			}
 		}
+
+		this.changeBitrateMode(BitrateMode.CONSTANT)
+		this.changeBitrate(EVALUATION_SCENARIO.bitrate)
 	}
 
 	// Function to add the start time of the stream in IndexedDB
@@ -492,5 +512,80 @@ export class IDBService {
 		addRequest.onerror = (event) => {
 			console.error("Error adding key frame interval size:", (event.target as IDBRequest).error)
 		}
+	}
+
+	// Function to change the bitrate mode in IndexedDB
+	static changeBitrateMode(bitrateMode: BitrateMode) {
+		if (!db) {
+			console.error("IndexedDB is not initialized.")
+			return
+		}
+
+		const transaction = db.transaction(IndexedDBObjectStores.BITRATE_OPTIONS, "readwrite")
+		const objectStore = transaction.objectStore(IndexedDBObjectStores.BITRATE_OPTIONS)
+		const addRequest = objectStore.put(bitrateMode, 0)
+
+		// Handle the success event when the updated value is stored successfully
+		addRequest.onsuccess = () => {
+			// console.log("Value successfully set:", bitrateMode)
+		}
+
+		// Handle any errors that occur during value storage
+		addRequest.onerror = (event) => {
+			console.error("Error adding value:", (event.target as IDBRequest).error)
+		}
+	}
+
+	// Function to change the bitrate in IndexedDB
+	static changeBitrate(bitrate: number) {
+		if (!db) {
+			console.error("IndexedDB is not initialized.")
+			return
+		}
+
+		const transaction = db.transaction(IndexedDBObjectStores.BITRATE_OPTIONS, "readwrite")
+		const objectStore = transaction.objectStore(IndexedDBObjectStores.BITRATE_OPTIONS)
+		const addRequest = objectStore.put(bitrate, 1)
+
+		// Handle the success event when the updated value is stored successfully
+		addRequest.onsuccess = () => {
+			// console.log("Value successfully set:", bitrate)
+		}
+
+		// Handle any errors that occur during value storage
+		addRequest.onerror = (event) => {
+			console.error("Error adding value:", (event.target as IDBRequest).error)
+		}
+	}
+
+	// Function to retrieve the bitrate mode and bitrate from IndexedDB
+	static retrieveBitrateSettings(): Promise<BitrateOptions> {
+		return new Promise((resolve, reject) => {
+			if (!db) {
+				console.error("IndexedDB is not initialized.")
+				return
+			}
+
+			const transaction = db.transaction(IndexedDBObjectStores.BITRATE_OPTIONS, "readonly")
+			const objectStore = transaction.objectStore(IndexedDBObjectStores.BITRATE_OPTIONS)
+			const getRequest = objectStore.getAll()
+
+			// Handle the success event when the updated value is retrieved successfully
+			getRequest.onsuccess = (event) => {
+				const bitrateOptionsArray = (event.target as IDBRequest).result
+				// console.log("Value successfully retrieved:", keyFrameIntervalSize)
+				const bitrateOptions: BitrateOptions = {
+					bitrateMode: bitrateOptionsArray[0],
+					bitrate: bitrateOptionsArray[1],
+				}
+				resolve(bitrateOptions)
+			}
+
+			// Handle any errors that occur during value retrieval
+			getRequest.onerror = (event) => {
+				console.error("Error retrieving value:", (event.target as IDBRequest).error)
+				reject((event.target as IDBRequest).error)
+			}
+		})
 	}
 }

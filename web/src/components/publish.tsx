@@ -16,8 +16,8 @@ import {
 
 import Fail from "./fail"
 
-import { EVALUATION_SCENARIO } from "@kixelated/moq/common/evaluationscenarios"
-import { IDBService } from "@kixelated/moq/common"
+import { EVALUATION_SCENARIO, GOP_DEFAULTS } from "@kixelated/moq/common/evaluationscenarios"
+import { IDBService, BitrateMode } from "@kixelated/moq/common"
 
 /*
 // Utility function to download collected data.
@@ -123,6 +123,9 @@ export default function Publish() {
 	const [error, setError] = createSignal<Error | undefined>()
 	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 	const [fps, setFps] = createSignal(EVALUATION_SCENARIO.frameRate)
+	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(EVALUATION_SCENARIO.gopDefault)
+	const [bitrateMode, setBitrateMode] = createSignal<BitrateMode>(BitrateMode.CONSTANT)
+	const [bitrate, setBitrate] = createSignal<number>(EVALUATION_SCENARIO.bitrate)
 
 	const audioTrack = createMemo(() => {
 		const tracks = device()?.getAudioTracks()
@@ -485,6 +488,62 @@ export default function Publish() {
 						<span class="text-slate-300">Link copied to clipboard</span>
 					</Show>
 				</div>
+				<Show when={broadcast()}>
+					<div class="flex items-center">
+						<span>Key Frame Interval (s): &nbsp;</span>
+						<select
+							class="m-3 w-1/3"
+							onChange={(event) => {
+								setKeyFrameInterval(parseFloat(event.target.value))
+								IDBService.adjustKeyFrameIntervalSizeInIndexedDB(parseFloat(event.target.value))
+							}}
+						>
+							<For each={GOP_DEFAULTS}>
+								{(value) => (
+									<option value={value} selected={value === keyFrameInterval()}>
+										{value}
+									</option>
+								)}
+							</For>
+						</select>
+					</div>
+
+					<div class="flex items-center">
+						<span>Bitrate Mode: &nbsp;</span>
+						<select
+							class="m-3 w-1/3"
+							onChange={(event) => {
+								setBitrateMode(event.target.value as BitrateMode)
+								IDBService.changeBitrateMode(event.target.value as BitrateMode)
+							}}
+						>
+							<For each={Object.values(BitrateMode)}>
+								{(value) => (
+									<option value={value} selected={value === bitrateMode()}>
+										{value}
+									</option>
+								)}
+							</For>
+						</select>
+					</div>
+
+					<div class="flex items-center">
+						Bitrate: &nbsp;<span class="text-slate-400">{(bitrate() / 1_000_000).toFixed(1)} Mb/s</span>
+						<input
+							disabled={bitrateMode() === BitrateMode.CONSTANT}
+							class="m-3 w-1/3"
+							type="range"
+							min={500_000}
+							max={20_000_000}
+							value={bitrate()}
+							onChange={(event) => {
+								const value = parseInt(event.target.value, 10)
+								setBitrate(value)
+								IDBService.changeBitrate(value)
+							}}
+						/>
+					</div>
+				</Show>
 			</form>
 		</>
 	)

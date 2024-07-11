@@ -7,7 +7,7 @@ const frameRate = FRAME_RATES[0]
 const BITRATES = [6_000_000, 4_500_000, 3_000_000, 1_500_000]
 const bitrate = BITRATES[0]
 
-const GOP_DEFAULTS = [2, 1, 0.5]
+export const GOP_DEFAULTS = [2, 1, 0.5]
 const gopDefault = GOP_DEFAULTS[0]
 
 const GOP_THRESHOLDS = [

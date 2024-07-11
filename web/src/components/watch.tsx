@@ -2,7 +2,7 @@
 import { Player } from "@kixelated/moq/playback"
 
 import { IDBService } from "@kixelated/moq/common"
-import type { IndexedDBFramesSchema } from "@kixelated/moq/common"
+import { BitrateMode, type IndexedDBFramesSchema } from "@kixelated/moq/common"
 
 /* import FramesPlot from "./frames"
 import BitratePlot from "./bitrate" */
@@ -11,7 +11,7 @@ import Fail from "./fail"
 
 import { createEffect, createSignal, For, onCleanup } from "solid-js"
 
-import { EVALUATION_SCENARIO } from "@kixelated/moq/common/evaluationscenarios"
+import { EVALUATION_SCENARIO, GOP_DEFAULTS } from "@kixelated/moq/common/evaluationscenarios"
 
 export interface IndexedDBBitRateWithTimestampSchema {
 	bitrate: number
@@ -187,9 +187,10 @@ export default function Watch(props: { name: string }) {
 	const [bitRate, setBitRate] = createSignal<number>(0.0)
 	const [framesPerSecond, setFramesPerSecond] = createSignal<number>(0.0)
 
-	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(2)
+	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(EVALUATION_SCENARIO.gopDefault)
 	const [gop1sThreshold, setGop1sThreshold] = createSignal<number>(EVALUATION_SCENARIO.gopThresholds[0] * 100)
 	const [gop0_5sThreshold, setGop0_5sThreshold] = createSignal<number>(EVALUATION_SCENARIO.gopThresholds[1] * 100)
+	const [constantGopSize, setConstantGopSize] = createSignal<boolean>(false)
 	const [packetLossPublisher, setPacketLossPublisher] = createSignal<number>(0)
 	const [delayPublisher, setDelayPublisher] = createSignal<number>(0)
 	const [bandwidthLimitPublisher, setBandwidthLimitPublisher] = createSignal<number>(
@@ -200,6 +201,8 @@ export default function Watch(props: { name: string }) {
 	const [bandwidthLimitServer, setBandwidthLimitServer] = createSignal<number>(
 		SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1],
 	)
+	const [bitrateMode, setBitrateMode] = createSignal<BitrateMode>(BitrateMode.CONSTANT)
+	const [targetBitrate, setTargetBitrate] = createSignal<number>(EVALUATION_SCENARIO.bitrate)
 
 	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 
@@ -251,6 +254,20 @@ export default function Watch(props: { name: string }) {
 					// downloadSegmentData(await retrieveSegmentsFromIndexedDB())
 					// clearInterval(updateDataInterval)
 				}, DATA_DOWNLOAD_TIME * 1000)
+
+				/* 	setTimeout(() => {
+					setDelayServer(200)
+					setBandwidthLimitServer(100)
+					setPacketLossServer(0)
+					throttleConnection(NetworkNamespaces.SERVER)
+				}, 35_000)
+
+				setTimeout(() => {
+					setDelayServer(50)
+					setBandwidthLimitServer(100)
+					setPacketLossServer(0)
+					throttleConnection(NetworkNamespaces.SERVER)
+				}, 55_000) */
 			}
 
 			const timeOfDataRetrieval = Date.now()
@@ -501,20 +518,22 @@ export default function Watch(props: { name: string }) {
 		setBitRate(parseFloat(((totalAmountRecvBytes() * 8) / LATEST_DATA_DISPLAY_INTERVAL).toFixed(2)))
 		setFramesPerSecond(parseFloat((latestFrames().length / LATEST_DATA_DISPLAY_INTERVAL).toFixed(2)))
 
-		// Adjust key frame interval if number of received frames changes
-		let newKeyFrameInterval: number
-		if (percentageReceivedFrames() < gop1sThreshold() / 100) {
-			newKeyFrameInterval = 1
+		if (!constantGopSize()) {
+			// Adjust key frame interval if number of received frames changes
+			let newKeyFrameInterval: number
+			if (percentageReceivedFrames() < gop1sThreshold() / 100) {
+				newKeyFrameInterval = 1
 
-			if (percentageReceivedFrames() < gop0_5sThreshold() / 100) {
-				newKeyFrameInterval = 0.5
+				if (percentageReceivedFrames() < gop0_5sThreshold() / 100) {
+					newKeyFrameInterval = 0.5
+				}
+			} else {
+				newKeyFrameInterval = EVALUATION_SCENARIO.gopDefault
 			}
-		} else {
-			newKeyFrameInterval = EVALUATION_SCENARIO.gopDefault
-		}
-		if (newKeyFrameInterval !== keyFrameInterval()) {
-			setKeyFrameInterval(newKeyFrameInterval)
-			IDBService.adjustKeyFrameIntervalSizeInIndexedDB(keyFrameInterval())
+			if (newKeyFrameInterval !== keyFrameInterval()) {
+				setKeyFrameInterval(newKeyFrameInterval)
+				IDBService.adjustKeyFrameIntervalSizeInIndexedDB(keyFrameInterval())
+			}
 		}
 
 		// setBitratePlotData(bitratePlotData().concat([{ bitrate: bitRate(), timestamp: totalMillisecondsWatched }]))
@@ -620,7 +639,22 @@ export default function Watch(props: { name: string }) {
 				<div class="w-full">
 					<div class="flex items-center">
 						<span>Key Frame Interval (s): &nbsp;</span>
-						<p>{keyFrameInterval()}</p>
+						<select
+							class="m-3 w-1/3"
+							onChange={(event) => {
+								setConstantGopSize(true)
+								setKeyFrameInterval(parseFloat(event.target.value))
+								IDBService.adjustKeyFrameIntervalSizeInIndexedDB(parseFloat(event.target.value))
+							}}
+						>
+							<For each={GOP_DEFAULTS}>
+								{(value) => (
+									<option value={value} selected={value === keyFrameInterval()}>
+										{value}
+									</option>
+								)}
+							</For>
+						</select>
 					</div>
 
 					<div class="flex items-center">
@@ -910,6 +944,42 @@ export default function Watch(props: { name: string }) {
 						<span>Latest Stall Duration: &nbsp;</span>
 						<p>{(latestStallDuration() / 1000).toFixed(2)}s</p>
 					</div>
+				</div>
+
+				<div class="flex items-center">
+					<span>Bitrate Mode: &nbsp;</span>
+					<select
+						class="m-3"
+						onChange={(event) => {
+							setBitrateMode(event.target.value as BitrateMode)
+							IDBService.changeBitrateMode(event.target.value as BitrateMode)
+						}}
+					>
+						<For each={Object.values(BitrateMode)}>
+							{(value) => (
+								<option value={value} selected={value === bitrateMode()}>
+									{value}
+								</option>
+							)}
+						</For>
+					</select>
+				</div>
+
+				<div class="flex items-center">
+					Bitrate: &nbsp;<span class="text-slate-400">{(targetBitrate() / 1_000_000).toFixed(1)} Mb/s</span>
+					<input
+						disabled={bitrateMode() === BitrateMode.CONSTANT}
+						class="m-3"
+						type="range"
+						min={500_000}
+						max={20_000_000}
+						value={targetBitrate()}
+						onChange={(event) => {
+							const value = parseInt(event.target.value, 10)
+							setTargetBitrate(value)
+							IDBService.changeBitrate(value)
+						}}
+					/>
 				</div>
 			</div>
 		</div>
