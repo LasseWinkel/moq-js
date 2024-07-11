@@ -1,8 +1,8 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { Player } from "@kixelated/moq/playback"
 
-import { IndexedDatabaseName, IndexedDBObjectStores } from "@kixelated/moq/contribute"
-import type { IndexedDBFramesSchema, IndexedDBSegmentsSchema } from "@kixelated/moq/contribute"
+import { IDBService } from "@kixelated/moq/common"
+import type { IndexedDBFramesSchema } from "@kixelated/moq/common"
 
 /* import FramesPlot from "./frames"
 import BitratePlot from "./bitrate" */
@@ -69,7 +69,7 @@ function createTimeString(millisecondsInput: number): string {
 	return formattedTime
 }
 
-// Utility function to download collected data.
+/* // Utility function to download collected data.
 function downloadSegmentData(segments: IndexedDBSegmentsSchema[]): void {
 	const jsonData = JSON.stringify(segments)
 	const blob = new Blob([jsonData], {
@@ -95,7 +95,7 @@ function downloadSegmentData(segments: IndexedDBSegmentsSchema[]): void {
 
 	// Clean up
 	document.body.removeChild(link)
-}
+} */
 
 // Utility function to download collected data.
 function downloadFrameData(frames: IndexedDBFramesSchema[]): void {
@@ -123,117 +123,6 @@ function downloadFrameData(frames: IndexedDBFramesSchema[]): void {
 
 	// Clean up
 	document.body.removeChild(link)
-}
-
-let db: IDBDatabase // Declare db variable at the worker scope
-
-// Open or create a database
-const openRequest = indexedDB.open(IndexedDatabaseName, 1)
-
-// Handle the success event when the database is successfully opened
-openRequest.onsuccess = (event) => {
-	db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-}
-
-// Function to retrieve all segment data from IndexedDB
-function retrieveSegmentsFromIndexedDB(): Promise<IndexedDBSegmentsSchema[]> {
-	return new Promise((resolve, reject) => {
-		if (!db) {
-			reject(new Error("IndexedDB is not initialized."))
-			return
-		}
-
-		const transaction = db.transaction(IndexedDBObjectStores.SEGMENTS, "readonly")
-		const objectStore = transaction.objectStore(IndexedDBObjectStores.SEGMENTS)
-		const getRequest = objectStore.getAll() // Get all stored values from the database
-
-		// Handle the success event when the values are retrieved successfully
-		getRequest.onsuccess = (event) => {
-			const storedValues = (event.target as IDBRequest).result as IndexedDBSegmentsSchema[]
-			resolve(storedValues)
-		}
-
-		// Handle any errors that occur during value retrieval
-		getRequest.onerror = (event) => {
-			console.error("Error retrieving value:", (event.target as IDBRequest).error)
-			reject((event.target as IDBRequest).error)
-		}
-	})
-}
-
-// Function to retrieve all frame data from IndexedDB
-function retrieveFramesFromIndexedDB(): Promise<IndexedDBFramesSchema[]> {
-	return new Promise((resolve, reject) => {
-		if (!db) {
-			reject(new Error("IndexedDB is not initialized."))
-			return
-		}
-
-		const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readonly")
-		const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
-		const getRequest = objectStore.getAll() // Get all stored values from the database
-
-		// Handle the success event when the values are retrieved successfully
-		getRequest.onsuccess = (event) => {
-			const storedValues = (event.target as IDBRequest).result as IndexedDBFramesSchema[]
-			resolve(storedValues)
-		}
-
-		// Handle any errors that occur during value retrieval
-		getRequest.onerror = (event) => {
-			console.error("Error retrieving value:", (event.target as IDBRequest).error)
-			reject((event.target as IDBRequest).error)
-		}
-	})
-}
-
-// Function to get the start time of the stream in IndexedDB
-const getStreamStartTime = (): Promise<number> => {
-	return new Promise((resolve, reject) => {
-		if (!db) {
-			console.error("IndexedDB is not initialized.")
-			return
-		}
-
-		const transaction = db.transaction(IndexedDBObjectStores.START_STREAM_TIME, "readonly")
-		const objectStore = transaction.objectStore(IndexedDBObjectStores.START_STREAM_TIME)
-		const getRequest = objectStore.get(1)
-
-		// Handle the success event when the updated value is retrieved successfully
-		getRequest.onsuccess = (event) => {
-			const startTime = (event.target as IDBRequest).result as number
-			// console.log("Start time successfully retrieved:", startTime)
-			resolve(startTime)
-		}
-
-		// Handle any errors that occur during value retrieval
-		getRequest.onerror = (event) => {
-			console.error("Error retrieving start time:", (event.target as IDBRequest).error)
-			reject((event.target as IDBRequest).error)
-		}
-	})
-}
-
-// Function to adjust the key frame interval size in IndexedDB
-const adjustKeyFrameIntervalSizeInIndexedDB = (keyFrameIntervalSize: number) => {
-	if (!db) {
-		console.error("IndexedDB is not initialized.")
-		return
-	}
-
-	const transaction = db.transaction(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE, "readwrite")
-	const objectStore = transaction.objectStore(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)
-	const addRequest = objectStore.put(keyFrameIntervalSize, 0)
-
-	// Handle the success event when the updated value is stored successfully
-	addRequest.onsuccess = () => {
-		// console.log("Key frame interval size successfully set:", keyFrameIntervalSize)
-	}
-
-	// Handle any errors that occur during value storage
-	addRequest.onerror = (event) => {
-		console.error("Error adding key frame interval size:", (event.target as IDBRequest).error)
-	}
 }
 
 export default function Watch(props: { name: string }) {
@@ -319,7 +208,7 @@ export default function Watch(props: { name: string }) {
 		// Function to retrieve data from the IndexedDB
 		const retrieveData = async () => {
 			if (streamStartTime() === 0) {
-				setStreamStartTime(await getStreamStartTime())
+				setStreamStartTime(await IDBService.getStreamStartTime())
 				// setStreamStartWatchTime(Date.now())
 
 				// Record the received video
@@ -365,7 +254,7 @@ export default function Watch(props: { name: string }) {
 			}
 
 			const timeOfDataRetrieval = Date.now()
-			const frames = await retrieveFramesFromIndexedDB()
+			const frames = await IDBService.retrieveFramesFromIndexedDB()
 
 			// Ignore first few frames since none of these frames will acutally be received
 			// const firstReceivedFrameIndex =
@@ -625,7 +514,7 @@ export default function Watch(props: { name: string }) {
 		}
 		if (newKeyFrameInterval !== keyFrameInterval()) {
 			setKeyFrameInterval(newKeyFrameInterval)
-			adjustKeyFrameIntervalSizeInIndexedDB(keyFrameInterval())
+			IDBService.adjustKeyFrameIntervalSizeInIndexedDB(keyFrameInterval())
 		}
 
 		// setBitratePlotData(bitratePlotData().concat([{ bitrate: bitRate(), timestamp: totalMillisecondsWatched }]))
@@ -657,6 +546,8 @@ export default function Watch(props: { name: string }) {
 
 	const [usePlayer, setPlayer] = createSignal<Player | undefined>()
 	createEffect(() => {
+		IDBService.initIDBService()
+
 		const namespace = props.name
 		const url = `https://${server}`
 

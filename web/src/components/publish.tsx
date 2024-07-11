@@ -1,10 +1,4 @@
-import {
-	Broadcast,
-	VideoEncoder,
-	AudioEncoder,
-	IndexedDBObjectStores,
-	IndexedDatabaseName,
-} from "@kixelated/moq/contribute"
+import { Broadcast, VideoEncoder, AudioEncoder } from "@kixelated/moq/contribute"
 import { Client, Connection } from "@kixelated/moq/transport"
 
 import {
@@ -23,6 +17,7 @@ import {
 import Fail from "./fail"
 
 import { EVALUATION_SCENARIO } from "@kixelated/moq/common/evaluationscenarios"
+import { IDBService } from "@kixelated/moq/common"
 
 /*
 // Utility function to download collected data.
@@ -45,56 +40,6 @@ function downloadData(data: { timestamp: string; captureTime: number }[]): void 
 	// Clean up
 	document.body.removeChild(link)
 } */
-
-let db: IDBDatabase
-
-// Function to initialize the IndexedDB
-const initializeIndexedDB = () => {
-	if (!db) {
-		console.error("IndexedDB is not initialized.")
-		return
-	}
-
-	for (const objectStoreName of db.objectStoreNames) {
-		const transaction = db.transaction(objectStoreName, "readwrite")
-
-		const objectStore = transaction.objectStore(objectStoreName)
-
-		const initObjectStore = objectStore.clear()
-
-		// Handle the success event when the store is reset successfully
-		initObjectStore.onsuccess = () => {
-			// console.log("Store successfully reset")
-		}
-
-		// Handle any errors that occur during store reset
-		initObjectStore.onerror = (event) => {
-			console.error("Error during store reset:", (event.target as IDBRequest).error)
-		}
-	}
-}
-
-// Function to add the start time of the stream in IndexedDB
-const addStreamStartTime = (currentTimeInMilliseconds: number) => {
-	if (!db) {
-		console.error("IndexedDB is not initialized.")
-		return
-	}
-
-	const transaction = db.transaction(IndexedDBObjectStores.START_STREAM_TIME, "readwrite")
-	const objectStore = transaction.objectStore(IndexedDBObjectStores.START_STREAM_TIME)
-	const addRequest = objectStore.add(currentTimeInMilliseconds, 1)
-
-	// Handle the success event when the updated value is stored successfully
-	addRequest.onsuccess = () => {
-		// console.log("Start time successfully set:", currentTimeInMilliseconds)
-	}
-
-	// Handle any errors that occur during value storage
-	addRequest.onerror = (event) => {
-		console.error("Error adding start time:", (event.target as IDBRequest).error)
-	}
-}
 
 const AUDIO_CODECS = [
 	"Opus",
@@ -160,40 +105,6 @@ const DEFAULT_HEIGHT = EVALUATION_SCENARIO.resolution
 // const DEFAULT_FPS = 30
 
 export default function Publish() {
-	// Open IndexedDB
-	const openRequest = indexedDB.open(IndexedDatabaseName, 1)
-
-	// Handle the success event when the database is successfully opened
-	openRequest.onsuccess = (event) => {
-		db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-
-		initializeIndexedDB()
-	}
-
-	// Handle the upgrade needed event to create or upgrade the database schema
-	openRequest.onupgradeneeded = (event) => {
-		console.log("UPGRADE_NEEDED")
-
-		db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-		// Check if the object store already exists
-		if (!db.objectStoreNames.contains(IndexedDBObjectStores.FRAMES)) {
-			// Create an object store (similar to a table in SQL databases)
-			db.createObjectStore(IndexedDBObjectStores.FRAMES, { autoIncrement: true })
-		}
-
-		if (!db.objectStoreNames.contains(IndexedDBObjectStores.SEGMENTS)) {
-			db.createObjectStore(IndexedDBObjectStores.SEGMENTS)
-		}
-
-		if (!db.objectStoreNames.contains(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)) {
-			db.createObjectStore(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)
-		}
-
-		if (!db.objectStoreNames.contains(IndexedDBObjectStores.START_STREAM_TIME)) {
-			db.createObjectStore(IndexedDBObjectStores.START_STREAM_TIME)
-		}
-	}
-
 	// Use query params to allow overriding environment variables.
 	const urlSearchParams = new URLSearchParams(window.location.search)
 	const params = Object.fromEntries(urlSearchParams.entries())
@@ -232,6 +143,8 @@ export default function Publish() {
 	}
 
 	createEffect(() => {
+		// Initialize IDB Service
+		IDBService.initIDBService()
 		const url = `https://${server}`
 
 		// Special case localhost to fetch the TLS fingerprint from the server.
@@ -516,8 +429,9 @@ export default function Publish() {
 							e.preventDefault()
 
 							if (isStatus("ready")) {
+								IDBService.resetIndexedDB()
 								const startTime = Date.now()
-								addStreamStartTime(startTime)
+								IDBService.addStreamStartTime(startTime)
 								setActive(true)
 
 								const target = e.currentTarget

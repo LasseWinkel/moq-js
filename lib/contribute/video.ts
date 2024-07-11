@@ -1,5 +1,7 @@
 import { EVALUATION_SCENARIO } from "@kixelated/moq/common/evaluationscenarios"
 
+import { IDBService } from "@kixelated/moq/common"
+
 const SUPPORTED = [
 	"avc1", // H.264
 	"hev1", // HEVC (aka h.265)
@@ -27,46 +29,6 @@ function downloadData(data: any[]): void {
 	document.body.removeChild(link)
 } */
 
-export const IndexedDatabaseName = "IndexedDB"
-
-export enum IndexedDBObjectStores {
-	FRAMES = "Frames",
-	SEGMENTS = "Segments",
-	KEY_FRAME_INTERVAL_SIZE = "KeyFrameIntervalSize",
-	START_STREAM_TIME = "StartStreamTime",
-}
-
-export interface IndexedDBFramesSchema {
-	_1_rawVideoTimestamp: number
-	_2_encodingTime: number
-	_3_segmentationTimestamp: number
-	_4_propagationTime: number
-	_5_receiveMp4FrameTimestamp: number
-	_6_decodingTime: number
-	_7_renderFrameTimestamp: number
-	_8_totalTime: number
-	_9_originalTimestampAttribute: number
-	_10_encodedTimestampAttribute: number
-	_11_decodedTimestampAttribute: number
-	_12_renderTimestampAttribute: number
-	_13_sentBytes: number
-	_14_receivedBytes: number
-	_15_sentType: string
-	_16_receivedType: string
-	_17_width: number
-	_18_height: number
-	_19_segmentID: number
-}
-
-export interface IndexedDBSegmentsSchema {
-	segmentID: number
-	sentTimestamp: number
-	propagationTime: number
-	receivedTimestamp: number
-}
-
-let db: IDBDatabase
-
 export interface EncoderSupported {
 	codecs: string[]
 }
@@ -91,14 +53,6 @@ export class Encoder {
 	#frameId = 0
 
 	constructor(config: VideoEncoderConfig) {
-		// Open IndexedDB
-		const openRequest = indexedDB.open(IndexedDatabaseName, 1)
-
-		// Handle the success event when the database is successfully opened
-		openRequest.onsuccess = (event) => {
-			db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-		}
-
 		config.bitrateMode ??= "constant"
 		config.latencyMode ??= "realtime"
 
@@ -113,59 +67,6 @@ export class Encoder {
 			start: this.#start.bind(this),
 			transform: this.#transform.bind(this),
 			flush: this.#flush.bind(this),
-		})
-	}
-
-	// Function to add the time of creation for each frame in IndexedDB
-	addRawVideoFrameTimestamp(frame: VideoFrame, currentTimeInMilliseconds: number, frameId: number) {
-		if (!db) {
-			console.error("IndexedDB is not initialized.")
-			return
-		}
-
-		const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readwrite")
-		const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
-		const newFrame = {
-			_1_rawVideoTimestamp: currentTimeInMilliseconds,
-			_9_originalTimestampAttribute: frame.timestamp,
-		} as IndexedDBFramesSchema
-		const addRequest = objectStore.add(newFrame, frameId)
-
-		// Handle the success event when the updated value is stored successfully
-		addRequest.onsuccess = () => {
-			// console.log("Frame added successfully. New frame:", newFrame, frameId)
-		}
-
-		// Handle any errors that occur during value storage
-		addRequest.onerror = (event) => {
-			console.error("Error adding current frame:", (event.target as IDBRequest).error)
-		}
-	}
-
-	// Function to retrieve the key frame interval size from IndexedDB
-	retrieveKeyFrameIntervalSize = (): Promise<number | undefined> => {
-		return new Promise((resolve, reject) => {
-			if (!db) {
-				console.error("IndexedDB is not initialized.")
-				return
-			}
-
-			const transaction = db.transaction(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE, "readonly")
-			const objectStore = transaction.objectStore(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)
-			const getRequest = objectStore.get(0)
-
-			// Handle the success event when the updated value is retrieved successfully
-			getRequest.onsuccess = (event) => {
-				const keyFrameIntervalSize: number | undefined = (event.target as IDBRequest).result
-				// console.log("Key frame interval size successfully retrieved:", keyFrameIntervalSize)
-				resolve(keyFrameIntervalSize)
-			}
-
-			// Handle any errors that occur during value retrieval
-			getRequest.onerror = (event) => {
-				console.error("Error retrieving key frame interval size:", (event.target as IDBRequest).error)
-				reject((event.target as IDBRequest).error)
-			}
 		})
 	}
 
@@ -203,7 +104,7 @@ export class Encoder {
 	#transform(frame: VideoFrame) {
 		const encoder = this.#encoder
 
-		this.addRawVideoFrameTimestamp(frame, Date.now(), this.#frameId)
+		IDBService.addRawVideoFrameTimestamp(frame, Date.now(), this.#frameId)
 		this.#frameId++
 		/* 	this.#seenFrames.push({ timestamp: frame.timestamp, transformTime: performance.now() })
 
@@ -234,7 +135,7 @@ export class Encoder {
 			this.#decoderConfig = config
 		}
 
-		const keyFrameIntervalSizeFromIndexedDB = await this.retrieveKeyFrameIntervalSize()
+		const keyFrameIntervalSizeFromIndexedDB = await IDBService.retrieveKeyFrameIntervalSize()
 		// console.log("Key frame interval size from IDB", keyFrameIntervalSizeFromIndexedDB)
 
 		const keyFrameIntervalSize = keyFrameIntervalSizeFromIndexedDB
