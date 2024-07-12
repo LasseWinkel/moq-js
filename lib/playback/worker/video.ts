@@ -25,6 +25,8 @@ export class Renderer {
 
 	async #run() {
 		const reader = this.#timeline.frames.pipeThrough(this.#queue).getReader()
+		const renderedFramesRawData: ArrayBufferLike[] = []
+
 		for (;;) {
 			const { value: frame, done } = await reader.read()
 			if (done) break
@@ -33,12 +35,23 @@ export class Renderer {
 				this.#canvas.width = frame.displayWidth
 				this.#canvas.height = frame.displayHeight
 
-				const ctx = this.#canvas.getContext("2d")
+				const ctx = this.#canvas.getContext("2d", { willReadFrequently: true })
 				if (!ctx) throw new Error("failed to get canvas context")
 
 				IDBService.addRenderFrameTimestamp(frame, Date.now())
 
 				ctx.drawImage(frame, 0, 0, frame.displayWidth, frame.displayHeight) // TODO respect aspect ratio
+
+				/* // Access raw image data
+				const imageData = ctx.getImageData(0, 0, frame.displayWidth, frame.displayHeight)
+				const rawData = imageData.data.buffer
+
+				if (renderedFramesRawData.length <= 900) {
+					renderedFramesRawData.push(rawData)
+				}
+				if (renderedFramesRawData.length === 900) {
+					postMessage({ renderedFramesRawData })
+				} */
 				frame.close()
 			})
 		}
