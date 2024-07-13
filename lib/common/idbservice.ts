@@ -49,7 +49,30 @@ export interface BitrateOptions {
 	bitrate: number
 }
 
+export interface IndexedDBFramesSchemaSubscriber {
+	frameId: number
+	size: number
+	type: string
+	receiveTime: number
+	width: number
+	height: number
+}
+
+export interface IndexedDBSegmentsSchemaSubscriber {
+	id: number
+	propagationTime: number
+}
+
+export const IndexedDBNameSubscriber = "IndexedDBSubscriber"
+
+export enum IndexedDBObjectStoresSubscriber {
+	SEGMENTS = "Segments",
+	FRAMES = "Frames",
+}
+
 let db: IDBDatabase
+
+let subscriberDB: IDBDatabase
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class IDBService {
@@ -91,6 +114,31 @@ export class IDBService {
 		}
 	}
 
+	static initIDBServiceSubscriber() {
+		// Open IndexedDB
+		const openRequest = indexedDB.open(IndexedDBNameSubscriber, 1)
+
+		// Handle the success event when the database is successfully opened
+		openRequest.onsuccess = (event) => {
+			subscriberDB = (event.target as IDBOpenDBRequest).result // Assign subscriberDB when database is opened
+		}
+
+		// Handle the upgrade needed event to create or upgrade the database schema
+		openRequest.onupgradeneeded = (event) => {
+			console.log("UPGRADE_NEEDED")
+
+			subscriberDB = (event.target as IDBOpenDBRequest).result // Assign subscriberDB when database is opened
+			// Check if the object store already exists
+			if (!subscriberDB.objectStoreNames.contains(IndexedDBObjectStoresSubscriber.FRAMES)) {
+				subscriberDB.createObjectStore(IndexedDBObjectStoresSubscriber.FRAMES)
+			}
+
+			if (!subscriberDB.objectStoreNames.contains(IndexedDBObjectStoresSubscriber.SEGMENTS)) {
+				subscriberDB.createObjectStore(IndexedDBObjectStoresSubscriber.SEGMENTS)
+			}
+		}
+	}
+
 	// Function to initialize the IndexedDB
 	static resetIndexedDB() {
 		if (!db) {
@@ -120,6 +168,34 @@ export class IDBService {
 
 		this.changeBitrateMode(BitrateMode.CONSTANT)
 		this.changeBitrate(EVALUATION_SCENARIO.bitrate)
+	}
+
+	// Function to initialize the IndexedDB
+	static resetIndexedDBSubscriber() {
+		if (!subscriberDB) {
+			console.error("IndexedDB is not initialized.")
+			return
+		}
+
+		console.log("RESET")
+
+		for (const objectStoreName of subscriberDB.objectStoreNames) {
+			const transaction = subscriberDB.transaction(objectStoreName, "readwrite")
+
+			const objectStore = transaction.objectStore(objectStoreName)
+
+			const initObjectStore = objectStore.clear()
+
+			// Handle the success event when the store is reset successfully
+			initObjectStore.onsuccess = () => {
+				// console.log("Store successfully reset")
+			}
+
+			// Handle any errors that occur during store reset
+			initObjectStore.onerror = (event) => {
+				console.error("Error during store reset:", (event.target as IDBRequest).error)
+			}
+		}
 	}
 
 	// Function to add the start time of the stream in IndexedDB
@@ -579,6 +655,102 @@ export class IDBService {
 					bitrate: bitrateOptionsArray[1],
 				}
 				resolve(bitrateOptions)
+			}
+
+			// Handle any errors that occur during value retrieval
+			getRequest.onerror = (event) => {
+				console.error("Error retrieving value:", (event.target as IDBRequest).error)
+				reject((event.target as IDBRequest).error)
+			}
+		})
+	}
+
+	// Function to add received segments to the IndexedDB
+	static addSegmentsSubscriber(segments: IndexedDBSegmentsSchemaSubscriber[]) {
+		if (!subscriberDB) {
+			console.error("IndexedDB is not initialized.")
+			return
+		}
+
+		const transaction = subscriberDB.transaction(IndexedDBObjectStoresSubscriber.SEGMENTS, "readwrite")
+		const objectStore = transaction.objectStore(IndexedDBObjectStoresSubscriber.SEGMENTS)
+		const addRequest = objectStore.put(segments, 1)
+
+		// Handle the success event when the updated value is stored successfully
+		addRequest.onsuccess = () => {
+			// console.log("Segments successfully set:", currentTimeInMilliseconds)
+		}
+
+		// Handle any errors that occur during value storage
+		addRequest.onerror = (event) => {
+			console.error("Error adding segments:", (event.target as IDBRequest).error)
+		}
+	}
+
+	// Function to add received frames to the IndexedDB
+	static addFramesSubscriber(frames: IndexedDBFramesSchemaSubscriber[]) {
+		if (!subscriberDB) {
+			console.error("IndexedDB is not initialized.")
+			return
+		}
+
+		const transaction = subscriberDB.transaction(IndexedDBObjectStoresSubscriber.FRAMES, "readwrite")
+		const objectStore = transaction.objectStore(IndexedDBObjectStoresSubscriber.FRAMES)
+		const addRequest = objectStore.put(frames, 1)
+
+		// Handle the success event when the updated value is stored successfully
+		addRequest.onsuccess = () => {
+			// console.log("Frames successfully set:", currentTimeInMilliseconds)
+		}
+
+		// Handle any errors that occur during value storage
+		addRequest.onerror = (event) => {
+			console.error("Error adding frames:", (event.target as IDBRequest).error)
+		}
+	}
+
+	// Function to retrieve all frame data from IndexedDB
+	static retrieveFramesFromIndexedDBSubscriber(): Promise<IndexedDBFramesSchemaSubscriber[]> {
+		return new Promise((resolve, reject) => {
+			if (!subscriberDB) {
+				reject(new Error("IndexedDB is not initialized."))
+				return
+			}
+
+			const transaction = subscriberDB.transaction(IndexedDBObjectStoresSubscriber.FRAMES, "readonly")
+			const objectStore = transaction.objectStore(IndexedDBObjectStoresSubscriber.FRAMES)
+			const getRequest = objectStore.get(1) // Get all stored values from the database
+
+			// Handle the success event when the values are retrieved successfully
+			getRequest.onsuccess = (event) => {
+				const storedValues = (event.target as IDBRequest).result as IndexedDBFramesSchemaSubscriber[]
+				resolve(storedValues)
+			}
+
+			// Handle any errors that occur during value retrieval
+			getRequest.onerror = (event) => {
+				console.error("Error retrieving value:", (event.target as IDBRequest).error)
+				reject((event.target as IDBRequest).error)
+			}
+		})
+	}
+
+	// Function to retrieve all segment data from IndexedDB
+	static retrieveSegmentsFromIndexedDBSubscriber(): Promise<IndexedDBSegmentsSchemaSubscriber[]> {
+		return new Promise((resolve, reject) => {
+			if (!subscriberDB) {
+				reject(new Error("IndexedDB is not initialized."))
+				return
+			}
+
+			const transaction = subscriberDB.transaction(IndexedDBObjectStoresSubscriber.SEGMENTS, "readonly")
+			const objectStore = transaction.objectStore(IndexedDBObjectStoresSubscriber.SEGMENTS)
+			const getRequest = objectStore.get(1) // Get all stored values from the database
+
+			// Handle the success event when the values are retrieved successfully
+			getRequest.onsuccess = (event) => {
+				const storedValues = (event.target as IDBRequest).result as IndexedDBSegmentsSchemaSubscriber[]
+				resolve(storedValues)
 			}
 
 			// Handle any errors that occur during value retrieval

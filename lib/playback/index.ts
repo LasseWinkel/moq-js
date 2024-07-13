@@ -8,32 +8,7 @@ import Backend from "./backend"
 
 import { Client } from "../transport/client"
 import { GroupReader } from "../transport/objects"
-import { IndexedDBNameSubscriber, IndexedDBObjectStoresSubscriber } from "../contribute"
-import { SegmentData } from "../contribute"
-
-let db: IDBDatabase
-
-// Function to add received segments to the IndexedDB
-const addSegments = (segments: SegmentData[]) => {
-	if (!db) {
-		console.error("IndexedDB is not initialized.")
-		return
-	}
-
-	const transaction = db.transaction(IndexedDBObjectStoresSubscriber.SEGMENTS, "readwrite")
-	const objectStore = transaction.objectStore(IndexedDBObjectStoresSubscriber.SEGMENTS)
-	const addRequest = objectStore.put(segments, 1)
-
-	// Handle the success event when the updated value is stored successfully
-	addRequest.onsuccess = () => {
-		// console.log("Segments successfully set:", currentTimeInMilliseconds)
-	}
-
-	// Handle any errors that occur during value storage
-	addRequest.onerror = (event) => {
-		console.error("Error adding segments:", (event.target as IDBRequest).error)
-	}
-}
+import { IDBService, IndexedDBSegmentsSchemaSubscriber } from "../common"
 
 export type Range = Message.Range
 export type Timeline = Message.Timeline
@@ -61,17 +36,9 @@ export class Player {
 	#close!: () => void
 	#abort!: (err: Error) => void
 
-	segmentPropagationTimes: SegmentData[] = []
+	segmentPropagationTimes: IndexedDBSegmentsSchemaSubscriber[] = []
 
 	private constructor(connection: Connection, catalog: Catalog, backend: Backend) {
-		// Open IndexedDB
-		const openRequest = indexedDB.open(IndexedDBNameSubscriber, 1)
-
-		// Handle the success event when the database is successfully opened
-		openRequest.onsuccess = (event) => {
-			db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-		}
-
 		this.#connection = connection
 		this.#catalog = catalog
 		this.#backend = backend
@@ -155,7 +122,7 @@ export class Player {
 					propagationTime: Date.now() - segment.header.priority,
 				})
 
-				addSegments(this.segmentPropagationTimes)
+				IDBService.addSegmentsSubscriber(this.segmentPropagationTimes)
 
 				const [buffer, stream] = segment.stream.release()
 

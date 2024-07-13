@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { Player } from "@kixelated/moq/playback"
 
-import type { FrameData, SegmentData } from "@kixelated/moq/contribute"
+import type { IndexedDBFramesSchemaSubscriber } from "@kixelated/moq/common"
 import { IDBService } from "@kixelated/moq/common"
 
 /* import FramesPlot from "./frames"
@@ -67,58 +67,6 @@ function createTimeString(millisecondsInput: number): string {
 	return formattedTime
 }
 
-// Function to retrieve all frame data from IndexedDB
-function retrieveFramesFromIndexedDB(): Promise<FrameData[]> {
-	return new Promise((resolve, reject) => {
-		if (!db) {
-			reject(new Error("IndexedDB is not initialized."))
-			return
-		}
-
-		const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readonly")
-		const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
-		const getRequest = objectStore.get(1) // Get all stored values from the database
-
-		// Handle the success event when the values are retrieved successfully
-		getRequest.onsuccess = (event) => {
-			const storedValues = (event.target as IDBRequest).result as FrameData[]
-			resolve(storedValues)
-		}
-
-		// Handle any errors that occur during value retrieval
-		getRequest.onerror = (event) => {
-			console.error("Error retrieving value:", (event.target as IDBRequest).error)
-			reject((event.target as IDBRequest).error)
-		}
-	})
-}
-
-// Function to retrieve all segment data from IndexedDB
-function retrieveSegmentsFromIndexedDB(): Promise<SegmentData[]> {
-	return new Promise((resolve, reject) => {
-		if (!db) {
-			reject(new Error("IndexedDB is not initialized."))
-			return
-		}
-
-		const transaction = db.transaction(IndexedDBObjectStoresSubscriber.SEGMENTS, "readonly")
-		const objectStore = transaction.objectStore(IndexedDBObjectStoresSubscriber.SEGMENTS)
-		const getRequest = objectStore.get(1) // Get all stored values from the database
-
-		// Handle the success event when the values are retrieved successfully
-		getRequest.onsuccess = (event) => {
-			const storedValues = (event.target as IDBRequest).result as SegmentData[]
-			resolve(storedValues)
-		}
-
-		// Handle any errors that occur during value retrieval
-		getRequest.onerror = (event) => {
-			console.error("Error retrieving value:", (event.target as IDBRequest).error)
-			reject((event.target as IDBRequest).error)
-		}
-	})
-}
-
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
 	const urlSearchParams = new URLSearchParams(window.location.search)
@@ -139,16 +87,8 @@ export default function Watch(props: { name: string }) {
 	const [lostFrames, setLostFrames] = createSignal<number>(0)
 	const [frameDeliveryRate, setFrameDeliveryRate] = createSignal<number>(0)
 
-	const [totalAmountRecvBytes, setTotalAmountRecvBytes] = createSignal<number>(0)
-	const [allFrames, setAllFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	// const [receivedFrames, setReceivedFrames] = createSignal<IndexedDBFramesSchema[]>([])
-	const [latestFrames, setLatestFrames] = createSignal<IndexedDBFramesSchema[]>([])
-	const [lastRenderedFrame, setLastRenderedFrame] = createSignal<FrameData>()
-	const [totalSkippedFrames, setTotalSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
-	const [latestSkippedFrames, setLatestSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
-	const [totalStallDuration, setTotalStallDuration] = createSignal<number>(0)
-	const [latestStallDuration, setLatestStallDuration] = createSignal<number>(0)
-	const [percentageReceivedFrames, setPercentageReceivedFrames] = createSignal<number>(0.0)
+	const [lastRenderedFrame, setLastRenderedFrame] = createSignal<IndexedDBFramesSchemaSubscriber>()
 
 	/* const [minEncodingTime, setMinEncodingTime] = createSignal<number>(0)
 	const [maxEncodingTime, setMaxEncodingTime] = createSignal<number>(0)
@@ -163,53 +103,16 @@ export default function Watch(props: { name: string }) {
 	const [maxTotalTime, setMaxTotalTime] = createSignal<number>(0)
 	const [avgTotalTime, setAvgTotalTime] = createSignal<number>(0.0) */
 
-	const [minLatestEncodingTime, setMinLatestEncodingTime] = createSignal<number>(0)
-	const [maxLatestEncodingTime, setMaxLatestEncodingTime] = createSignal<number>(0)
-	const [avgLatestEncodingTime, setAvgLatestEncodingTime] = createSignal<number>(0.0)
-	const [minLatestPropagationTime, setMinLatestPropagationTime] = createSignal<number>(0)
-	const [maxLatestPropagationTime, setMaxLatestPropagationTime] = createSignal<number>(0)
-	const [avgLatestPropagationTime, setAvgLatestPropagationTime] = createSignal<number>(0.0)
-	const [minLatestDecodingTime, setMinLatestDecodingTime] = createSignal<number>(0)
-	const [maxLatestDecodingTime, setMaxLatestDecodingTime] = createSignal<number>(0)
-	const [avgLatestDecodingTime, setAvgLatestDecodingTime] = createSignal<number>(0.0)
-	const [minLatestTotalTime, setMinLatestTotalTime] = createSignal<number>(0)
-	const [maxLatestTotalTime, setMaxLatestTotalTime] = createSignal<number>(0)
-	const [avgLatestTotalTime, setAvgLatestTotalTime] = createSignal<number>(0.0)
-
-	const [lastRenderedFrameEncodingTime, setLastRenderedFrameEncodingTime] = createSignal<number>(0)
-	const [lastRenderedFramePropagationTime, setLastRenderedFramePropagationTime] = createSignal<number>(0)
-	const [lastRenderedFrameDecodingTime, setLastRenderedFrameDecodingTime] = createSignal<number>(0)
-	const [lastRenderedFrameTotalTime, setLastRenderedFrameTotalTime] = createSignal<number>(0)
-
 	/* const [showFramesPlot, setShowFramesPlot] = createSignal<boolean>(false)
 	const [showBitratePlot, setShowBitratePlot] = createSignal<boolean>(false)
 
 	const [bitratePlotData, setBitratePlotData] = createSignal<IndexedDBBitRateWithTimestampSchema[]>([]) */
-	const [bitRate, setBitRate] = createSignal<number>(0.0)
-	const [framesPerSecond, setFramesPerSecond] = createSignal<number>(0.0)
-
-	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(EVALUATION_SCENARIO.gopDefault)
-	const [gop1sThreshold, setGop1sThreshold] = createSignal<number>(EVALUATION_SCENARIO.gopThresholds[0] * 100)
-	const [gop0_5sThreshold, setGop0_5sThreshold] = createSignal<number>(EVALUATION_SCENARIO.gopThresholds[1] * 100)
-	const [constantGopSize, setConstantGopSize] = createSignal<boolean>(false)
-	const [packetLossPublisher, setPacketLossPublisher] = createSignal<number>(0)
-	const [delayPublisher, setDelayPublisher] = createSignal<number>(0)
-	const [bandwidthLimitPublisher, setBandwidthLimitPublisher] = createSignal<number>(
-		SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1],
-	)
-	const [packetLossServer, setPacketLossServer] = createSignal<number>(0)
-	const [delayServer, setDelayServer] = createSignal<number>(0)
-	const [bandwidthLimitServer, setBandwidthLimitServer] = createSignal<number>(
-		SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1],
-	)
-	const [bitrateMode, setBitrateMode] = createSignal<BitrateMode>(BitrateMode.CONSTANT)
-	const [targetBitrate, setTargetBitrate] = createSignal<number>(EVALUATION_SCENARIO.bitrate)
 
 	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 
 	// Define a function to update the data at regular times
 	const updateDataInterval = setInterval(async () => {
-		const allReceivedSegments = await retrieveSegmentsFromIndexedDB()
+		const allReceivedSegments = await IDBService.retrieveSegmentsFromIndexedDBSubscriber()
 
 		const totalSegments = allReceivedSegments.length
 
@@ -224,11 +127,13 @@ export default function Watch(props: { name: string }) {
 		const maxSegment = allReceivedSegments.find((segment) => segment.propagationTime === maxPropagationTime)
 
 		setTotalSegments(totalSegments)
-		setMinPropagationTime(minPropagationTime)
-		setMaxPropagationTime(maxPropagationTime)
-		setAvgPropagationTime(averagePropagationTime)
+		if (averagePropagationTime < 1_000_000_000) {
+			setMinPropagationTime(minPropagationTime)
+			setMaxPropagationTime(maxPropagationTime)
+			setAvgPropagationTime(averagePropagationTime)
+		}
 
-		const allReceivedFrames = await retrieveFramesFromIndexedDB()
+		const allReceivedFrames = await IDBService.retrieveFramesFromIndexedDBSubscriber()
 
 		const metrics = {
 			frameRate: 0,
@@ -290,7 +195,9 @@ export default function Watch(props: { name: string }) {
 		setFrameRate(metrics.frameRate)
 		setBitrate(metrics.bitrate)
 		setGopSize(metrics.avgGopSize)
-		setLostFrames(metrics.lostFrames)
+		if (averagePropagationTime < 1_000_000_000) {
+			setLostFrames(metrics.lostFrames)
+		}
 		setFrameDeliveryRate(metrics.frameDeliverRate)
 		setLastRenderedFrame(allReceivedFrames[allReceivedFrames.length - 1])
 	}, DATA_UPDATE_RATE)
@@ -299,7 +206,10 @@ export default function Watch(props: { name: string }) {
 
 	const [usePlayer, setPlayer] = createSignal<Player | undefined>()
 	createEffect(() => {
-		IDBService.initIDBService()
+		IDBService.initIDBServiceSubscriber()
+		setTimeout(() => {
+			IDBService.resetIndexedDBSubscriber()
+		}, 10)
 
 		const namespace = props.name
 		const url = `https://${server}`
