@@ -41,6 +41,9 @@ export default defineConfig({
 			},
 		},
 	},
+	server: {
+		host: true,
+	},
 	// Don't add trailing slashes to paths
 	trailingSlash: "never",
 })
