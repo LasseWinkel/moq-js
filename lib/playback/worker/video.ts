@@ -2,12 +2,12 @@ import { Frame, Component } from "./timeline"
 import * as MP4 from "../../media/mp4"
 import * as Message from "./message"
 
-import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDatabaseName } from "../../contribute"
+import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDBNameSubscriber } from "../../contribute"
 
 let db: IDBDatabase
 
 // Open or create a database
-const openRequest = indexedDB.open(IndexedDatabaseName, 1)
+const openRequest = indexedDB.open(IndexedDBNameSubscriber, 1)
 
 // Handle the success event when the database is successfully opened
 openRequest.onsuccess = (event) => {
