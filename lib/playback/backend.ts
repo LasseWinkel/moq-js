@@ -93,9 +93,39 @@ export default class Backend {
 
 		// Don't print the verbose timeline message.
 		if (!msg.timeline) {
-			//console.log("received message from worker to main", msg)
+			// console.log("received message from worker to main", msg)
+		}
+		if (msg.renderedFramesRawData) {
+			let frameIndex = 0
+			let frameIndexTimeout = 0
+			msg.renderedFramesRawData.forEach((rawData) => {
+				// Save the raw data to disk
+				frameIndexTimeout++
+				setTimeout(() => {
+					saveRawDataToFile(rawData, `frame-${frameIndex}.raw`)
+					console.log(frameIndex)
+					frameIndex++
+				}, 100 * frameIndexTimeout)
+			})
 		}
 	}
+}
+
+function saveRawDataToFile(rawData: ArrayBufferLike, filename: string) {
+	// Create a Blob from the raw data
+	const blob = new Blob([rawData], { type: "application/octet-stream" })
+
+	// Create a link element
+	const link = document.createElement("a")
+	link.href = URL.createObjectURL(blob)
+	link.download = filename
+
+	// Append the link to the document and trigger a click to download the file
+	document.body.appendChild(link)
+	link.click()
+
+	// Remove the link from the document
+	document.body.removeChild(link)
 }
 
 export interface Init {

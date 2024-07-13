@@ -7,54 +7,6 @@ import { BroadcastConfig } from "./broadcast"
 import * as Audio from "./audio"
 import * as Video from "./video"
 
-import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDatabaseName } from "./video"
-
-let db: IDBDatabase
-
-// Function to add the time for each frame when they are written to the stream in IndexedDB
-const addFrameToStreamTimestamp = (frame: Chunk, currentDateTime: number, segmentID: number, frameId: number) => {
-	if (!db) {
-		console.error("IndexedDB is not initialized.")
-		return
-	}
-
-	const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readwrite")
-	const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
-	const updateRequest = objectStore.get(frameId)
-
-	// Handle the success event when the current value is retrieved successfully
-	updateRequest.onsuccess = (event) => {
-		const currentFrame: IndexedDBFramesSchema = (event.target as IDBRequest).result ?? {} // Retrieve the current value
-
-		const updatedFrame = {
-			...currentFrame,
-			_2_encodingTime: currentDateTime - currentFrame._1_rawVideoTimestamp,
-			_3_segmentationTimestamp: currentDateTime,
-			_10_encodedTimestampAttribute: frame.timestamp,
-			_13_sentBytes: frame.data.byteLength - 108, // 108 bytes are somehow added along the path but not received
-			_15_sentType: frame.type,
-			_19_segmentID: segmentID,
-		} as IndexedDBFramesSchema
-
-		const putRequest = objectStore.put(updatedFrame, frameId) // Store the updated value back into the database
-
-		// Handle the success event when the updated value is stored successfully
-		putRequest.onsuccess = () => {
-			// console.log("Frame updated successfully. New value:", updatedFrame)
-		}
-
-		// Handle any errors that occur during value storage
-		putRequest.onerror = (event) => {
-			console.error("Error storing updated value:", (event.target as IDBRequest).error)
-		}
-	}
-
-	// Handle any errors that occur during value retrieval
-	updateRequest.onerror = (event) => {
-		console.error("Error updating frame:", (event.target as IDBRequest).error)
-	}
-}
-
 export class Track {
 	name: string
 
@@ -66,17 +18,7 @@ export class Track {
 	#error?: Error
 	#notify = new Notify()
 
-	#frameId = 0
-
 	constructor(media: MediaStreamTrack, config: BroadcastConfig) {
-		// Open IndexedDB
-		const openRequest = indexedDB.open(IndexedDatabaseName, 1)
-
-		// Handle the success event when the database is successfully opened
-		openRequest.onsuccess = (event) => {
-			db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-		}
-
 		// TODO allow multiple tracks of the same kind
 		this.name = media.kind
 
@@ -161,11 +103,6 @@ export class Track {
 
 		if ((writer.desiredSize || 0) > 0) {
 			await writer.write(chunk)
-			// Check whether the frame is a video frame
-			if (chunk.duration === 0) {
-				addFrameToStreamTimestamp(chunk, Date.now(), segmentID, this.#frameId)
-				this.#frameId++
-			}
 		} else {
 			console.warn("dropping chunk", writer.desiredSize)
 		}

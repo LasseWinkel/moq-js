@@ -10,22 +10,8 @@ import { asError } from "../../common/error"
 import { Deferred } from "../../common/async"
 import { GroupReader, Reader } from "../../transport/objects"
 
-import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDBNameSubscriber, FrameData } from "../../contribute"
-
-let db: IDBDatabase
-
-// Open or create a database
-const openRequest = indexedDB.open(IndexedDBNameSubscriber, 1)
-
-// Handle the success event when the database is successfully opened
-openRequest.onsuccess = (event) => {
-	db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-}
-
-// Handle any errors that occur during database opening
-openRequest.onerror = (event) => {
-	console.error("Error opening database:", (event.target as IDBOpenDBRequest).error)
-}
+import { IDBService } from "../../common"
+import { FrameData } from "../../contribute"
 
 // Function to add received frames to the IndexedDB
 const addFrames = (frames: FrameData[]) => {
@@ -46,52 +32,6 @@ const addFrames = (frames: FrameData[]) => {
 	// Handle any errors that occur during value storage
 	addRequest.onerror = (event) => {
 		console.error("Error adding frames:", (event.target as IDBRequest).error)
-	}
-}
-
-// Function to add the decode timestamp of a frame in IndexedDB
-function addReceiveMP4FrameTimestamp(frame: MP4.Frame, currentTimeInMilliseconds: number) {
-	if (!db) {
-		// console.error("IndexedDB is not initialized.")
-		return
-	}
-
-	const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readwrite")
-	const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
-	const updateRequest = objectStore.get(frame.sample.duration)
-
-	// Handle the success event when the current value is retrieved successfully
-	updateRequest.onsuccess = (event) => {
-		const currentFrame: IndexedDBFramesSchema = (event.target as IDBRequest).result ?? {} // Retrieve the current value (default to 0 if not found)
-		// console.log("CURRENT_FRAME", frame.sample.duration, currentFrame)
-
-		const updatedFrame = {
-			...currentFrame,
-			_4_propagationTime: currentTimeInMilliseconds - currentFrame._3_segmentationTimestamp,
-			_5_receiveMp4FrameTimestamp: currentTimeInMilliseconds,
-			_11_decodedTimestampAttribute: frame.sample.dts,
-			_14_receivedBytes: frame.sample.size,
-			_16_receivedType: frame.sample.is_sync ? "key" : "delta",
-			_17_width: frame.sample.description.width,
-			_18_height: frame.sample.description.height,
-		} as IndexedDBFramesSchema // Calculate the updated value
-
-		const putRequest = objectStore.put(updatedFrame, frame.sample.duration) // Store the updated value back into the database
-
-		// Handle the success event when the updated value is stored successfully
-		putRequest.onsuccess = () => {
-			// console.log("Frame updated successfully. New value:", updatedFrame)
-		}
-
-		// Handle any errors that occur during value storage
-		putRequest.onerror = (event) => {
-			console.error("Error storing updated value:", (event.target as IDBRequest).error)
-		}
-	}
-
-	// Handle any errors that occur during value retrieval
-	updateRequest.onerror = (event) => {
-		console.error("Error updating frame:", (event.target as IDBRequest).error)
 	}
 }
 
@@ -134,6 +74,7 @@ class Worker {
 	}
 
 	#onInit(msg: Message.Init) {
+		IDBService.initIDBService()
 		let init = this.#inits.get(msg.name)
 		if (!init) {
 			init = new Deferred()
@@ -144,6 +85,8 @@ class Worker {
 	}
 
 	async #onSegment(msg: Message.Segment) {
+		IDBService.receiveSegment(msg.header.group, Date.now())
+
 		let init = this.#inits.get(msg.init)
 		if (!init) {
 			init = new Deferred()
@@ -183,7 +126,6 @@ class Worker {
 			const frames = container.decode(chunk.payload)
 			for (const frame of frames) {
 				if (MP4.isVideoTrack(frame.track)) {
-					// addReceiveMP4FrameTimestamp(frame, Date.now())
 					this.allReceivedFrames.push({
 						frameId: frame.sample.duration,
 						size: frame.sample.size,

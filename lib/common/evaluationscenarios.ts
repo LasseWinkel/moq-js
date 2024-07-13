@@ -7,7 +7,7 @@ const frameRate = FRAME_RATES[0]
 const BITRATES = [6_000_000, 4_500_000, 3_000_000, 1_500_000]
 const bitrate = BITRATES[0]
 
-const GOP_DEFAULTS = [2, 1, 0.5]
+export const GOP_DEFAULTS = [2, 1, 0.5]
 const gopDefault = GOP_DEFAULTS[0]
 
 const GOP_THRESHOLDS = [
@@ -26,7 +26,7 @@ const delayServerLink = DELAYS_SERVER_LINK[1]
 const BANDWIDTH_CONSTRAINTS_SERVER_LINK = [100_000_000, 50_000_000, 10_000_000]
 const bandwidthConstraintServerLink = BANDWIDTH_CONSTRAINTS_SERVER_LINK[0]
 
-// Total number of experiments: 1 + 4 + 2 + 3 + 2 + 9 + 3 + 2 = 26. Each experiment 3 times -> 3 * 26 = 78.
+// Total number of experiments: 1 + 4 + 2 + 3 + 2 + 9 + 2 + 2 = 25. Each experiment 3 times -> 3 * 25 = 75.
 
 interface EvaluationSceanrio {
 	resolution: number

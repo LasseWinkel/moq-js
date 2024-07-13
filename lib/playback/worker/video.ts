@@ -2,68 +2,6 @@ import { Frame, Component } from "./timeline"
 import * as MP4 from "../../media/mp4"
 import * as Message from "./message"
 
-import { IndexedDBObjectStores, IndexedDBFramesSchema, IndexedDBNameSubscriber } from "../../contribute"
-
-let db: IDBDatabase
-
-// Open or create a database
-const openRequest = indexedDB.open(IndexedDBNameSubscriber, 1)
-
-// Handle the success event when the database is successfully opened
-openRequest.onsuccess = (event) => {
-	db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-}
-
-// Handle any errors that occur during database opening
-openRequest.onerror = (event) => {
-	console.error("Error opening database:", (event.target as IDBOpenDBRequest).error)
-}
-
-// Function to add the render timestamp of a frame in IndexedDB
-function addRenderFrameTimestamp(frame: VideoFrame, currentTimeInMilliseconds: number) {
-	if (!db) {
-		console.error("IndexedDB is not initialized.")
-		return
-	}
-
-	const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readwrite")
-	const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
-	if (frame.duration) {
-		const updateRequest = objectStore.get(frame.duration)
-
-		// Handle the success event when the current value is retrieved successfully
-		updateRequest.onsuccess = (event) => {
-			const currentFrame: IndexedDBFramesSchema = (event.target as IDBRequest).result ?? {} // Retrieve the current value (default to 0 if not found)
-			// console.log("CURRENT_FRAME", frame.sample.duration, currentFrame)
-
-			const updatedFrame = {
-				...currentFrame,
-				_6_decodingTime: currentTimeInMilliseconds - currentFrame._5_receiveMp4FrameTimestamp,
-				_7_renderFrameTimestamp: currentTimeInMilliseconds,
-				_8_totalTime: currentTimeInMilliseconds - currentFrame._1_rawVideoTimestamp,
-				_12_renderTimestampAttribute: frame.timestamp,
-			} as IndexedDBFramesSchema
-
-			const putRequest = objectStore.put(updatedFrame, frame.duration!) // Store the updated value back into the database
-
-			// Handle the success event when the updated value is stored successfully
-			putRequest.onsuccess = () => {
-				// console.log("Frame updated successfully. New value:", updatedFrame)
-			}
-
-			// Handle any errors that occur during value storage
-			putRequest.onerror = (event) => {
-				console.error("Error storing updated value:", (event.target as IDBRequest).error)
-			}
-		}
-
-		// Handle any errors that occur during value retrieval
-		updateRequest.onerror = (event) => {
-			console.error("Error updating frame:", (event.target as IDBRequest).error)
-		}
-	}
-}
-
 export class Renderer {
 	#canvas: OffscreenCanvas
 	#timeline: Component
@@ -85,6 +23,8 @@ export class Renderer {
 
 	async #run() {
 		const reader = this.#timeline.frames.pipeThrough(this.#queue).getReader()
+		const renderedFramesRawData: ArrayBufferLike[] = []
+
 		for (;;) {
 			const { value: frame, done } = await reader.read()
 			if (done) break
@@ -94,11 +34,21 @@ export class Renderer {
 				this.#canvas.height = frame.displayHeight
 
 				const ctx = this.#canvas.getContext("2d")
+				// const ctx = this.#canvas.getContext("2d", { willReadFrequently: true })
 				if (!ctx) throw new Error("failed to get canvas context")
 
-				// addRenderFrameTimestamp(frame, Date.now())
-
 				ctx.drawImage(frame, 0, 0, frame.displayWidth, frame.displayHeight) // TODO respect aspect ratio
+
+				/* // Access raw image data
+				const imageData = ctx.getImageData(0, 0, frame.displayWidth, frame.displayHeight)
+				const rawData = imageData.data.buffer
+
+				if (renderedFramesRawData.length <= 900) {
+					renderedFramesRawData.push(rawData)
+				}
+				if (renderedFramesRawData.length === 900) {
+					postMessage({ renderedFramesRawData })
+				} */
 				frame.close()
 			})
 		}

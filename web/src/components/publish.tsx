@@ -1,10 +1,4 @@
-import {
-	Broadcast,
-	VideoEncoder,
-	AudioEncoder,
-	IndexedDBObjectStores,
-	IndexedDatabaseName,
-} from "@kixelated/moq/contribute"
+import { Broadcast, VideoEncoder, AudioEncoder } from "@kixelated/moq/contribute"
 import { Client, Connection } from "@kixelated/moq/transport"
 
 import {
@@ -22,7 +16,8 @@ import {
 
 import Fail from "./fail"
 
-import { EVALUATION_SCENARIO } from "@kixelated/moq/common/evaluationscenarios"
+import { EVALUATION_SCENARIO, GOP_DEFAULTS } from "@kixelated/moq/common/evaluationscenarios"
+import { IDBService, BitrateMode } from "@kixelated/moq/common"
 
 /*
 // Utility function to download collected data.
@@ -45,56 +40,6 @@ function downloadData(data: { timestamp: string; captureTime: number }[]): void 
 	// Clean up
 	document.body.removeChild(link)
 } */
-
-let db: IDBDatabase
-
-// Function to initialize the IndexedDB
-const initializeIndexedDB = () => {
-	if (!db) {
-		console.error("IndexedDB is not initialized.")
-		return
-	}
-
-	for (const objectStoreName of db.objectStoreNames) {
-		const transaction = db.transaction(objectStoreName, "readwrite")
-
-		const objectStore = transaction.objectStore(objectStoreName)
-
-		const initObjectStore = objectStore.clear()
-
-		// Handle the success event when the store is reset successfully
-		initObjectStore.onsuccess = () => {
-			// console.log("Store successfully reset")
-		}
-
-		// Handle any errors that occur during store reset
-		initObjectStore.onerror = (event) => {
-			console.error("Error during store reset:", (event.target as IDBRequest).error)
-		}
-	}
-}
-
-// Function to add the start time of the stream in IndexedDB
-const addStreamStartTime = (currentTimeInMilliseconds: number) => {
-	if (!db) {
-		console.error("IndexedDB is not initialized.")
-		return
-	}
-
-	const transaction = db.transaction(IndexedDBObjectStores.START_STREAM_TIME, "readwrite")
-	const objectStore = transaction.objectStore(IndexedDBObjectStores.START_STREAM_TIME)
-	const addRequest = objectStore.add(currentTimeInMilliseconds, 1)
-
-	// Handle the success event when the updated value is stored successfully
-	addRequest.onsuccess = () => {
-		// console.log("Start time successfully set:", currentTimeInMilliseconds)
-	}
-
-	// Handle any errors that occur during value storage
-	addRequest.onerror = (event) => {
-		console.error("Error adding start time:", (event.target as IDBRequest).error)
-	}
-}
 
 const AUDIO_CODECS = [
 	"Opus",
@@ -160,36 +105,6 @@ const DEFAULT_HEIGHT = EVALUATION_SCENARIO.resolution
 // const DEFAULT_FPS = 30
 
 export default function Publish() {
-	// Open IndexedDB
-	const openRequest = indexedDB.open(IndexedDatabaseName, 1)
-
-	// Handle the success event when the database is successfully opened
-	openRequest.onsuccess = (event) => {
-		db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-
-		initializeIndexedDB()
-	}
-
-	// Handle the upgrade needed event to create or upgrade the database schema
-	openRequest.onupgradeneeded = (event) => {
-		console.log("UPGRADE_NEEDED")
-
-		db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-		// Check if the object store already exists
-		if (!db.objectStoreNames.contains(IndexedDBObjectStores.FRAMES)) {
-			// Create an object store (similar to a table in SQL databases)
-			db.createObjectStore(IndexedDBObjectStores.FRAMES, { autoIncrement: true })
-		}
-
-		if (!db.objectStoreNames.contains(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)) {
-			db.createObjectStore(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)
-		}
-
-		if (!db.objectStoreNames.contains(IndexedDBObjectStores.START_STREAM_TIME)) {
-			db.createObjectStore(IndexedDBObjectStores.START_STREAM_TIME)
-		}
-	}
-
 	// Use query params to allow overriding environment variables.
 	const urlSearchParams = new URLSearchParams(window.location.search)
 	const params = Object.fromEntries(urlSearchParams.entries())
@@ -208,6 +123,9 @@ export default function Publish() {
 	const [error, setError] = createSignal<Error | undefined>()
 	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 	const [fps, setFps] = createSignal(EVALUATION_SCENARIO.frameRate)
+	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(EVALUATION_SCENARIO.gopDefault)
+	const [bitrateMode, setBitrateMode] = createSignal<BitrateMode>(BitrateMode.CONSTANT)
+	const [bitrate, setBitrate] = createSignal<number>(EVALUATION_SCENARIO.bitrate)
 
 	const audioTrack = createMemo(() => {
 		const tracks = device()?.getAudioTracks()
@@ -228,6 +146,8 @@ export default function Publish() {
 	}
 
 	createEffect(() => {
+		// Initialize IDB Service
+		IDBService.initIDBService()
 		const url = `https://${server}`
 
 		// Special case localhost to fetch the TLS fingerprint from the server.
@@ -512,8 +432,9 @@ export default function Publish() {
 							e.preventDefault()
 
 							if (isStatus("ready")) {
+								IDBService.resetIndexedDB()
 								const startTime = Date.now()
-								addStreamStartTime(startTime)
+								IDBService.addStreamStartTime(startTime)
 								setActive(true)
 
 								const target = e.currentTarget
@@ -567,6 +488,62 @@ export default function Publish() {
 						<span class="text-slate-300">Link copied to clipboard</span>
 					</Show>
 				</div>
+				<Show when={broadcast()}>
+					<div class="flex items-center">
+						<span>Key Frame Interval (s): &nbsp;</span>
+						<select
+							class="m-3 w-1/3"
+							onChange={(event) => {
+								setKeyFrameInterval(parseFloat(event.target.value))
+								IDBService.adjustKeyFrameIntervalSizeInIndexedDB(parseFloat(event.target.value))
+							}}
+						>
+							<For each={GOP_DEFAULTS}>
+								{(value) => (
+									<option value={value} selected={value === keyFrameInterval()}>
+										{value}
+									</option>
+								)}
+							</For>
+						</select>
+					</div>
+
+					<div class="flex items-center">
+						<span>Bitrate Mode: &nbsp;</span>
+						<select
+							class="m-3 w-1/3"
+							onChange={(event) => {
+								setBitrateMode(event.target.value as BitrateMode)
+								IDBService.changeBitrateMode(event.target.value as BitrateMode)
+							}}
+						>
+							<For each={Object.values(BitrateMode)}>
+								{(value) => (
+									<option value={value} selected={value === bitrateMode()}>
+										{value}
+									</option>
+								)}
+							</For>
+						</select>
+					</div>
+
+					<div class="flex items-center">
+						Bitrate: &nbsp;<span class="text-slate-400">{(bitrate() / 1_000_000).toFixed(1)} Mb/s</span>
+						<input
+							disabled={bitrateMode() === BitrateMode.CONSTANT}
+							class="m-3 w-1/3"
+							type="range"
+							min={500_000}
+							max={20_000_000}
+							value={bitrate()}
+							onChange={(event) => {
+								const value = parseInt(event.target.value, 10)
+								setBitrate(value)
+								IDBService.changeBitrate(value)
+							}}
+						/>
+					</div>
+				</Show>
 			</form>
 		</>
 	)

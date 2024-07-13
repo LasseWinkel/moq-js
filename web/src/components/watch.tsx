@@ -1,12 +1,8 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { Player } from "@kixelated/moq/playback"
 
-import {
-	IndexedDBNameSubscriber,
-	IndexedDBObjectStores,
-	IndexedDBObjectStoresSubscriber,
-} from "@kixelated/moq/contribute"
-import type { FrameData, IndexedDBFramesSchema } from "@kixelated/moq/contribute"
+import type { FrameData, SegmentData } from "@kixelated/moq/contribute"
+import { IDBService } from "@kixelated/moq/common"
 
 /* import FramesPlot from "./frames"
 import BitratePlot from "./bitrate" */
@@ -14,9 +10,6 @@ import BitratePlot from "./bitrate" */
 import Fail from "./fail"
 
 import { createEffect, createSignal, For, onCleanup } from "solid-js"
-
-import { EVALUATION_SCENARIO } from "@kixelated/moq/common/evaluationscenarios"
-import type { SegmentData } from "@kixelated/moq/contribute"
 
 export interface IndexedDBBitRateWithTimestampSchema {
 	bitrate: number
@@ -74,87 +67,6 @@ function createTimeString(millisecondsInput: number): string {
 	return formattedTime
 }
 
-// Utility function to download collected data.
-function downloadFrameData(frames: IndexedDBFramesSchema[]): void {
-	const jsonData = JSON.stringify(frames)
-	const blob = new Blob([jsonData], {
-		type: "application/json",
-	})
-
-	const link = document.createElement("a")
-	link.href = URL.createObjectURL(blob)
-	const downloadName = `res${EVALUATION_SCENARIO.resolution}fps${EVALUATION_SCENARIO.frameRate}bit${
-		EVALUATION_SCENARIO.bitrate / 1_000_000
-	}gop(${EVALUATION_SCENARIO.gopDefault},${EVALUATION_SCENARIO.gopThresholds[0] * 100},${
-		EVALUATION_SCENARIO.gopThresholds[1] * 100
-	})loss${EVALUATION_SCENARIO.packetLossServerLink}delay${EVALUATION_SCENARIO.delayServerLink}bw${
-		EVALUATION_SCENARIO.bandwidthConstraintServerLink / 1_000_000
-	}`
-	link.download = downloadName
-
-	// Append the link to the body
-	document.body.appendChild(link)
-
-	// Programmatically click the link to trigger the download
-	link.click()
-
-	// Clean up
-	document.body.removeChild(link)
-}
-
-let db: IDBDatabase // Declare db variable at the worker scope
-
-// Open or create a database
-const openRequest = indexedDB.open(IndexedDBNameSubscriber, 1)
-
-// Function to initialize the IndexedDB
-const initializeIndexedDB = () => {
-	if (!db) {
-		console.error("IndexedDB is not initialized.")
-		return
-	}
-
-	for (const objectStoreName of db.objectStoreNames) {
-		const transaction = db.transaction(objectStoreName, "readwrite")
-
-		const objectStore = transaction.objectStore(objectStoreName)
-
-		const initObjectStore = objectStore.clear()
-
-		// Handle the success event when the store is reset successfully
-		initObjectStore.onsuccess = () => {
-			// console.log("Store successfully reset")
-		}
-
-		// Handle any errors that occur during store reset
-		initObjectStore.onerror = (event) => {
-			console.error("Error during store reset:", (event.target as IDBRequest).error)
-		}
-	}
-}
-
-// Handle the success event when the database is successfully opened
-openRequest.onsuccess = (event) => {
-	db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-
-	initializeIndexedDB()
-}
-
-// Handle the upgrade needed event to create or upgrade the database schema
-openRequest.onupgradeneeded = (event) => {
-	console.log("UPGRADE_NEEDED")
-
-	db = (event.target as IDBOpenDBRequest).result // Assign db when database is opened
-	// Check if the object store already exists
-	if (!db.objectStoreNames.contains(IndexedDBObjectStoresSubscriber.SEGMENTS)) {
-		// Create an object store (similar to a table in SQL databases)
-		db.createObjectStore(IndexedDBObjectStoresSubscriber.SEGMENTS)
-	}
-	if (!db.objectStoreNames.contains(IndexedDBObjectStoresSubscriber.FRAMES)) {
-		db.createObjectStore(IndexedDBObjectStoresSubscriber.FRAMES)
-	}
-}
-
 // Function to retrieve all frame data from IndexedDB
 function retrieveFramesFromIndexedDB(): Promise<FrameData[]> {
 	return new Promise((resolve, reject) => {
@@ -205,55 +117,6 @@ function retrieveSegmentsFromIndexedDB(): Promise<SegmentData[]> {
 			reject((event.target as IDBRequest).error)
 		}
 	})
-}
-
-// Function to get the start time of the stream in IndexedDB
-const getStreamStartTime = (): Promise<number> => {
-	return new Promise((resolve, reject) => {
-		if (!db) {
-			console.error("IndexedDB is not initialized.")
-			return
-		}
-
-		const transaction = db.transaction(IndexedDBObjectStores.START_STREAM_TIME, "readonly")
-		const objectStore = transaction.objectStore(IndexedDBObjectStores.START_STREAM_TIME)
-		const getRequest = objectStore.get(1)
-
-		// Handle the success event when the updated value is retrieved successfully
-		getRequest.onsuccess = (event) => {
-			const startTime = (event.target as IDBRequest).result as number
-			// console.log("Start time successfully retrieved:", startTime)
-			resolve(startTime)
-		}
-
-		// Handle any errors that occur during value retrieval
-		getRequest.onerror = (event) => {
-			console.error("Error retrieving start time:", (event.target as IDBRequest).error)
-			reject((event.target as IDBRequest).error)
-		}
-	})
-}
-
-// Function to adjust the key frame interval size in IndexedDB
-const adjustKeyFrameIntervalSizeInIndexedDB = (keyFrameIntervalSize: number) => {
-	if (!db) {
-		console.error("IndexedDB is not initialized.")
-		return
-	}
-
-	const transaction = db.transaction(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE, "readwrite")
-	const objectStore = transaction.objectStore(IndexedDBObjectStores.KEY_FRAME_INTERVAL_SIZE)
-	const addRequest = objectStore.put(keyFrameIntervalSize, 0)
-
-	// Handle the success event when the updated value is stored successfully
-	addRequest.onsuccess = () => {
-		// console.log("Key frame interval size successfully set:", keyFrameIntervalSize)
-	}
-
-	// Handle any errors that occur during value storage
-	addRequest.onerror = (event) => {
-		console.error("Error adding key frame interval size:", (event.target as IDBRequest).error)
-	}
 }
 
 export default function Watch(props: { name: string }) {
@@ -325,9 +188,10 @@ export default function Watch(props: { name: string }) {
 	const [bitRate, setBitRate] = createSignal<number>(0.0)
 	const [framesPerSecond, setFramesPerSecond] = createSignal<number>(0.0)
 
-	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(2)
+	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(EVALUATION_SCENARIO.gopDefault)
 	const [gop1sThreshold, setGop1sThreshold] = createSignal<number>(EVALUATION_SCENARIO.gopThresholds[0] * 100)
 	const [gop0_5sThreshold, setGop0_5sThreshold] = createSignal<number>(EVALUATION_SCENARIO.gopThresholds[1] * 100)
+	const [constantGopSize, setConstantGopSize] = createSignal<boolean>(false)
 	const [packetLossPublisher, setPacketLossPublisher] = createSignal<number>(0)
 	const [delayPublisher, setDelayPublisher] = createSignal<number>(0)
 	const [bandwidthLimitPublisher, setBandwidthLimitPublisher] = createSignal<number>(
@@ -338,348 +202,10 @@ export default function Watch(props: { name: string }) {
 	const [bandwidthLimitServer, setBandwidthLimitServer] = createSignal<number>(
 		SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1],
 	)
+	const [bitrateMode, setBitrateMode] = createSignal<BitrateMode>(BitrateMode.CONSTANT)
+	const [targetBitrate, setTargetBitrate] = createSignal<number>(EVALUATION_SCENARIO.bitrate)
 
 	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
-
-	// Define a function to update the data at regular times
-	/*
-	const updateDataInterval = setInterval(() => {
-		// Function to retrieve data from the IndexedDB
-		const retrieveData = async () => {
-			if (streamStartTime() === 0) {
-				setStreamStartTime(await getStreamStartTime())
-				// setStreamStartWatchTime(Date.now())
-
-				// Record the received video
-				setIsRecording(true)
-				const stream = canvas.captureStream()
-				console.log(stream)
-
-				const recordedBlobs: BlobPart[] = []
-				const mediaRecorder = new MediaRecorder(stream, {
-					videoBitsPerSecond: 2_000_000,
-					videoKeyFrameIntervalCount: 60,
-				})
-				console.log("Video bits per second", mediaRecorder.videoBitsPerSecond)
-				mediaRecorder.ondataavailable = (event) => {
-					if (event.data && event.data.size > 0) {
-						recordedBlobs.push(event.data)
-					}
-				}
-
-				mediaRecorder.start()
-
-				mediaRecorder.onstop = function () {
-					setIsRecording(false)
-					const blob = new Blob(recordedBlobs, { type: "video/webm" })
-					const url = URL.createObjectURL(blob)
-					const a = document.createElement("a")
-					a.href = url
-					a.download = "received_video.webm"
-					a.click()
-					URL.revokeObjectURL(url)
-				}
-
-				setTimeout(() => {
-					mediaRecorder.stop()
-				}, 5000)
-
-				setTimeout(() => {
-					// mediaRecorder.stop()
-					downloadFrameData(allFrames())
-					// clearInterval(updateDataInterval)
-				}, DATA_DOWNLOAD_TIME * 1000)
-			}
-
-			const timeOfDataRetrieval = Date.now()
-			const frames = await retrieveFramesFromIndexedDB()
-
-			// Ignore first few frames since none of these frames will acutally be received
-			// const firstReceivedFrameIndex =
-			// 	frames.slice(60).findIndex((frame) => frame._5_receiveMp4FrameTimestamp !== undefined) + 60
-			// console.log("FIRST_RECEVIED_FRAME_INDEX", firstReceivedFrameIndex)
-
-			const allReceivedFrames = frames.filter((frame) => frame._5_receiveMp4FrameTimestamp !== undefined)
-			const allSkippedFrames = frames.filter((frame) => frame._5_receiveMp4FrameTimestamp === undefined)
-			const allRenderedFrames = frames.filter((frame) => frame._7_renderFrameTimestamp !== undefined)
-
-			// ALL FRAMES
-
-			setAllFrames(frames)
-			// setReceivedFrames(allReceivedFrames)
-			setTotalSkippedFrames(allSkippedFrames)
-
-			let totalSumRenderDifference = 0
-
-			for (let i = 0; i < allRenderedFrames.length - 1; i++) {
-				const currentTimestamp = allRenderedFrames[i]._7_renderFrameTimestamp
-				const nextTimestamp = allRenderedFrames[i + 1]._7_renderFrameTimestamp
-				const difference = nextTimestamp - currentTimestamp
-
-				if (difference > STALL_EVENT_THRESHOLD) {
-					totalSumRenderDifference += difference - STALL_EVENT_THRESHOLD
-				}
-			}
-
-			setTotalStallDuration(totalSumRenderDifference)
-
-			let minEncodingTime = Number.MAX_SAFE_INTEGER
-			let maxEncodingTime = Number.MIN_SAFE_INTEGER
-			let sumEncodingTime = 0
-			let minPropagationTime = Number.MAX_SAFE_INTEGER
-			let maxPropagationTime = Number.MIN_SAFE_INTEGER
-			let sumPropagationTime = 0
-			let minDecodingTime = Number.MAX_SAFE_INTEGER
-			let maxDecodingTime = Number.MIN_SAFE_INTEGER
-			let sumDecodingTime = 0
-			let minTotalTime = Number.MAX_SAFE_INTEGER
-			let maxTotalTime = Number.MIN_SAFE_INTEGER
-			let sumTotalTime = 0
-			allReceivedFrames.forEach((frame) => {
-				const frameEncodingTime = frame._2_encodingTime
-				if (frameEncodingTime < minEncodingTime) {
-					minEncodingTime = frameEncodingTime
-				}
-				if (frameEncodingTime > maxEncodingTime) {
-					maxEncodingTime = frameEncodingTime
-				}
-				if (frameEncodingTime) {
-					sumEncodingTime += frameEncodingTime
-				}
-
-				const framePropagationTime = frame._4_propagationTime
-				if (framePropagationTime < minPropagationTime) {
-					minPropagationTime = framePropagationTime
-				}
-				if (framePropagationTime > maxPropagationTime) {
-					maxPropagationTime = framePropagationTime
-				}
-				if (framePropagationTime) {
-					sumPropagationTime += framePropagationTime
-				}
-
-				const frameDecodingTime = frame._6_decodingTime
-				if (frameDecodingTime < minDecodingTime) {
-					minDecodingTime = frameDecodingTime
-				}
-				if (frameDecodingTime > maxDecodingTime) {
-					maxDecodingTime = frameDecodingTime
-				}
-				if (frameDecodingTime) {
-					sumDecodingTime += frameDecodingTime
-				}
-
-				const frameTotalTime = frame._8_totalTime
-				if (frameTotalTime < minTotalTime) {
-					minTotalTime = frameTotalTime
-				}
-				if (frameTotalTime > maxTotalTime) {
-					maxTotalTime = frameTotalTime
-				}
-				if (frameTotalTime) {
-					sumTotalTime += frameTotalTime
-				}
-			})
-
-
-			setMinEncodingTime(minEncodingTime)
-			setMaxEncodingTime(maxEncodingTime)
-			setAvgEncodingTime(sumEncodingTime / allReceivedFrames.length)
-
-			setMinPropagationTime(minPropagationTime)
-			setMaxPropagationTime(maxPropagationTime)
-			setAvgPropagationTime(sumPropagationTime / allReceivedFrames.length)
-
-			setMinDecodingTime(minDecodingTime)
-			setMaxDecodingTime(maxDecodingTime)
-			setAvgDecodingTime(sumDecodingTime / allReceivedFrames.length)
-
-			setMinTotalTime(minTotalTime)
-			setMaxTotalTime(maxTotalTime)
-			setAvgTotalTime(sumTotalTime / allReceivedFrames.length)
-
-			// LATEST FRAMES
-
-			const latestFrames = frames.filter(
-				(frame) => timeOfDataRetrieval - frame._3_segmentationTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
-			)
-			const latestReceivedFrames = allReceivedFrames.filter(
-				(frame) =>
-					timeOfDataRetrieval - frame._5_receiveMp4FrameTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
-			)
-			const latestSkippedFrames = allSkippedFrames.filter(
-				(frame) => timeOfDataRetrieval - frame._3_segmentationTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
-			)
-			const latestRenderedFrames = allRenderedFrames.filter(
-				(frame) => timeOfDataRetrieval - frame._7_renderFrameTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
-			)
-
-			setLatestFrames(latestFrames)
-			setLatestSkippedFrames(latestSkippedFrames)
-
-			setPercentageReceivedFrames(Math.min(latestReceivedFrames.length / latestFrames.length, 1))
-
-			let latestSumRenderDifference = 0
-
-			for (let i = 0; i < latestRenderedFrames.length - 1; i++) {
-				const currentTimestamp = latestRenderedFrames[i]._7_renderFrameTimestamp
-				const nextTimestamp = latestRenderedFrames[i + 1]._7_renderFrameTimestamp
-				const difference = nextTimestamp - currentTimestamp
-
-				if (difference > STALL_EVENT_THRESHOLD) {
-					latestSumRenderDifference += difference - STALL_EVENT_THRESHOLD
-				}
-			}
-
-			setLatestStallDuration(latestSumRenderDifference)
-
-			let totalAmountRecvBytes = 0
-
-			let maxLatestEncodingTime = Number.MIN_SAFE_INTEGER
-			let minLatestEncodingTime = Number.MAX_SAFE_INTEGER
-			let sumLatestEncodingTime = 0
-			let minLatestPropagationTime = Number.MAX_SAFE_INTEGER
-			let maxLatestPropagationTime = Number.MIN_SAFE_INTEGER
-			let sumLatestPropagationTime = 0
-			let minLatestDecodingTime = Number.MAX_SAFE_INTEGER
-			let maxLatestDecodingTime = Number.MIN_SAFE_INTEGER
-			let sumLatestDecodingTime = 0
-			let minLatestTotalTime = Number.MAX_SAFE_INTEGER
-			let maxLatestTotalTime = Number.MIN_SAFE_INTEGER
-			let sumLatestTotalTime = 0
-			latestFrames.forEach((frame) => {
-				if (frame._5_receiveMp4FrameTimestamp) {
-					totalAmountRecvBytes += frame._14_receivedBytes
-				}
-
-				const frameEncodingTime = frame._2_encodingTime
-				if (frameEncodingTime < minLatestEncodingTime) {
-					minLatestEncodingTime = frameEncodingTime
-				}
-				if (frameEncodingTime > maxLatestEncodingTime) {
-					maxLatestEncodingTime = frameEncodingTime
-				}
-				if (frameEncodingTime) {
-					sumLatestEncodingTime += frameEncodingTime
-				}
-
-				const framePropagationTime = frame._4_propagationTime
-				if (framePropagationTime < minLatestPropagationTime) {
-					minLatestPropagationTime = framePropagationTime
-				}
-				if (framePropagationTime > maxLatestPropagationTime) {
-					maxLatestPropagationTime = framePropagationTime
-				}
-				if (framePropagationTime) {
-					sumLatestPropagationTime += framePropagationTime
-				}
-
-				const frameDecodingTime = frame._6_decodingTime
-				if (frameDecodingTime < minLatestDecodingTime) {
-					minLatestDecodingTime = frameDecodingTime
-				}
-				if (frameDecodingTime > maxLatestDecodingTime) {
-					maxLatestDecodingTime = frameDecodingTime
-				}
-				if (frameDecodingTime) {
-					sumLatestDecodingTime += frameDecodingTime
-				}
-
-				const frameTotalTime = frame._8_totalTime
-				if (frameTotalTime < minLatestTotalTime) {
-					minLatestTotalTime = frameTotalTime
-				}
-				if (frameTotalTime > maxLatestTotalTime) {
-					maxLatestTotalTime = frameTotalTime
-				}
-				if (frameTotalTime) {
-					sumLatestTotalTime += frameTotalTime
-				}
-			})
-
-			setTotalAmountRecvBytes(totalAmountRecvBytes)
-
-			setMinLatestEncodingTime(minLatestEncodingTime)
-			setMaxLatestEncodingTime(maxLatestEncodingTime)
-			setAvgLatestEncodingTime(sumLatestEncodingTime / latestFrames.length)
-
-			setMinLatestPropagationTime(minLatestPropagationTime)
-			setMaxLatestPropagationTime(maxLatestPropagationTime)
-			setAvgLatestPropagationTime(sumLatestPropagationTime / latestFrames.length)
-
-			setMinLatestDecodingTime(minLatestDecodingTime)
-			setMaxLatestDecodingTime(maxLatestDecodingTime)
-			setAvgLatestDecodingTime(sumLatestDecodingTime / latestFrames.length)
-
-			setMinLatestTotalTime(minLatestTotalTime)
-			setMaxLatestTotalTime(maxLatestTotalTime)
-			setAvgLatestTotalTime(sumLatestTotalTime / latestFrames.length)
-
-			// LAST FRAME
-
-			const lastRenderedFrame = frames.findLast((frame) => frame._7_renderFrameTimestamp !== undefined)
-
-			if (lastRenderedFrame) {
-				setLastRenderedFrame(lastRenderedFrame)
-				setLastRenderedFrameEncodingTime(lastRenderedFrame._2_encodingTime)
-				setLastRenderedFramePropagationTime(lastRenderedFrame._4_propagationTime)
-				setLastRenderedFrameDecodingTime(lastRenderedFrame._6_decodingTime)
-				setLastRenderedFrameTotalTime(lastRenderedFrame._8_totalTime)
-			}
-		}
-
-		retrieveData().then(setError).catch(setError)
-
-		setStreamRunningTime(Date.now() - streamStartTime())
-
-		const totalMillisecondsWatched = streamWatchTime() + DATA_UPDATE_RATE
-		setStreamWatchTime(totalMillisecondsWatched)
-		// const totalSeconds = totalMillisecondsWatched / 1000
-
-		setBitRate(parseFloat(((totalAmountRecvBytes() * 8) / LATEST_DATA_DISPLAY_INTERVAL).toFixed(2)))
-		setFramesPerSecond(parseFloat((latestFrames().length / LATEST_DATA_DISPLAY_INTERVAL).toFixed(2)))
-
-		// Adjust key frame interval if number of received frames changes
-		let newKeyFrameInterval: number
-		if (percentageReceivedFrames() < gop1sThreshold() / 100) {
-			newKeyFrameInterval = 1
-
-			if (percentageReceivedFrames() < gop0_5sThreshold() / 100) {
-				newKeyFrameInterval = 0.5
-			}
-		} else {
-			newKeyFrameInterval = EVALUATION_SCENARIO.gopDefault
-		}
-		if (newKeyFrameInterval !== keyFrameInterval()) {
-			setKeyFrameInterval(newKeyFrameInterval)
-			adjustKeyFrameIntervalSizeInIndexedDB(keyFrameInterval())
-		}
-
-		// setBitratePlotData(bitratePlotData().concat([{ bitrate: bitRate(), timestamp: totalMillisecondsWatched }]))
-	}, DATA_UPDATE_RATE)
-
-	const throttleConnection = (networkNamespace: NetworkNamespaces) => {
-		if (networkNamespace === NetworkNamespaces.PUBLISHER) {
-			usePlayer()?.throttle(
-				packetLossPublisher(),
-				delayPublisher(),
-				bandwidthLimitPublisher().toString(),
-				networkNamespace,
-			)
-		} else if (networkNamespace === NetworkNamespaces.SERVER) {
-			usePlayer()?.throttle(
-				packetLossServer(),
-				delayServer(),
-				bandwidthLimitServer().toString(),
-				networkNamespace,
-			)
-		}
-	}
-
-	const tc_reset = (networkNamespace: NetworkNamespaces) => {
-		usePlayer()?.tc_reset(networkNamespace)
-	}
-	*/
 
 	// Define a function to update the data at regular times
 	const updateDataInterval = setInterval(async () => {
@@ -773,6 +299,8 @@ export default function Watch(props: { name: string }) {
 
 	const [usePlayer, setPlayer] = createSignal<Player | undefined>()
 	createEffect(() => {
+		IDBService.initIDBService()
+
 		const namespace = props.name
 		const url = `https://${server}`
 
@@ -845,7 +373,22 @@ export default function Watch(props: { name: string }) {
 				<div class="w-full">
 					<div class="flex items-center">
 						<span>Key Frame Interval (s): &nbsp;</span>
-						<p>{keyFrameInterval()}</p>
+						<select
+							class="m-3 w-1/3"
+							onChange={(event) => {
+								setConstantGopSize(true)
+								setKeyFrameInterval(parseFloat(event.target.value))
+								IDBService.adjustKeyFrameIntervalSizeInIndexedDB(parseFloat(event.target.value))
+							}}
+						>
+							<For each={GOP_DEFAULTS}>
+								{(value) => (
+									<option value={value} selected={value === keyFrameInterval()}>
+										{value}
+									</option>
+								)}
+							</For>
+						</select>
 					</div>
 
 					<div class="flex items-center">
