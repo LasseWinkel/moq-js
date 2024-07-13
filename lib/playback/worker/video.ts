@@ -35,7 +35,8 @@ export class Renderer {
 				this.#canvas.width = frame.displayWidth
 				this.#canvas.height = frame.displayHeight
 
-				const ctx = this.#canvas.getContext("2d", { willReadFrequently: true })
+				const ctx = this.#canvas.getContext("2d")
+				// const ctx = this.#canvas.getContext("2d", { willReadFrequently: true })
 				if (!ctx) throw new Error("failed to get canvas context")
 
 				IDBService.addRenderFrameTimestamp(frame, Date.now())
