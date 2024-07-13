@@ -9,6 +9,8 @@ export class Renderer {
 	#decoder!: VideoDecoder
 	#queue: TransformStream<Frame, VideoFrame>
 
+	#encodedRawFramesData: Uint8Array[] = []
+
 	constructor(config: Message.ConfigVideo, timeline: Component) {
 		this.#canvas = config.canvas
 		this.#timeline = timeline
@@ -93,6 +95,15 @@ export class Renderer {
 			timestamp: frame.sample.dts,
 			duration: frame.sample.duration,
 		})
+
+		/* if (this.#encodedRawFramesData.length === 0) {
+			const encodedRawFramesData = this.#encodedRawFramesData
+			setTimeout(() => {
+				postMessage({ encodedRawFramesData })
+			}, 5000)
+		}
+
+		this.#encodedRawFramesData.push(frame.sample.data) */
 
 		this.#decoder.decode(chunk)
 	}

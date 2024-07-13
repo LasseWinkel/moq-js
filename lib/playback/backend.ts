@@ -103,7 +103,18 @@ export default class Backend {
 				frameIndexTimeout++
 				setTimeout(() => {
 					saveRawDataToFile(rawData, `frame-${frameIndex}.raw`)
-					console.log(frameIndex)
+					frameIndex++
+				}, 100 * frameIndexTimeout)
+			})
+		}
+		if (msg.encodedRawFramesData) {
+			let frameIndex = 0
+			let frameIndexTimeout = 0
+			msg.encodedRawFramesData.forEach((rawData) => {
+				// Save the raw data to disk
+				frameIndexTimeout++
+				setTimeout(() => {
+					saveRawDataToFile(rawData, `frame-${frameIndex}.raw`)
 					frameIndex++
 				}, 100 * frameIndexTimeout)
 			})
