@@ -104,7 +104,7 @@ export default class Backend {
 				setTimeout(() => {
 					saveRawDataToFile(rawData, `frame-${frameIndex}.raw`)
 					frameIndex++
-				}, 100 * frameIndexTimeout)
+				}, 200 * frameIndexTimeout)
 			})
 		}
 		if (msg.encodedRawFramesData) {
@@ -116,7 +116,7 @@ export default class Backend {
 				setTimeout(() => {
 					saveRawDataToFile(rawData, `frame-${frameIndex}.raw`)
 					frameIndex++
-				}, 100 * frameIndexTimeout)
+				}, 200 * frameIndexTimeout)
 			})
 		}
 	}
