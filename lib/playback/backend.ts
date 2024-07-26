@@ -114,7 +114,7 @@ export default class Backend {
 				// Save the raw data to disk
 				frameIndexTimeout++
 				setTimeout(() => {
-					saveRawDataToFile(rawData, `frame-${frameIndex}.raw`)
+					saveRawDataToFile(rawData, `frame-${frameIndex}.h264`)
 					frameIndex++
 				}, 200 * frameIndexTimeout)
 			})
