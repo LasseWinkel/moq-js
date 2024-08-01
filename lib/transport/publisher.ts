@@ -1,6 +1,7 @@
 import * as Control from "./control"
 import { Queue, Watch } from "../common/async"
 import { Objects, GroupWriter, ObjectWriter, StreamType, TrackWriter } from "./objects"
+import { IDBService } from "../common"
 
 export class Publisher {
 	// Used to send control messages
@@ -35,6 +36,10 @@ export class Publisher {
 			namespace,
 		})
 
+		/* setInterval(async () => {
+			await this.#control.send({ kind: Control.Msg.GetGopSize })
+		}, 5_000) */
+
 		return announce
 	}
 
@@ -52,6 +57,8 @@ export class Publisher {
 			this.recvAnnounceOk(msg)
 		} else if (msg.kind == Control.Msg.AnnounceError) {
 			this.recvAnnounceError(msg)
+		} else if (msg.kind == Control.Msg.SetGopSize) {
+			IDBService.adjustKeyFrameIntervalSizeInIndexedDB(parseFloat(msg.gopSize))
 		} else {
 			throw new Error(`unknown control message`) // impossible
 		}
@@ -91,13 +98,6 @@ export class Publisher {
 
 	recvUnsubscribe(_msg: Control.Unsubscribe) {
 		throw new Error("TODO unsubscribe")
-	}
-
-	async latency(currentPublisherTime: number) {
-		await this.#control.send({
-			kind: Control.Msg.Latency,
-			currentPublisherTime,
-		})
 	}
 }
 
