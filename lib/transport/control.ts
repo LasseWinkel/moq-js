@@ -3,7 +3,15 @@ import { Reader, Writer } from "./stream"
 export type Message = Subscriber | Publisher
 
 // Sent by subscriber
-export type Subscriber = Subscribe | Unsubscribe | AnnounceOk | AnnounceError | Throttle | PacketLoss | TcReset
+export type Subscriber =
+	| Subscribe
+	| Unsubscribe
+	| AnnounceOk
+	| AnnounceError
+	| Throttle
+	| PacketLoss
+	| TcReset
+	| SetGopSize
 
 export function isSubscriber(m: Message): m is Subscriber {
 	return (
@@ -13,7 +21,8 @@ export function isSubscriber(m: Message): m is Subscriber {
 		m.kind == Msg.AnnounceError ||
 		m.kind == Msg.Throttle ||
 		m.kind == Msg.PacketLoss ||
-		m.kind == Msg.TcReset
+		m.kind == Msg.TcReset ||
+		m.kind == Msg.SetGopSize
 	)
 }
 
@@ -49,6 +58,7 @@ export enum Msg {
 	Throttle = "throttle",
 	PacketLoss = "packet_loss",
 	TcReset = "tc_reset",
+	SetGopSize = "set_gop_size",
 	Latency = "latency",
 }
 
@@ -68,9 +78,10 @@ enum Id {
 	Unannounce = 0x9,
 	GoAway = 0x10,
 	Throttle = 0x11,
-	PacketLoss = 0x13,
 	TcReset = 0x12,
+	PacketLoss = 0x13,
 	Latency = 0x14,
+	SetGopSize = 0x15,
 }
 
 export interface Subscribe {
@@ -164,6 +175,11 @@ export interface TcReset {
 	networkNamespace: string
 }
 
+export interface SetGopSize {
+	kind: Msg.SetGopSize
+	gopSize: number
+}
+
 export interface Latency {
 	kind: Msg.Latency
 	currentPublisherTime: number
@@ -251,6 +267,8 @@ export class Decoder {
 				return Msg.PacketLoss
 			case Id.TcReset:
 				return Msg.TcReset
+			case Id.SetGopSize:
+				return Msg.SetGopSize
 			case Id.Latency:
 				return Msg.Latency
 		}
@@ -287,6 +305,8 @@ export class Decoder {
 				return this.packet_loss()
 			case Msg.TcReset:
 				return this.tc_reset()
+			case Msg.SetGopSize:
+				return this.set_gop_size()
 			case Msg.Latency:
 				return this.latency()
 		}
@@ -460,6 +480,13 @@ export class Decoder {
 		}
 	}
 
+	private async set_gop_size(): Promise<SetGopSize> {
+		return {
+			kind: Msg.SetGopSize,
+			gopSize: await this.r.u53(),
+		}
+	}
+
 	private async latency(): Promise<Latency> {
 		return {
 			kind: Msg.Latency,
@@ -501,6 +528,8 @@ export class Encoder {
 				return this.packet_loss(m)
 			case Msg.TcReset:
 				return this.tc_reset(m)
+			case Msg.SetGopSize:
+				return this.set_gop_size(m)
 			case Msg.Latency:
 				return this.latency(m)
 		}
@@ -626,6 +655,11 @@ export class Encoder {
 	async tc_reset(r: TcReset) {
 		await this.w.u53(Id.TcReset)
 		await this.w.string(r.networkNamespace)
+	}
+
+	async set_gop_size(g: SetGopSize) {
+		await this.w.u53(Id.SetGopSize)
+		await this.w.u53(g.gopSize)
 	}
 
 	async latency(l: Latency) {
