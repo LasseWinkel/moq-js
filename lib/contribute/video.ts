@@ -145,17 +145,10 @@ export class Encoder {
 		}
 
 		const keyFrameIntervalSizeFromIndexedDB = await IDBService.retrieveKeyFrameIntervalSize()
-		// console.log("Key frame interval size from IDB", keyFrameIntervalSizeFromIndexedDB)
 
 		const keyFrameIntervalSize = keyFrameIntervalSizeFromIndexedDB
 			? keyFrameIntervalSizeFromIndexedDB
 			: EVALUATION_SCENARIO.gopDefault
-
-		/* console.log(
-			keyFrameIntervalSize,
-			this.#encoderConfig.framerate!,
-			keyFrameIntervalSize * this.#encoderConfig.framerate!,
-		) */
 
 		if (frame.type === "key") {
 			this.#keyframeCounter = 0
