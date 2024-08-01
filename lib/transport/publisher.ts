@@ -38,7 +38,7 @@ export class Publisher {
 
 		/* setInterval(async () => {
 			await this.#control.send({ kind: Control.Msg.GetGopSize })
-		}, 5_000) */
+		}, 500) */
 
 		return announce
 	}
