@@ -27,7 +27,7 @@ export function isSubscriber(m: Message): m is Subscriber {
 }
 
 // Sent by publisher
-export type Publisher = SubscribeOk | SubscribeError | SubscribeDone | Announce | Unannounce | Latency
+export type Publisher = SubscribeOk | SubscribeError | SubscribeDone | Announce | Unannounce | GetGopSize
 
 export function isPublisher(m: Message): m is Publisher {
 	return (
@@ -36,7 +36,7 @@ export function isPublisher(m: Message): m is Publisher {
 		m.kind == Msg.SubscribeDone ||
 		m.kind == Msg.Announce ||
 		m.kind == Msg.Unannounce ||
-		m.kind == Msg.Latency
+		m.kind == Msg.GetGopSize
 	)
 }
 
@@ -58,8 +58,8 @@ export enum Msg {
 	Throttle = "throttle",
 	PacketLoss = "packet_loss",
 	TcReset = "tc_reset",
+	GetGopSize = "get_gop_size",
 	SetGopSize = "set_gop_size",
-	Latency = "latency",
 }
 
 enum Id {
@@ -80,7 +80,7 @@ enum Id {
 	Throttle = 0x11,
 	TcReset = 0x12,
 	PacketLoss = 0x13,
-	Latency = 0x14,
+	GetGopSize = 0x14,
 	SetGopSize = 0x15,
 }
 
@@ -175,14 +175,13 @@ export interface TcReset {
 	networkNamespace: string
 }
 
-export interface SetGopSize {
-	kind: Msg.SetGopSize
-	gopSize: number
+export interface GetGopSize {
+	kind: Msg.GetGopSize
 }
 
-export interface Latency {
-	kind: Msg.Latency
-	currentPublisherTime: number
+export interface SetGopSize {
+	kind: Msg.SetGopSize
+	gopSize: string
 }
 
 export class Stream {
@@ -267,10 +266,10 @@ export class Decoder {
 				return Msg.PacketLoss
 			case Id.TcReset:
 				return Msg.TcReset
+			case Id.GetGopSize:
+				return Msg.GetGopSize
 			case Id.SetGopSize:
 				return Msg.SetGopSize
-			case Id.Latency:
-				return Msg.Latency
 		}
 
 		throw new Error(`unknown control message type: ${t}`)
@@ -305,10 +304,10 @@ export class Decoder {
 				return this.packet_loss()
 			case Msg.TcReset:
 				return this.tc_reset()
+			case Msg.GetGopSize:
+				return this.get_gop_size()
 			case Msg.SetGopSize:
 				return this.set_gop_size()
-			case Msg.Latency:
-				return this.latency()
 		}
 	}
 
@@ -480,17 +479,16 @@ export class Decoder {
 		}
 	}
 
-	private async set_gop_size(): Promise<SetGopSize> {
+	private get_gop_size(): GetGopSize {
 		return {
-			kind: Msg.SetGopSize,
-			gopSize: await this.r.u53(),
+			kind: Msg.GetGopSize,
 		}
 	}
 
-	private async latency(): Promise<Latency> {
+	private async set_gop_size(): Promise<SetGopSize> {
 		return {
-			kind: Msg.Latency,
-			currentPublisherTime: await this.r.u53(),
+			kind: Msg.SetGopSize,
+			gopSize: await this.r.string(),
 		}
 	}
 }
@@ -528,10 +526,10 @@ export class Encoder {
 				return this.packet_loss(m)
 			case Msg.TcReset:
 				return this.tc_reset(m)
+			case Msg.GetGopSize:
+				return this.get_gop_size()
 			case Msg.SetGopSize:
 				return this.set_gop_size(m)
-			case Msg.Latency:
-				return this.latency(m)
 		}
 	}
 
@@ -657,13 +655,12 @@ export class Encoder {
 		await this.w.string(r.networkNamespace)
 	}
 
-	async set_gop_size(g: SetGopSize) {
-		await this.w.u53(Id.SetGopSize)
-		await this.w.u53(g.gopSize)
+	async get_gop_size() {
+		await this.w.u53(Id.GetGopSize)
 	}
 
-	async latency(l: Latency) {
-		await this.w.u53(Id.Latency)
-		await this.w.u53(l.currentPublisherTime)
+	async set_gop_size(g: SetGopSize) {
+		await this.w.u53(Id.SetGopSize)
+		await this.w.string(g.gopSize)
 	}
 }
