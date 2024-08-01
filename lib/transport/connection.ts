@@ -67,6 +67,10 @@ export class Connection {
 		return this.#subscriber.tc_reset(networkNamespace)
 	}
 
+	set_gop_size(gopSize: string) {
+		return this.#subscriber.set_gop_size(gopSize)
+	}
+
 	latency(currentPublisherTime: number) {
 		return this.#publisher.latency(currentPublisherTime)
 	}

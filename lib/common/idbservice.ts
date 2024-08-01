@@ -61,6 +61,7 @@ export interface IndexedDBFramesSchemaSubscriber {
 export interface IndexedDBSegmentsSchemaSubscriber {
 	id: number
 	propagationTime: number
+	receiveTime: number
 }
 
 export const IndexedDBNameSubscriber = "IndexedDBSubscriber"

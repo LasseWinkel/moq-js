@@ -105,6 +105,13 @@ export class Subscriber {
 		})
 	}
 
+	async set_gop_size(gopSize: string) {
+		await this.#control.send({
+			kind: Control.Msg.SetGopSize,
+			gopSize,
+		})
+	}
+
 	recvSubscribeOk(msg: Control.SubscribeOk) {
 		const subscribe = this.#subscribe.get(msg.id)
 		if (!subscribe) {

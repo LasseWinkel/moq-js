@@ -10,6 +10,7 @@ import BitratePlot from "./bitrate" */
 import Fail from "./fail"
 
 import { createEffect, createSignal, For, onCleanup } from "solid-js"
+import { GOP_DEFAULTS } from "@kixelated/moq/common/evaluationscenarios"
 
 export interface IndexedDBBitRateWithTimestampSchema {
 	bitrate: number
@@ -84,6 +85,7 @@ export default function Watch(props: { name: string }) {
 	const [frameRate, setFrameRate] = createSignal<number>(0)
 	const [bitrate, setBitrate] = createSignal<number>(0)
 	const [gopSize, setGopSize] = createSignal<number>(0)
+	const [targetGopSize, setTargetGopSize] = createSignal<number>(GOP_DEFAULTS[0])
 	const [lostFrames, setLostFrames] = createSignal<number>(0)
 	const [frameDeliveryRate, setFrameDeliveryRate] = createSignal<number>(0)
 
@@ -188,7 +190,8 @@ export default function Watch(props: { name: string }) {
 		metrics.bitrate = (totalSize * 8) / totalTimeInSeconds / 1_000_000
 
 		// Average GoP size calculation
-		metrics.avgGopSize = keyFrameCount > 1 ? totalGopSize / (keyFrameCount - 1) : 0
+		// metrics.avgGopSize = keyFrameCount > 1 ? totalGopSize / (keyFrameCount - 1) : 0
+		metrics.avgGopSize = keyFrameCount > 1 ? totalTimeInSeconds / (keyFrameCount - 1) : 0
 
 		metrics.frameDeliverRate = Math.min(allReceivedFrames.length / numberOfSentFrames, 1) * 100
 
@@ -639,6 +642,25 @@ export default function Watch(props: { name: string }) {
 						<span>GoP Size: &nbsp;</span>
 						<p>{gopSize().toFixed(2)}</p>
 					</div>
+				</div>
+
+				<div class="flex w-1/2 items-center">
+					<span>Target GoP Size (s): &nbsp;</span>
+					<select
+						class="w-1/3"
+						onChange={(event) => {
+							setTargetGopSize(parseFloat(event.target.value))
+							usePlayer()?.set_gop_size(event.target.value)
+						}}
+					>
+						<For each={GOP_DEFAULTS}>
+							{(value) => (
+								<option value={value} selected={value === targetGopSize()}>
+									{value}
+								</option>
+							)}
+						</For>
+					</select>
 				</div>
 			</div>
 		</div>

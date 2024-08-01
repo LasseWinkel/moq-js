@@ -120,6 +120,7 @@ export class Player {
 				this.segmentPropagationTimes.push({
 					id: segment.header.group,
 					propagationTime: Date.now() - segment.header.priority,
+					receiveTime: Date.now(),
 				})
 
 				IDBService.addSegmentsSubscriber(this.segmentPropagationTimes)
@@ -171,6 +172,10 @@ export class Player {
 
 	tc_reset(networkNamespace: string) {
 		this.#connection.tc_reset(networkNamespace)
+	}
+
+	set_gop_size(gopSize: string) {
+		this.#connection.set_gop_size(gopSize)
 	}
 
 	/*
