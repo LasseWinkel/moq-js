@@ -1,7 +1,7 @@
 import * as Control from "./control"
 import { Queue, Watch } from "../common/async"
 import { Objects, GroupWriter, ObjectWriter, StreamType, TrackWriter } from "./objects"
-import { IDBService } from "../common"
+import { BitrateMode, IDBService } from "../common"
 
 export class Publisher {
 	// Used to send control messages
@@ -37,7 +37,7 @@ export class Publisher {
 		})
 
 		/* setInterval(async () => {
-			await this.#control.send({ kind: Control.Msg.GetGopSize })
+			await this.#control.send({ kind: Control.Msg.GetServerStoredMetrics })
 		}, 500) */
 
 		return announce
@@ -57,8 +57,10 @@ export class Publisher {
 			this.recvAnnounceOk(msg)
 		} else if (msg.kind == Control.Msg.AnnounceError) {
 			this.recvAnnounceError(msg)
-		} else if (msg.kind == Control.Msg.SetGopSize) {
+		} else if (msg.kind == Control.Msg.SetServerStoredMetrics) {
 			IDBService.adjustKeyFrameIntervalSizeInIndexedDB(parseFloat(msg.gopSize))
+			IDBService.changeBitrateMode(msg.bitrateMode as BitrateMode)
+			IDBService.changeBitrate(msg.bitrate)
 		} else {
 			throw new Error(`unknown control message`) // impossible
 		}

@@ -11,7 +11,7 @@ export type Subscriber =
 	| Throttle
 	| PacketLoss
 	| TcReset
-	| SetGopSize
+	| SetServerStoredMetrics
 
 export function isSubscriber(m: Message): m is Subscriber {
 	return (
@@ -22,12 +22,12 @@ export function isSubscriber(m: Message): m is Subscriber {
 		m.kind == Msg.Throttle ||
 		m.kind == Msg.PacketLoss ||
 		m.kind == Msg.TcReset ||
-		m.kind == Msg.SetGopSize
+		m.kind == Msg.SetServerStoredMetrics
 	)
 }
 
 // Sent by publisher
-export type Publisher = SubscribeOk | SubscribeError | SubscribeDone | Announce | Unannounce | GetGopSize
+export type Publisher = SubscribeOk | SubscribeError | SubscribeDone | Announce | Unannounce | GetServerStoredMetrics
 
 export function isPublisher(m: Message): m is Publisher {
 	return (
@@ -36,7 +36,7 @@ export function isPublisher(m: Message): m is Publisher {
 		m.kind == Msg.SubscribeDone ||
 		m.kind == Msg.Announce ||
 		m.kind == Msg.Unannounce ||
-		m.kind == Msg.GetGopSize
+		m.kind == Msg.GetServerStoredMetrics
 	)
 }
 
@@ -58,8 +58,8 @@ export enum Msg {
 	Throttle = "throttle",
 	PacketLoss = "packet_loss",
 	TcReset = "tc_reset",
-	GetGopSize = "get_gop_size",
-	SetGopSize = "set_gop_size",
+	GetServerStoredMetrics = "get_server_stored_metrics",
+	SetServerStoredMetrics = "set_server_stored_metrics",
 }
 
 enum Id {
@@ -80,8 +80,8 @@ enum Id {
 	Throttle = 0x11,
 	TcReset = 0x12,
 	PacketLoss = 0x13,
-	GetGopSize = 0x14,
-	SetGopSize = 0x15,
+	GetServerStoredMetrics = 0x14,
+	SetServerStoredMetrics = 0x15,
 }
 
 export interface Subscribe {
@@ -175,13 +175,15 @@ export interface TcReset {
 	networkNamespace: string
 }
 
-export interface GetGopSize {
-	kind: Msg.GetGopSize
+export interface GetServerStoredMetrics {
+	kind: Msg.GetServerStoredMetrics
 }
 
-export interface SetGopSize {
-	kind: Msg.SetGopSize
+export interface SetServerStoredMetrics {
+	kind: Msg.SetServerStoredMetrics
 	gopSize: string
+	bitrateMode: string
+	bitrate: number
 }
 
 export class Stream {
@@ -266,10 +268,10 @@ export class Decoder {
 				return Msg.PacketLoss
 			case Id.TcReset:
 				return Msg.TcReset
-			case Id.GetGopSize:
-				return Msg.GetGopSize
-			case Id.SetGopSize:
-				return Msg.SetGopSize
+			case Id.GetServerStoredMetrics:
+				return Msg.GetServerStoredMetrics
+			case Id.SetServerStoredMetrics:
+				return Msg.SetServerStoredMetrics
 		}
 
 		throw new Error(`unknown control message type: ${t}`)
@@ -304,10 +306,10 @@ export class Decoder {
 				return this.packet_loss()
 			case Msg.TcReset:
 				return this.tc_reset()
-			case Msg.GetGopSize:
-				return this.get_gop_size()
-			case Msg.SetGopSize:
-				return this.set_gop_size()
+			case Msg.GetServerStoredMetrics:
+				return this.get_server_stored_metrics()
+			case Msg.SetServerStoredMetrics:
+				return this.set_server_stored_metrics()
 		}
 	}
 
@@ -479,16 +481,18 @@ export class Decoder {
 		}
 	}
 
-	private get_gop_size(): GetGopSize {
+	private get_server_stored_metrics(): GetServerStoredMetrics {
 		return {
-			kind: Msg.GetGopSize,
+			kind: Msg.GetServerStoredMetrics,
 		}
 	}
 
-	private async set_gop_size(): Promise<SetGopSize> {
+	private async set_server_stored_metrics(): Promise<SetServerStoredMetrics> {
 		return {
-			kind: Msg.SetGopSize,
+			kind: Msg.SetServerStoredMetrics,
 			gopSize: await this.r.string(),
+			bitrateMode: await this.r.string(),
+			bitrate: await this.r.u53(),
 		}
 	}
 }
@@ -526,10 +530,10 @@ export class Encoder {
 				return this.packet_loss(m)
 			case Msg.TcReset:
 				return this.tc_reset(m)
-			case Msg.GetGopSize:
-				return this.get_gop_size()
-			case Msg.SetGopSize:
-				return this.set_gop_size(m)
+			case Msg.GetServerStoredMetrics:
+				return this.get_server_stored_metrics()
+			case Msg.SetServerStoredMetrics:
+				return this.set_server_stored_metrics(m)
 		}
 	}
 
@@ -655,12 +659,14 @@ export class Encoder {
 		await this.w.string(r.networkNamespace)
 	}
 
-	async get_gop_size() {
-		await this.w.u53(Id.GetGopSize)
+	async get_server_stored_metrics() {
+		await this.w.u53(Id.GetServerStoredMetrics)
 	}
 
-	async set_gop_size(g: SetGopSize) {
-		await this.w.u53(Id.SetGopSize)
-		await this.w.string(g.gopSize)
+	async set_server_stored_metrics(s: SetServerStoredMetrics) {
+		await this.w.u53(Id.SetServerStoredMetrics)
+		await this.w.string(s.gopSize)
+		await this.w.string(s.bitrateMode)
+		await this.w.u53(s.bitrate)
 	}
 }
