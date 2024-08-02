@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { Player } from "@kixelated/moq/playback"
 
-import type { IndexedDBFramesSchemaSubscriber } from "@kixelated/moq/common"
+import { BitrateMode, type IndexedDBFramesSchemaSubscriber } from "@kixelated/moq/common"
 import { IDBService } from "@kixelated/moq/common"
 
 /* import FramesPlot from "./frames"
@@ -10,7 +10,7 @@ import BitratePlot from "./bitrate" */
 import Fail from "./fail"
 
 import { createEffect, createSignal, For, onCleanup } from "solid-js"
-import { GOP_DEFAULTS } from "@kixelated/moq/common/evaluationscenarios"
+import { EVALUATION_SCENARIO, GOP_DEFAULTS } from "@kixelated/moq/common/evaluationscenarios"
 
 export interface IndexedDBBitRateWithTimestampSchema {
 	bitrate: number
@@ -91,6 +91,9 @@ export default function Watch(props: { name: string }) {
 
 	// const [receivedFrames, setReceivedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [lastRenderedFrame, setLastRenderedFrame] = createSignal<IndexedDBFramesSchemaSubscriber>()
+
+	const [bitrateMode, setBitrateMode] = createSignal<BitrateMode>(BitrateMode.CONSTANT)
+	const [targetBitrate, setTargetBitrate] = createSignal<number>(EVALUATION_SCENARIO.bitrate)
 
 	/* const [minEncodingTime, setMinEncodingTime] = createSignal<number>(0)
 	const [maxEncodingTime, setMaxEncodingTime] = createSignal<number>(0)
@@ -236,6 +239,10 @@ export default function Watch(props: { name: string }) {
 	})
 
 	const play = () => usePlayer()?.play()
+
+	const setServerStoredMetrics = () => {
+		usePlayer()?.setServerStoredMetrics(targetGopSize().toString(), bitrateMode(), targetBitrate())
+	}
 
 	// NOTE: The canvas automatically has width/height set to the decoded video size.
 	// TODO shrink it if needed via CSS
@@ -650,7 +657,7 @@ export default function Watch(props: { name: string }) {
 						class="w-1/3"
 						onChange={(event) => {
 							setTargetGopSize(parseFloat(event.target.value))
-							usePlayer()?.set_gop_size(event.target.value)
+							setServerStoredMetrics()
 						}}
 					>
 						<For each={GOP_DEFAULTS}>
@@ -661,6 +668,42 @@ export default function Watch(props: { name: string }) {
 							)}
 						</For>
 					</select>
+				</div>
+
+				<div class="flex w-1/2 items-center">
+					<span>Bitrate Mode: &nbsp;</span>
+					<select
+						class="m-3 w-1/3"
+						onChange={(event) => {
+							setBitrateMode(event.target.value as BitrateMode)
+							setServerStoredMetrics()
+						}}
+					>
+						<For each={Object.values(BitrateMode)}>
+							{(value) => (
+								<option value={value} selected={value === bitrateMode()}>
+									{value}
+								</option>
+							)}
+						</For>
+					</select>
+				</div>
+
+				<div class="flex items-center">
+					Bitrate: &nbsp;<span class="text-slate-400">{(targetBitrate() / 1_000_000).toFixed(1)} Mb/s</span>
+					<input
+						disabled={bitrateMode() === BitrateMode.CONSTANT}
+						class="m-3"
+						type="range"
+						min={500_000}
+						max={20_000_000}
+						value={targetBitrate()}
+						onChange={(event) => {
+							const value = parseInt(event.target.value, 10)
+							setTargetBitrate(value)
+							setServerStoredMetrics()
+						}}
+					/>
 				</div>
 			</div>
 		</div>

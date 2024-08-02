@@ -174,8 +174,8 @@ export class Player {
 		this.#connection.tc_reset(networkNamespace)
 	}
 
-	set_gop_size(gopSize: string) {
-		this.#connection.set_gop_size(gopSize)
+	setServerStoredMetrics(gopSize: string, bitrateMode: string, bitrate: number) {
+		this.#connection.setServerStoredMetrics(gopSize, bitrateMode, bitrate)
 	}
 
 	/*

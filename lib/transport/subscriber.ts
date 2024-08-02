@@ -105,10 +105,12 @@ export class Subscriber {
 		})
 	}
 
-	async set_gop_size(gopSize: string) {
+	async setServerStoredMetrics(gopSize: string, bitrateMode: string, bitrate: number) {
 		await this.#control.send({
-			kind: Control.Msg.SetGopSize,
+			kind: Control.Msg.SetServerStoredMetrics,
 			gopSize,
+			bitrateMode,
+			bitrate,
 		})
 	}
 

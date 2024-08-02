@@ -67,8 +67,8 @@ export class Connection {
 		return this.#subscriber.tc_reset(networkNamespace)
 	}
 
-	set_gop_size(gopSize: string) {
-		return this.#subscriber.set_gop_size(gopSize)
+	setServerStoredMetrics(gopSize: string, bitrateMode: string, bitrate: number) {
+		return this.#subscriber.setServerStoredMetrics(gopSize, bitrateMode, bitrate)
 	}
 
 	latency(currentPublisherTime: number) {
