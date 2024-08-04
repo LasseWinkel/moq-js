@@ -27,7 +27,7 @@ const DATA_UPDATE_RATE = 1000
 const DATA_DOWNLOAD_TIME = 80
 
 // Stall event threshold in milliseconds
-// const STALL_EVENT_THRESHOLD = 35
+const STALL_EVENT_THRESHOLD = 34
 
 // The supported rates of network packet loss
 // const SUPPORTED_PACKET_LOSS = [0, 1, 5, 10, 20]
@@ -125,6 +125,9 @@ export default function Watch(props: { name: string }) {
 
 	const [streamWatchTime, setStreamWatchTime] = createSignal<number>(0)
 
+	const [totalStallDuration, setTotalStallDuration] = createSignal<number>(0)
+	const [numberOfStallEvents, setNumberOfStallEvents] = createSignal<number>(0)
+
 	/* const [minEncodingTime, setMinEncodingTime] = createSignal<number>(0)
 	const [maxEncodingTime, setMaxEncodingTime] = createSignal<number>(0)
 	const [avgEncodingTime, setAvgEncodingTime] = createSignal<number>(0.0)
@@ -172,6 +175,25 @@ export default function Watch(props: { name: string }) {
 		const allReceivedFrames = (await IDBService.retrieveFramesFromIndexedDBSubscriber()).filter(
 			(aFrame) => aFrame._5_receiveMp4FrameTimestamp !== undefined,
 		)
+
+		const allRenderedFrames = allReceivedFrames.filter((aFrame) => aFrame._7_renderFrameTimestamp !== undefined)
+
+		let newTotalStallDuration = 0
+		let newNumberOfStallEvents = 0
+
+		for (let i = 0; i < allRenderedFrames.length - 1; i++) {
+			const currentTimestamp = allRenderedFrames[i]._7_renderFrameTimestamp
+			const nextTimestamp = allRenderedFrames[i + 1]._7_renderFrameTimestamp
+			const difference = nextTimestamp - currentTimestamp
+
+			if (difference > STALL_EVENT_THRESHOLD) {
+				newTotalStallDuration += difference - STALL_EVENT_THRESHOLD
+				newNumberOfStallEvents++
+			}
+		}
+
+		setTotalStallDuration(newTotalStallDuration)
+		setNumberOfStallEvents(newNumberOfStallEvents)
 
 		const metrics = {
 			frameRate: 0,
@@ -688,6 +710,17 @@ export default function Watch(props: { name: string }) {
 					<div class="mr-14 flex items-center">
 						<span>Frame Delivery Rate: &nbsp;</span>
 						<p>{frameDeliveryRate().toFixed(2)} %</p>
+					</div>
+				</div>
+
+				<div class="flex">
+					<div class="mr-14 flex items-center">
+						<span>Number of Stall Events: &nbsp;</span>
+						<p>{numberOfStallEvents()}</p>
+					</div>
+					<div class="flex items-center">
+						<span>Total Stall Duration: &nbsp;</span>
+						<p>{(totalStallDuration() / 1000).toFixed(3)}s</p>
 					</div>
 				</div>
 
