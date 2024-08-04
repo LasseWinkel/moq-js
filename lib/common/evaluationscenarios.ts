@@ -17,13 +17,13 @@ const GOP_THRESHOLDS = [
 ]
 const gopThresholds = GOP_THRESHOLDS[0]
 
-const PACKET_LOSS_SERVER_LINK = [0, 10, 20, 30]
+export const PACKET_LOSS_SERVER_LINK = [0, 10, 20, 30]
 const packetLossServerLink = PACKET_LOSS_SERVER_LINK[0]
 
-const DELAYS_SERVER_LINK = [0, 50, 200, 500]
+export const DELAYS_SERVER_LINK = [0, 50, 200, 500]
 const delayServerLink = DELAYS_SERVER_LINK[1]
 
-const BANDWIDTH_CONSTRAINTS_SERVER_LINK = [100_000_000, 50_000_000, 10_000_000]
+export const BANDWIDTH_CONSTRAINTS_SERVER_LINK = [100_000_000, 50_000_000, 10_000_000]
 const bandwidthConstraintServerLink = BANDWIDTH_CONSTRAINTS_SERVER_LINK[0]
 
 // Total number of experiments: 1 + 4 + 2 + 3 + 2 + 9 + 2 + 2 = 25. Each experiment 3 times -> 3 * 25 = 75.

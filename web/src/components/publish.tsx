@@ -20,28 +20,6 @@ import { EVALUATION_SCENARIO, GOP_DEFAULTS } from "@kixelated/moq/common/evaluat
 import { IDBService, BitrateMode } from "@kixelated/moq/common"
 import { DATA_DOWNLOAD_TIME, downloadFrameData } from "./watch"
 
-/*
-// Utility function to download collected data.
-function downloadData(data: { timestamp: string; captureTime: number }[]): void {
-	const jsonData = JSON.stringify(data)
-	const blob = new Blob([jsonData], {
-		type: "application/json",
-	})
-
-	const link = document.createElement("a")
-	link.href = URL.createObjectURL(blob)
-	link.download = "capture_time"
-
-	// Append the link to the body
-	document.body.appendChild(link)
-
-	// Programmatically click the link to trigger the download
-	link.click()
-
-	// Clean up
-	document.body.removeChild(link)
-} */
-
 const AUDIO_CODECS = [
 	"Opus",
 	"mp4a", // TODO support AAC
@@ -122,7 +100,6 @@ export default function Publish() {
 	const [copied, setCopied] = createSignal<boolean>()
 	const [active, setActive] = createSignal<boolean>()
 	const [error, setError] = createSignal<Error | undefined>()
-	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 	const [fps, setFps] = createSignal(EVALUATION_SCENARIO.frameRate)
 	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(EVALUATION_SCENARIO.gopDefault)
 	const [bitrateMode, setBitrateMode] = createSignal<BitrateMode>(BitrateMode.CONSTANT)
@@ -164,85 +141,6 @@ export default function Publish() {
 		client.connect().then(setConnection).catch(setError)
 	})
 
-	/* 	const recordOriginalVideo = (stream: MediaStream) => {
-		// Record the published video
-		setIsRecording(true)
-		const recordedBlobs: BlobPart[] = []
-		const mediaRecorder = new MediaRecorder(stream, {
-			videoBitsPerSecond: 2_000_000,
-			videoKeyFrameIntervalCount: 60,
-		})
-		console.log("Recorder", mediaRecorder)
-		mediaRecorder.ondataavailable = (event) => {
-			if (event.data && event.data.size > 0) {
-				console.log("Recorded", recordedBlobs)
-
-				recordedBlobs.push(event.data)
-			}
-		}
-
-		mediaRecorder.start()
-
-		mediaRecorder.onstop = function () {
-			setIsRecording(false)
-			console.log("Recorded", recordedBlobs)
-
-			const blob = new Blob(recordedBlobs, { type: "video/webm" })
-			const url = URL.createObjectURL(blob)
-			const a = document.createElement("a")
-			a.href = url
-			a.download = "published_video.webm"
-			a.click()
-			URL.revokeObjectURL(url)
-		}
-
-		setTimeout(() => {
-			mediaRecorder.stop()
-		}, 5000)
-	} */
-
-	/*  const getCaptureFrameTime = (videoElement: HTMLVideoElement) => {
-		// const videoElement = document.createElement("video")
-		const canvas = document.createElement("canvas")
-		const ctx = canvas.getContext("2d")
-
-		const seenFrames: { timestamp: string; captureTime: number }[] = []
-
-		setTimeout(() => {
-			downloadData(seenFrames)
-		}, 30000)
-
-		const updateCanvas: VideoFrameRequestCallback = function (
-			now: number,
-			metadata: {
-				captureTime?: number
-				expectedDisplayTime: number
-				height: number
-				mediaTime: number
-				presentationTime: number
-				presentedFrames: number
-				width: number
-			},
-		) {
-			if (metadata.captureTime) {
-				seenFrames.push({
-					timestamp: (metadata.mediaTime * 1000000).toFixed(),
-					captureTime: metadata.captureTime,
-				})
-				// console.log("CALLBACKF", seenFrames)
-				// console.log("")
-
-			}
-
-			if (!ctx) throw new Error("failed to get canvas context")
-			// ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height)
-
-			videoElement.requestVideoFrameCallback(updateCanvas)
-		}
-
-		videoElement.requestVideoFrameCallback(updateCanvas)
-	} */
-
 	const createBroadcast = function () {
 		const d = device()
 		if (!d) {
@@ -263,14 +161,6 @@ export default function Publish() {
 		if (!v && videoTrack()) {
 			throw new Error("no supported video codec")
 		}
-
-		const e = videoElement()
-		if (!e) {
-			throw new Error("no video element")
-		}
-
-		// getCaptureFrameTime(e)
-		// recordOriginalVideo(d)
 
 		console.log(video())
 
@@ -400,7 +290,6 @@ export default function Publish() {
 					stopStream={stopStreaming}
 					fps={fps()}
 				/>
-				{/* {isRecording() && <div class="text-red-400">Recording</div>} */}
 
 				<Show when={videoTrack()}>
 					{(track) => (
@@ -437,9 +326,9 @@ export default function Publish() {
 								IDBService.addStreamStartTime(startTime)
 								setActive(true)
 
-								setTimeout(async () => {
+								/* setTimeout(async () => {
 									downloadFrameData(true, await IDBService.retrieveFramesFromIndexedDB())
-								}, DATA_DOWNLOAD_TIME * 1000)
+								}, DATA_DOWNLOAD_TIME * 1000) */
 
 								const target = e.currentTarget
 								const relative = target.getAttribute("id")
@@ -680,8 +569,6 @@ function Device(props: {
 
 	return (
 		<>
-			{/* <h2>Source</h2> */}
-
 			<div>Choose an input device:</div>
 			<button
 				classList={{

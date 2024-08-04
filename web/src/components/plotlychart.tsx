@@ -1,6 +1,6 @@
 import { createEffect } from "solid-js"
 import * as Plotly from "plotly.js-dist"
-import type { IndexedDBFramesSchema } from "@kixelated/moq/contribute"
+import type { IndexedDBFramesSchema } from "@kixelated/moq/common"
 
 interface ChartProps {
 	frames: IndexedDBFramesSchema[]

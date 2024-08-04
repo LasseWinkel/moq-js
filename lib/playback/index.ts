@@ -155,10 +155,6 @@ export class Player {
 		this.#connection.throttle(lossRate, delay, bandwidthLimit, networkNamespace)
 	}
 
-	packet_loss(lossRate: number) {
-		this.#connection.packet_loss(lossRate)
-	}
-
 	tc_reset(networkNamespace: string) {
 		this.#connection.tc_reset(networkNamespace)
 	}

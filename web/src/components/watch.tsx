@@ -4,19 +4,17 @@ import { Player } from "@kixelated/moq/playback"
 import { IDBService } from "@kixelated/moq/common"
 import { BitrateMode, type IndexedDBFramesSchema } from "@kixelated/moq/common"
 
-/* import FramesPlot from "./frames"
-import BitratePlot from "./bitrate" */
-
 import Fail from "./fail"
 
 import { createEffect, createSignal, For, onCleanup } from "solid-js"
 
-import { EVALUATION_SCENARIO, GOP_DEFAULTS } from "@kixelated/moq/common/evaluationscenarios"
-
-export interface IndexedDBBitRateWithTimestampSchema {
-	bitrate: number
-	timestamp: number
-}
+import {
+	BANDWIDTH_CONSTRAINTS_SERVER_LINK,
+	DELAYS_SERVER_LINK,
+	EVALUATION_SCENARIO,
+	GOP_DEFAULTS,
+	PACKET_LOSS_SERVER_LINK,
+} from "@kixelated/moq/common/evaluationscenarios"
 
 // Data update rate in milliseconds
 const DATA_UPDATE_RATE = 1000
@@ -28,16 +26,7 @@ const LATEST_DATA_DISPLAY_INTERVAL = 5
 export const DATA_DOWNLOAD_TIME = 80
 
 // Stall event threshold in milliseconds
-const STALL_EVENT_THRESHOLD = 35
-
-// The supported rates of network packet loss
-const SUPPORTED_PACKET_LOSS = [0, 1, 5, 10, 20]
-
-// The supported additional network delays in milliseconds
-const SUPPORTED_ADDITIONAL_DELAYS = [0, 20, 50, 100, 200, 500]
-
-// The supported network bandwidth limits in Mbit/s
-const SUPPORTED_BANDWIDTHS = [0.5, 1, 1.5, 2, 3, 4.5, 5, 6, 10, 20, 100]
+const STALL_EVENT_THRESHOLD = 34
 
 // The created network namespaces
 enum NetworkNamespaces {
@@ -69,7 +58,7 @@ function createTimeString(millisecondsInput: number): string {
 	return formattedTime
 }
 
-/* // Utility function to download collected data.
+/* // Utility function to download collected segment data.
 function downloadSegmentData(segments: IndexedDBSegmentsSchema[]): void {
 	const jsonData = JSON.stringify(segments)
 	const blob = new Blob([jsonData], {
@@ -87,17 +76,12 @@ function downloadSegmentData(segments: IndexedDBSegmentsSchema[]): void {
 	}`
 	link.download = downloadName
 
-	// Append the link to the body
 	document.body.appendChild(link)
-
-	// Programmatically click the link to trigger the download
 	link.click()
-
-	// Clean up
 	document.body.removeChild(link)
 } */
 
-// Utility function to download collected data.
+// Utility function to download collected frame data.
 export function downloadFrameData(publisherData: boolean, frames: IndexedDBFramesSchema[]): void {
 	const jsonData = JSON.stringify(frames)
 	const blob = new Blob([jsonData], {
@@ -118,13 +102,8 @@ export function downloadFrameData(publisherData: boolean, frames: IndexedDBFrame
 	}
 	link.download = downloadName
 
-	// Append the link to the body
 	document.body.appendChild(link)
-
-	// Programmatically click the link to trigger the download
 	link.click()
-
-	// Clean up
 	document.body.removeChild(link)
 }
 
@@ -140,10 +119,8 @@ export default function Watch(props: { name: string }) {
 	const [streamStartTime, setStreamStartTime] = createSignal<number>(0)
 	const [streamRunningTime, setStreamRunningTime] = createSignal<number>(0)
 	const [streamWatchTime, setStreamWatchTime] = createSignal<number>(0)
-	// const [streamStartWatchTime, setStreamStartWatchTime] = createSignal<number>(0)
 	const [totalAmountRecvBytes, setTotalAmountRecvBytes] = createSignal<number>(0)
 	const [allFrames, setAllFrames] = createSignal<IndexedDBFramesSchema[]>([])
-	// const [receivedFrames, setReceivedFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [latestFrames, setLatestFrames] = createSignal<IndexedDBFramesSchema[]>([])
 	const [lastRenderedFrame, setLastRenderedFrame] = createSignal<IndexedDBFramesSchema>()
 	const [totalSkippedFrames, setTotalSkippedFrames] = createSignal<IndexedDBFramesSchema[]>([])
@@ -151,19 +128,6 @@ export default function Watch(props: { name: string }) {
 	const [totalStallDuration, setTotalStallDuration] = createSignal<number>(0)
 	const [latestStallDuration, setLatestStallDuration] = createSignal<number>(0)
 	const [percentageReceivedFrames, setPercentageReceivedFrames] = createSignal<number>(0.0)
-
-	/* const [minEncodingTime, setMinEncodingTime] = createSignal<number>(0)
-	const [maxEncodingTime, setMaxEncodingTime] = createSignal<number>(0)
-	const [avgEncodingTime, setAvgEncodingTime] = createSignal<number>(0.0)
-	const [minPropagationTime, setMinPropagationTime] = createSignal<number>(0)
-	const [maxPropagationTime, setMaxPropagationTime] = createSignal<number>(0)
-	const [avgPropagationTime, setAvgPropagationTime] = createSignal<number>(0.0)
-	const [minDecodingTime, setMinDecodingTime] = createSignal<number>(0)
-	const [maxDecodingTime, setMaxDecodingTime] = createSignal<number>(0)
-	const [avgDecodingTime, setAvgDecodingTime] = createSignal<number>(0.0)
-	const [minTotalTime, setMinTotalTime] = createSignal<number>(0)
-	const [maxTotalTime, setMaxTotalTime] = createSignal<number>(0)
-	const [avgTotalTime, setAvgTotalTime] = createSignal<number>(0.0) */
 
 	const [minLatestEncodingTime, setMinLatestEncodingTime] = createSignal<number>(0)
 	const [maxLatestEncodingTime, setMaxLatestEncodingTime] = createSignal<number>(0)
@@ -183,10 +147,6 @@ export default function Watch(props: { name: string }) {
 	const [lastRenderedFrameDecodingTime, setLastRenderedFrameDecodingTime] = createSignal<number>(0)
 	const [lastRenderedFrameTotalTime, setLastRenderedFrameTotalTime] = createSignal<number>(0)
 
-	/* const [showFramesPlot, setShowFramesPlot] = createSignal<boolean>(false)
-	const [showBitratePlot, setShowBitratePlot] = createSignal<boolean>(false)
-
-	const [bitratePlotData, setBitratePlotData] = createSignal<IndexedDBBitRateWithTimestampSchema[]>([]) */
 	const [bitRate, setBitRate] = createSignal<number>(0.0)
 	const [framesPerSecond, setFramesPerSecond] = createSignal<number>(0.0)
 
@@ -197,17 +157,13 @@ export default function Watch(props: { name: string }) {
 	const [packetLossPublisher, setPacketLossPublisher] = createSignal<number>(0)
 	const [delayPublisher, setDelayPublisher] = createSignal<number>(0)
 	const [bandwidthLimitPublisher, setBandwidthLimitPublisher] = createSignal<number>(
-		SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1],
+		BANDWIDTH_CONSTRAINTS_SERVER_LINK[0],
 	)
 	const [packetLossServer, setPacketLossServer] = createSignal<number>(0)
 	const [delayServer, setDelayServer] = createSignal<number>(0)
-	const [bandwidthLimitServer, setBandwidthLimitServer] = createSignal<number>(
-		SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1],
-	)
+	const [bandwidthLimitServer, setBandwidthLimitServer] = createSignal<number>(BANDWIDTH_CONSTRAINTS_SERVER_LINK[0])
 	const [bitrateMode, setBitrateMode] = createSignal<BitrateMode>(BitrateMode.CONSTANT)
 	const [targetBitrate, setTargetBitrate] = createSignal<number>(EVALUATION_SCENARIO.bitrate)
-
-	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 
 	// Define a function to update the data at regular times
 	const updateDataInterval = setInterval(() => {
@@ -215,47 +171,10 @@ export default function Watch(props: { name: string }) {
 		const retrieveData = async () => {
 			if (streamStartTime() === 0) {
 				setStreamStartTime(await IDBService.getStreamStartTime())
-				// setStreamStartWatchTime(Date.now())
-
-				// Record the received video
-				/* setIsRecording(true)
-				const stream = canvas.captureStream()
-				console.log(stream)
-
-				const recordedBlobs: BlobPart[] = []
-				const mediaRecorder = new MediaRecorder(stream, {
-					videoBitsPerSecond: 2_000_000,
-					videoKeyFrameIntervalCount: 60,
-				})
-				console.log("Video bits per second", mediaRecorder.videoBitsPerSecond)
-				mediaRecorder.ondataavailable = (event) => {
-					if (event.data && event.data.size > 0) {
-						recordedBlobs.push(event.data)
-					}
-				}
-
-				mediaRecorder.start()
-
-				mediaRecorder.onstop = function () {
-					setIsRecording(false)
-					const blob = new Blob(recordedBlobs, { type: "video/webm" })
-					const url = URL.createObjectURL(blob)
-					const a = document.createElement("a")
-					a.href = url
-					a.download = "received_video.webm"
-					a.click()
-					URL.revokeObjectURL(url)
-				}
 
 				setTimeout(() => {
-					mediaRecorder.stop()
-				}, 5000) */
-
-				setTimeout(() => {
-					// mediaRecorder.stop()
 					downloadFrameData(false, allFrames())
 					// downloadSegmentData(await retrieveSegmentsFromIndexedDB())
-					// clearInterval(updateDataInterval)
 				}, DATA_DOWNLOAD_TIME * 1000)
 
 				/* 	setTimeout(() => {
@@ -276,11 +195,6 @@ export default function Watch(props: { name: string }) {
 			const timeOfDataRetrieval = Date.now()
 			const frames = await IDBService.retrieveFramesFromIndexedDB()
 
-			// Ignore first few frames since none of these frames will acutally be received
-			// const firstReceivedFrameIndex =
-			// 	frames.slice(60).findIndex((frame) => frame._5_receiveMp4FrameTimestamp !== undefined) + 60
-			// console.log("FIRST_RECEVIED_FRAME_INDEX", firstReceivedFrameIndex)
-
 			const allReceivedFrames = frames.filter((frame) => frame._5_receiveMp4FrameTimestamp !== undefined)
 			const allSkippedFrames = frames.filter((frame) => frame._5_receiveMp4FrameTimestamp === undefined)
 			const allRenderedFrames = frames.filter((frame) => frame._7_renderFrameTimestamp !== undefined)
@@ -288,10 +202,9 @@ export default function Watch(props: { name: string }) {
 			// ALL FRAMES
 
 			setAllFrames(frames)
-			// setReceivedFrames(allReceivedFrames)
 			setTotalSkippedFrames(allSkippedFrames)
 
-			let totalSumRenderDifference = 0
+			let newTotalStallDuration = 0
 
 			for (let i = 0; i < allRenderedFrames.length - 1; i++) {
 				const currentTimestamp = allRenderedFrames[i]._7_renderFrameTimestamp
@@ -299,86 +212,11 @@ export default function Watch(props: { name: string }) {
 				const difference = nextTimestamp - currentTimestamp
 
 				if (difference > STALL_EVENT_THRESHOLD) {
-					totalSumRenderDifference += difference - STALL_EVENT_THRESHOLD
+					newTotalStallDuration += difference - STALL_EVENT_THRESHOLD
 				}
 			}
 
-			setTotalStallDuration(totalSumRenderDifference)
-
-			/* let minEncodingTime = Number.MAX_SAFE_INTEGER
-			let maxEncodingTime = Number.MIN_SAFE_INTEGER
-			let sumEncodingTime = 0
-			let minPropagationTime = Number.MAX_SAFE_INTEGER
-			let maxPropagationTime = Number.MIN_SAFE_INTEGER
-			let sumPropagationTime = 0
-			let minDecodingTime = Number.MAX_SAFE_INTEGER
-			let maxDecodingTime = Number.MIN_SAFE_INTEGER
-			let sumDecodingTime = 0
-			let minTotalTime = Number.MAX_SAFE_INTEGER
-			let maxTotalTime = Number.MIN_SAFE_INTEGER
-			let sumTotalTime = 0
-			allReceivedFrames.forEach((frame) => {
-				const frameEncodingTime = frame._2_encodingTime
-				if (frameEncodingTime < minEncodingTime) {
-					minEncodingTime = frameEncodingTime
-				}
-				if (frameEncodingTime > maxEncodingTime) {
-					maxEncodingTime = frameEncodingTime
-				}
-				if (frameEncodingTime) {
-					sumEncodingTime += frameEncodingTime
-				}
-
-				const framePropagationTime = frame._4_propagationTime
-				if (framePropagationTime < minPropagationTime) {
-					minPropagationTime = framePropagationTime
-				}
-				if (framePropagationTime > maxPropagationTime) {
-					maxPropagationTime = framePropagationTime
-				}
-				if (framePropagationTime) {
-					sumPropagationTime += framePropagationTime
-				}
-
-				const frameDecodingTime = frame._6_decodingTime
-				if (frameDecodingTime < minDecodingTime) {
-					minDecodingTime = frameDecodingTime
-				}
-				if (frameDecodingTime > maxDecodingTime) {
-					maxDecodingTime = frameDecodingTime
-				}
-				if (frameDecodingTime) {
-					sumDecodingTime += frameDecodingTime
-				}
-
-				const frameTotalTime = frame._8_totalTime
-				if (frameTotalTime < minTotalTime) {
-					minTotalTime = frameTotalTime
-				}
-				if (frameTotalTime > maxTotalTime) {
-					maxTotalTime = frameTotalTime
-				}
-				if (frameTotalTime) {
-					sumTotalTime += frameTotalTime
-				}
-			})
-
-
-			setMinEncodingTime(minEncodingTime)
-			setMaxEncodingTime(maxEncodingTime)
-			setAvgEncodingTime(sumEncodingTime / allReceivedFrames.length)
-
-			setMinPropagationTime(minPropagationTime)
-			setMaxPropagationTime(maxPropagationTime)
-			setAvgPropagationTime(sumPropagationTime / allReceivedFrames.length)
-
-			setMinDecodingTime(minDecodingTime)
-			setMaxDecodingTime(maxDecodingTime)
-			setAvgDecodingTime(sumDecodingTime / allReceivedFrames.length)
-
-			setMinTotalTime(minTotalTime)
-			setMaxTotalTime(maxTotalTime)
-			setAvgTotalTime(sumTotalTime / allReceivedFrames.length) */
+			setTotalStallDuration(newTotalStallDuration)
 
 			// LATEST FRAMES
 
@@ -401,7 +239,7 @@ export default function Watch(props: { name: string }) {
 
 			setPercentageReceivedFrames(Math.min(latestReceivedFrames.length / latestFrames.length, 1))
 
-			let latestSumRenderDifference = 0
+			let newLatestStallDuration = 0
 
 			for (let i = 0; i < latestRenderedFrames.length - 1; i++) {
 				const currentTimestamp = latestRenderedFrames[i]._7_renderFrameTimestamp
@@ -409,11 +247,11 @@ export default function Watch(props: { name: string }) {
 				const difference = nextTimestamp - currentTimestamp
 
 				if (difference > STALL_EVENT_THRESHOLD) {
-					latestSumRenderDifference += difference - STALL_EVENT_THRESHOLD
+					newLatestStallDuration += difference - STALL_EVENT_THRESHOLD
 				}
 			}
 
-			setLatestStallDuration(latestSumRenderDifference)
+			setLatestStallDuration(newLatestStallDuration)
 
 			let totalAmountRecvBytes = 0
 
@@ -516,7 +354,6 @@ export default function Watch(props: { name: string }) {
 
 		const totalMillisecondsWatched = streamWatchTime() + DATA_UPDATE_RATE
 		setStreamWatchTime(totalMillisecondsWatched)
-		// const totalSeconds = totalMillisecondsWatched / 1000
 
 		setBitRate(parseFloat(((totalAmountRecvBytes() * 8) / LATEST_DATA_DISPLAY_INTERVAL).toFixed(2)))
 		setFramesPerSecond(parseFloat((latestFrames().length / LATEST_DATA_DISPLAY_INTERVAL).toFixed(2)))
@@ -538,8 +375,6 @@ export default function Watch(props: { name: string }) {
 				IDBService.adjustKeyFrameIntervalSizeInIndexedDB(keyFrameInterval())
 			}
 		}
-
-		// setBitratePlotData(bitratePlotData().concat([{ bitrate: bitRate(), timestamp: totalMillisecondsWatched }]))
 	}, DATA_UPDATE_RATE)
 
 	const throttleConnection = (networkNamespace: NetworkNamespaces) => {
@@ -600,21 +435,10 @@ export default function Watch(props: { name: string }) {
 			<div class="w-1/2">
 				<Fail error={error()} />
 
-				{/* {isRecording() && <div class="text-red-400">Recording</div>} */}
 				<span>
 					{lastRenderedFrame()?._17_width} x {lastRenderedFrame()?._18_height}
 				</span>
 				<canvas ref={canvas} onClick={play} class="aspect-video w-3/4 rounded-lg" />
-
-				{/* {<h3>Charts</h3>}
-
-				<button onClick={() => setShowFramesPlot(!showFramesPlot())}>Toggle Frames Plot</button>
-				<button onClick={() => setShowBitratePlot(!showBitratePlot())}>Toggle Bitrate Plot</button>
-
-				{showFramesPlot() && <FramesPlot watchStartTime={streamStartWatchTime()} frames={latestFrames()} />}
-				{showBitratePlot() && <BitratePlot bitrateWithTimestamp={bitratePlotData()} />}
-
-				*/}
 
 				<div class="flex">
 					<div class="mr-20 flex items-center">
@@ -704,7 +528,7 @@ export default function Watch(props: { name: string }) {
 										throttleConnection(NetworkNamespaces.PUBLISHER)
 									}}
 								>
-									<For each={SUPPORTED_PACKET_LOSS}>
+									<For each={PACKET_LOSS_SERVER_LINK}>
 										{(value) => (
 											<option value={value} selected={value === packetLossPublisher()}>
 												{value}
@@ -722,7 +546,7 @@ export default function Watch(props: { name: string }) {
 										throttleConnection(NetworkNamespaces.PUBLISHER)
 									}}
 								>
-									<For each={SUPPORTED_ADDITIONAL_DELAYS}>
+									<For each={DELAYS_SERVER_LINK}>
 										{(value) => (
 											<option value={value} selected={value === delayPublisher()}>
 												{value}
@@ -740,7 +564,7 @@ export default function Watch(props: { name: string }) {
 										throttleConnection(NetworkNamespaces.PUBLISHER)
 									}}
 								>
-									<For each={SUPPORTED_BANDWIDTHS}>
+									<For each={BANDWIDTH_CONSTRAINTS_SERVER_LINK}>
 										{(value) => (
 											<option value={value} selected={value === bandwidthLimitPublisher()}>
 												{value}
@@ -755,7 +579,7 @@ export default function Watch(props: { name: string }) {
 									tc_reset(NetworkNamespaces.PUBLISHER)
 									setPacketLossPublisher(0)
 									setDelayPublisher(0)
-									setBandwidthLimitPublisher(SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1])
+									setBandwidthLimitPublisher(BANDWIDTH_CONSTRAINTS_SERVER_LINK[0])
 								}}
 							>
 								Reset tc rules
@@ -773,7 +597,7 @@ export default function Watch(props: { name: string }) {
 										throttleConnection(NetworkNamespaces.SERVER)
 									}}
 								>
-									<For each={SUPPORTED_PACKET_LOSS}>
+									<For each={PACKET_LOSS_SERVER_LINK}>
 										{(value) => (
 											<option value={value} selected={value === packetLossServer()}>
 												{value}
@@ -791,7 +615,7 @@ export default function Watch(props: { name: string }) {
 										throttleConnection(NetworkNamespaces.SERVER)
 									}}
 								>
-									<For each={SUPPORTED_ADDITIONAL_DELAYS}>
+									<For each={DELAYS_SERVER_LINK}>
 										{(value) => (
 											<option value={value} selected={value === delayServer()}>
 												{value}
@@ -809,7 +633,7 @@ export default function Watch(props: { name: string }) {
 										throttleConnection(NetworkNamespaces.SERVER)
 									}}
 								>
-									<For each={SUPPORTED_BANDWIDTHS}>
+									<For each={BANDWIDTH_CONSTRAINTS_SERVER_LINK}>
 										{(value) => (
 											<option value={value} selected={value === bandwidthLimitServer()}>
 												{value}
@@ -824,7 +648,7 @@ export default function Watch(props: { name: string }) {
 									tc_reset(NetworkNamespaces.SERVER)
 									setPacketLossServer(0)
 									setDelayServer(0)
-									setBandwidthLimitServer(SUPPORTED_BANDWIDTHS[SUPPORTED_BANDWIDTHS.length - 1])
+									setBandwidthLimitServer(BANDWIDTH_CONSTRAINTS_SERVER_LINK[0])
 								}}
 							>
 								Reset tc rules
@@ -837,42 +661,12 @@ export default function Watch(props: { name: string }) {
 					<button
 						class="m-3 bg-cyan-600 hover:bg-cyan-800"
 						// eslint-disable-next-line @typescript-eslint/no-misused-promises
-						onClick={async () => downloadFrameData(await retrieveFramesFromIndexedDB())}
+						onClick={async () => downloadFrameData(false, await IDBService.retrieveFramesFromIndexedDB())}
 					>
 						Download data
 					</button>
 				</div> */}
 			</div>
-
-			{/*
-
-			<div class="grid grid-cols-4 gap-5 border">
-				<div class="p-5 text-center" />
-				<div class="p-5 text-center">Min</div>
-				<div class="p-5 text-center">Max</div>
-				<div class="p-5 text-center">Avg</div>
-
-				<div class="p-5 text-center">Encoding Time:</div>
-				<div class="p-5 text-center">{minEncodingTime()}</div>
-				<div class="p-5 text-center">{maxEncodingTime()}</div>
-				<div class="p-5 text-center">{avgEncodingTime().toFixed(2)}</div>
-
-				<div class="p-5 text-center">Propagation Time:</div>
-				<div class="p-5 text-center">{minPropagationTime()}</div>
-				<div class="p-5 text-center">{maxPropagationTime()}</div>
-				<div class="p-5 text-center">{avgPropagationTime().toFixed(2)}</div>
-
-				<div class="p-5 text-center">Render Time:</div>
-				<div class="p-5 text-center">{minDecodingTime()}</div>
-				<div class="p-5 text-center">{maxDecodingTime()}</div>
-				<div class="p-5 text-center">{avgDecodingTime().toFixed(2)}</div>
-
-				<div class="p-5 text-center">Total Time:</div>
-				<div class="p-5 text-center">{minTotalTime()}</div>
-				<div class="p-5 text-center">{maxTotalTime()}</div>
-				<div class="p-5 text-center">{avgTotalTime().toFixed(2)}</div>
-			</div>
-			*/}
 
 			<div class="flex w-1/2 flex-col items-center">
 				<h3>Meta Data of Last {LATEST_DATA_DISPLAY_INTERVAL} Seconds</h3>
@@ -910,11 +704,6 @@ export default function Watch(props: { name: string }) {
 				</div>
 
 				<div class="flex">
-					{/* <div class="mr-20 flex items-center">
-						<span>Bits Received: &nbsp;</span>
-						<p>{formatNumber(totalAmountRecvBytes() * 8)}</p>
-					</div> */}
-
 					<div class="mr-20 flex items-center">
 						<span>Bitrate: &nbsp;</span>
 						<p>{formatNumber(bitRate())} bps</p>
@@ -927,13 +716,8 @@ export default function Watch(props: { name: string }) {
 				</div>
 
 				<div class="flex">
-					{/* <div class="mr-14 flex items-center">
-						<span>Total Frames Received: &nbsp;</span>
-						<p>{receivedFrames().length}</p>
-					</div> */}
-
 					<div class="mr-14 flex items-center">
-						<span>Percentage of Frames Received: &nbsp;</span>
+						<span>Frame Delivery Rate: &nbsp;</span>
 						<p>{(percentageReceivedFrames() * 100).toFixed(2)}%</p>
 					</div>
 				</div>

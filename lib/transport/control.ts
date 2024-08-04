@@ -9,7 +9,6 @@ export type Subscriber =
 	| AnnounceOk
 	| AnnounceError
 	| Throttle
-	| PacketLoss
 	| TcReset
 	| SetServerStoredMetrics
 
@@ -20,7 +19,6 @@ export function isSubscriber(m: Message): m is Subscriber {
 		m.kind == Msg.AnnounceOk ||
 		m.kind == Msg.AnnounceError ||
 		m.kind == Msg.Throttle ||
-		m.kind == Msg.PacketLoss ||
 		m.kind == Msg.TcReset ||
 		m.kind == Msg.SetServerStoredMetrics
 	)
@@ -56,7 +54,6 @@ export enum Msg {
 	Unannounce = "unannounce",
 	GoAway = "go_away",
 	Throttle = "throttle",
-	PacketLoss = "packet_loss",
 	TcReset = "tc_reset",
 	GetServerStoredMetrics = "get_server_stored_metrics",
 	SetServerStoredMetrics = "set_server_stored_metrics",
@@ -79,7 +76,6 @@ enum Id {
 	GoAway = 0x10,
 	Throttle = 0x11,
 	TcReset = 0x12,
-	PacketLoss = 0x13,
 	GetServerStoredMetrics = 0x14,
 	SetServerStoredMetrics = 0x15,
 }
@@ -163,11 +159,6 @@ export interface Throttle {
 	delay: number
 	bandwidthLimit: string
 	networkNamespace: string
-}
-
-export interface PacketLoss {
-	kind: Msg.PacketLoss
-	lossRate: number
 }
 
 export interface TcReset {
@@ -264,8 +255,6 @@ export class Decoder {
 				return Msg.GoAway
 			case Id.Throttle:
 				return Msg.Throttle
-			case Id.PacketLoss:
-				return Msg.PacketLoss
 			case Id.TcReset:
 				return Msg.TcReset
 			case Id.GetServerStoredMetrics:
@@ -302,8 +291,6 @@ export class Decoder {
 				throw new Error("TODO: implement go away")
 			case Msg.Throttle:
 				return this.throttle()
-			case Msg.PacketLoss:
-				return this.packet_loss()
 			case Msg.TcReset:
 				return this.tc_reset()
 			case Msg.GetServerStoredMetrics:
@@ -467,13 +454,6 @@ export class Decoder {
 		}
 	}
 
-	private async packet_loss(): Promise<PacketLoss> {
-		return {
-			kind: Msg.PacketLoss,
-			lossRate: await this.r.u53(),
-		}
-	}
-
 	private async tc_reset(): Promise<TcReset> {
 		return {
 			kind: Msg.TcReset,
@@ -526,8 +506,6 @@ export class Encoder {
 				return this.unannounce(m)
 			case Msg.Throttle:
 				return this.throttle(m)
-			case Msg.PacketLoss:
-				return this.packet_loss(m)
 			case Msg.TcReset:
 				return this.tc_reset(m)
 			case Msg.GetServerStoredMetrics:
@@ -647,11 +625,6 @@ export class Encoder {
 		await this.w.u53(t.delay)
 		await this.w.string(t.bandwidthLimit)
 		await this.w.string(t.networkNamespace)
-	}
-
-	async packet_loss(p: PacketLoss) {
-		await this.w.u53(Id.PacketLoss)
-		await this.w.u53(p.lossRate)
 	}
 
 	async tc_reset(r: TcReset) {
