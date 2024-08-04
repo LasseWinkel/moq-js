@@ -439,7 +439,7 @@ export default function Publish() {
 
 								setTimeout(async () => {
 									downloadFrameData(await IDBService.retrieveFramesFromIndexedDB())
-								}, DATA_DOWNLOAD_TIME)
+								}, DATA_DOWNLOAD_TIME * 1000)
 
 								const target = e.currentTarget
 								const relative = target.getAttribute("id")
