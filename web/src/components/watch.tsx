@@ -25,7 +25,7 @@ const DATA_UPDATE_RATE = 1000
 const LATEST_DATA_DISPLAY_INTERVAL = 5
 
 // Time until data download in seconds
-const DATA_DOWNLOAD_TIME = 80
+export const DATA_DOWNLOAD_TIME = 80
 
 // Stall event threshold in milliseconds
 const STALL_EVENT_THRESHOLD = 35
@@ -98,7 +98,7 @@ function downloadSegmentData(segments: IndexedDBSegmentsSchema[]): void {
 } */
 
 // Utility function to download collected data.
-function downloadFrameData(frames: IndexedDBFramesSchema[]): void {
+export function downloadFrameData(frames: IndexedDBFramesSchema[]): void {
 	const jsonData = JSON.stringify(frames)
 	const blob = new Blob([jsonData], {
 		type: "application/json",

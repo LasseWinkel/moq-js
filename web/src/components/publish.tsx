@@ -18,6 +18,7 @@ import Fail from "./fail"
 
 import { EVALUATION_SCENARIO, GOP_DEFAULTS } from "@kixelated/moq/common/evaluationscenarios"
 import { IDBService, BitrateMode } from "@kixelated/moq/common"
+import { DATA_DOWNLOAD_TIME, downloadFrameData } from "./watch"
 
 /*
 // Utility function to download collected data.
@@ -435,6 +436,10 @@ export default function Publish() {
 								const startTime = Date.now()
 								IDBService.addStreamStartTime(startTime)
 								setActive(true)
+
+								setTimeout(async () => {
+									downloadFrameData(await IDBService.retrieveFramesFromIndexedDB())
+								}, DATA_DOWNLOAD_TIME)
 
 								const target = e.currentTarget
 								const relative = target.getAttribute("id")
