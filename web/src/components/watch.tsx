@@ -249,7 +249,7 @@ export default function Watch(props: { name: string }) {
 		IDBService.initIDBServiceSubscriber()
 		setTimeout(() => {
 			IDBService.resetIndexedDBSubscriber()
-		}, 10)
+		}, 100)
 
 		setTimeout(async () => {
 			downloadFrameData(
