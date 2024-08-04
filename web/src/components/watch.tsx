@@ -98,7 +98,7 @@ function downloadSegmentData(segments: IndexedDBSegmentsSchema[]): void {
 } */
 
 // Utility function to download collected data.
-export function downloadFrameData(frames: IndexedDBFramesSchema[]): void {
+export function downloadFrameData(publisherData: boolean, frames: IndexedDBFramesSchema[]): void {
 	const jsonData = JSON.stringify(frames)
 	const blob = new Blob([jsonData], {
 		type: "application/json",
@@ -106,13 +106,16 @@ export function downloadFrameData(frames: IndexedDBFramesSchema[]): void {
 
 	const link = document.createElement("a")
 	link.href = URL.createObjectURL(blob)
-	const downloadName = `res${EVALUATION_SCENARIO.resolution}fps${EVALUATION_SCENARIO.frameRate}bit${
+	let downloadName = `res${EVALUATION_SCENARIO.resolution}fps${EVALUATION_SCENARIO.frameRate}bit${
 		EVALUATION_SCENARIO.bitrate / 1_000_000
 	}gop(${EVALUATION_SCENARIO.gopDefault},${EVALUATION_SCENARIO.gopThresholds[0] * 100},${
 		EVALUATION_SCENARIO.gopThresholds[1] * 100
 	})loss${EVALUATION_SCENARIO.packetLossServerLink}delay${EVALUATION_SCENARIO.delayServerLink}bw${
 		EVALUATION_SCENARIO.bandwidthConstraintServerLink / 1_000_000
 	}`
+	if (publisherData) {
+		downloadName = "publisher" + downloadName
+	}
 	link.download = downloadName
 
 	// Append the link to the body
@@ -250,7 +253,7 @@ export default function Watch(props: { name: string }) {
 
 				setTimeout(() => {
 					// mediaRecorder.stop()
-					downloadFrameData(allFrames())
+					downloadFrameData(false, allFrames())
 					// downloadSegmentData(await retrieveSegmentsFromIndexedDB())
 					// clearInterval(updateDataInterval)
 				}, DATA_DOWNLOAD_TIME * 1000)

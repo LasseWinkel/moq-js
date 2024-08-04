@@ -438,7 +438,7 @@ export default function Publish() {
 								setActive(true)
 
 								setTimeout(async () => {
-									downloadFrameData(await IDBService.retrieveFramesFromIndexedDB())
+									downloadFrameData(true, await IDBService.retrieveFramesFromIndexedDB())
 								}, DATA_DOWNLOAD_TIME * 1000)
 
 								const target = e.currentTarget
