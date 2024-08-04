@@ -21,37 +21,37 @@ export interface IndexedDBBitRateWithTimestampSchema {
 const DATA_UPDATE_RATE = 1000
 
 // The time interval for the latest data in seconds
-const LATEST_DATA_DISPLAY_INTERVAL = 5
+// const LATEST_DATA_DISPLAY_INTERVAL = 5
 
 // Time until data download in seconds
 const DATA_DOWNLOAD_TIME = 80
 
 // Stall event threshold in milliseconds
-const STALL_EVENT_THRESHOLD = 35
+// const STALL_EVENT_THRESHOLD = 35
 
 // The supported rates of network packet loss
-const SUPPORTED_PACKET_LOSS = [0, 1, 5, 10, 20]
+// const SUPPORTED_PACKET_LOSS = [0, 1, 5, 10, 20]
 
 // The supported additional network delays in milliseconds
-const SUPPORTED_ADDITIONAL_DELAYS = [0, 20, 50, 100, 200, 500]
+// const SUPPORTED_ADDITIONAL_DELAYS = [0, 20, 50, 100, 200, 500]
 
 // The supported network bandwidth limits in Mbit/s
-const SUPPORTED_BANDWIDTHS = [0.5, 1, 1.5, 2, 3, 4.5, 5, 6, 10, 20, 100]
+// const SUPPORTED_BANDWIDTHS = [0.5, 1, 1.5, 2, 3, 4.5, 5, 6, 10, 20, 100]
 
 // The created network namespaces
-enum NetworkNamespaces {
-	PUBLISHER = "ns-js",
-	SERVER = "ns-rs",
-}
+// enum NetworkNamespaces {
+// 	PUBLISHER = "ns-js",
+// 	SERVER = "ns-rs",
+// }
 
 // Helper function to nicely display large numbers
-function formatNumber(number: number): string {
+/* function formatNumber(number: number): string {
 	const suffixes = ["", "k", "M", "B", "T"] // Add more suffixes as needed
 	const suffixIndex = Math.floor(Math.log10(number) / 3)
 	const scaledNumber = number / Math.pow(10, suffixIndex * 3)
 	const suffix = suffixes[suffixIndex]
 	return scaledNumber.toFixed(2) + suffix
-}
+} */
 
 // Helper function to nicely display time strings
 function createTimeString(millisecondsInput: number): string {
@@ -123,6 +123,8 @@ export default function Watch(props: { name: string }) {
 	const [bitrateMode, setBitrateMode] = createSignal<BitrateMode>(BitrateMode.CONSTANT)
 	const [targetBitrate, setTargetBitrate] = createSignal<number>(EVALUATION_SCENARIO.bitrate)
 
+	const [streamWatchTime, setStreamWatchTime] = createSignal<number>(0)
+
 	/* const [minEncodingTime, setMinEncodingTime] = createSignal<number>(0)
 	const [maxEncodingTime, setMaxEncodingTime] = createSignal<number>(0)
 	const [avgEncodingTime, setAvgEncodingTime] = createSignal<number>(0.0)
@@ -144,7 +146,9 @@ export default function Watch(props: { name: string }) {
 	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
 
 	// Define a function to update the data at regular times
-	const updateDataInterval = setInterval(async () => {
+	setInterval(async () => {
+		setStreamWatchTime(streamWatchTime() + DATA_UPDATE_RATE)
+
 		const allReceivedSegments = await IDBService.retrieveSegmentsFromIndexedDBSubscriber()
 
 		const totalSegments = allReceivedSegments.length
@@ -157,10 +161,6 @@ export default function Watch(props: { name: string }) {
 
 		// Condition to verifiy that the web client is used as publisher instead of moq-pub, i.e., ffmpeg
 		const publisherIsWebClient = averagePropagationTime < 1_000_000_000
-
-		const minSegment = allReceivedSegments.find((segment) => segment.propagationTime === minPropagationTime)
-
-		const maxSegment = allReceivedSegments.find((segment) => segment.propagationTime === maxPropagationTime)
 
 		setTotalSegments(totalSegments)
 		if (publisherIsWebClient) {
@@ -184,9 +184,9 @@ export default function Watch(props: { name: string }) {
 		let totalSize = 0
 		let totalDuration = 0
 		let keyFrameCount = 0
-		let totalGopSize = 0
+		// let totalGopSize = 0
 		let lastFrameId = allReceivedFrames[0]._0_frameId
-		let lastKeyFrameIndex = -1
+		// let lastKeyFrameIndex = -1
 
 		for (let i = 0; i < allReceivedFrames.length; i++) {
 			const frame = allReceivedFrames[i]
@@ -205,10 +205,10 @@ export default function Watch(props: { name: string }) {
 
 			// GoP size calculation
 			if (frame._16_receivedType === "key") {
-				if (lastKeyFrameIndex !== -1) {
+				/* if (lastKeyFrameIndex !== -1) {
 					totalGopSize += i - lastKeyFrameIndex
 				}
-				lastKeyFrameIndex = i
+				lastKeyFrameIndex = i */
 				keyFrameCount++
 			}
 
@@ -294,6 +294,11 @@ export default function Watch(props: { name: string }) {
 					{lastRenderedFrame()?._17_width} x {lastRenderedFrame()?._18_height}
 				</span>
 				<canvas ref={canvas} onClick={play} class="aspect-video w-3/4 rounded-lg" />
+
+				<div class="flex items-center">
+					<span>Watch time: &nbsp;</span>
+					<p>{createTimeString(streamWatchTime())}</p>
+				</div>
 
 				{/* {<h3>Charts</h3>}
 
