@@ -104,6 +104,10 @@ export default function Watch(props: { name: string }) {
 	const [maxPropagationTime, setMaxPropagationTime] = createSignal<number>(0)
 	const [avgPropagationTime, setAvgPropagationTime] = createSignal<number>(0)
 
+	const [minDecodingTime, setMinDecodingTime] = createSignal<number>(0)
+	const [maxDecodingTime, setMaxDecodingTime] = createSignal<number>(0)
+	const [avgDecodingTime, setAvgDecodingTime] = createSignal<number>(0)
+
 	const [frameRate, setFrameRate] = createSignal<number>(0)
 	const [bitrate, setBitrate] = createSignal<number>(0)
 	const [gopSize, setGopSize] = createSignal<number>(0)
@@ -148,13 +152,11 @@ export default function Watch(props: { name: string }) {
 
 		const allReceivedSegments = await IDBService.retrieveSegmentsFromIndexedDBSubscriber()
 
-		const totalSegments = allReceivedSegments.length
-
 		const propagationTimes = allReceivedSegments.slice(1).map((segment) => segment.propagationTime)
 
 		const minPropagationTime = Math.min(...propagationTimes)
 		const maxPropagationTime = Math.max(...propagationTimes)
-		const averagePropagationTime = propagationTimes.reduce((sum, time) => sum + time, 0) / totalSegments
+		const averagePropagationTime = propagationTimes.reduce((sum, time) => sum + time, 0) / propagationTimes.length
 
 		// Condition to verifiy that the web client is used as publisher instead of moq-pub, i.e., ffmpeg
 		const publisherIsWebClient = averagePropagationTime < 1_000_000_000
@@ -171,6 +173,16 @@ export default function Watch(props: { name: string }) {
 		)
 
 		const allRenderedFrames = allReceivedFrames.filter((aFrame) => aFrame._7_renderFrameTimestamp !== undefined)
+
+		const decodingTimes = allRenderedFrames.map((aFrame) => aFrame._6_decodingTime)
+
+		const minDecodingTime = Math.min(...decodingTimes)
+		const maxDecodingTime = Math.max(...decodingTimes)
+		const averageDecodingTime = decodingTimes.reduce((sum, time) => sum + time, 0) / decodingTimes.length
+
+		setMinDecodingTime(minDecodingTime)
+		setMaxDecodingTime(maxDecodingTime)
+		setAvgDecodingTime(averageDecodingTime)
 
 		let newTotalStallDuration = 0
 		let newNumberOfStallEvents = 0
@@ -706,6 +718,15 @@ export default function Watch(props: { name: string }) {
 					<div class="mr-14 flex items-center">
 						<span>Frame Delivery Rate: &nbsp;</span>
 						<p>{frameDeliveryRate().toFixed(2)} %</p>
+					</div>
+				</div>
+
+				<div class="flex">
+					<div class="mr-20 flex items-center">
+						<span>Decoding Time (min | max | avg): &nbsp;</span>
+						<span>{minDecodingTime()} ms | &nbsp;</span>
+						<span>{maxDecodingTime()} ms | &nbsp;</span>
+						<span>{avgDecodingTime().toFixed(2)} ms&nbsp;</span>
 					</div>
 				</div>
 
