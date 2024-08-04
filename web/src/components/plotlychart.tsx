@@ -1,29 +1,31 @@
 import { createEffect } from "solid-js"
 import * as Plotly from "plotly.js-dist"
-import type { IndexedDBBitRateWithTimestampSchema } from "./watch"
+import type { IndexedDBSegmentsSchemaSubscriber } from "@kixelated/moq/common"
 
 interface ChartProps {
-	bitrateWithTimestamp: IndexedDBBitRateWithTimestampSchema[]
+	segments: IndexedDBSegmentsSchemaSubscriber[]
 }
 
 const ChartComponent = (props: ChartProps) => {
 	createEffect(() => {
 		const trace = [
 			{
-				x: props.bitrateWithTimestamp.map((aValue) => aValue.timestamp / 1000),
-				y: props.bitrateWithTimestamp.map((aValue) => aValue.bitrate / 1000000),
-				name: "Bitrate",
+				x: props.segments.map((aSegment) => (aSegment.receiveTime - props.segments[0].receiveTime) / 1000),
+				y: props.segments.map((aSegment) => aSegment.propagationTime),
+				name: "Segment Propagation Time",
 				mode: "lines",
 				marker: { color: "blue" },
 			},
 		]
 
 		const layout = {
+			width: 800,
+			height: 300,
 			xaxis: {
 				title: "Time (s)",
 			},
 			yaxis: {
-				title: "Mbps",
+				title: "Propagation Time (ms)",
 			},
 			showlegend: true,
 		}

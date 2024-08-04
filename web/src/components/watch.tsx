@@ -1,21 +1,15 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { Player } from "@kixelated/moq/playback"
 
-import { BitrateMode, type IndexedDBFramesSchema } from "@kixelated/moq/common"
+import { BitrateMode, type IndexedDBFramesSchema, type IndexedDBSegmentsSchemaSubscriber } from "@kixelated/moq/common"
 import { IDBService } from "@kixelated/moq/common"
 
-/* import FramesPlot from "./frames"
-import BitratePlot from "./bitrate" */
+import Plot from "./plotlychart"
 
 import Fail from "./fail"
 
 import { createEffect, createSignal, For, onCleanup } from "solid-js"
 import { EVALUATION_SCENARIO, GOP_DEFAULTS } from "@kixelated/moq/common/evaluationscenarios"
-
-export interface IndexedDBBitRateWithTimestampSchema {
-	bitrate: number
-	timestamp: number
-}
 
 // Data update rate in milliseconds
 const DATA_UPDATE_RATE = 1000
@@ -105,7 +99,7 @@ export default function Watch(props: { name: string }) {
 	const [error, setError] = createSignal<Error | undefined>()
 
 	// Various dynamic meta data to be displayed next to the video
-	const [totalSegments, setTotalSegments] = createSignal<number>(0)
+	const [segmentData, setSegmentData] = createSignal<IndexedDBSegmentsSchemaSubscriber[]>([])
 	const [minPropagationTime, setMinPropagationTime] = createSignal<number>(0)
 	const [maxPropagationTime, setMaxPropagationTime] = createSignal<number>(0)
 	const [avgPropagationTime, setAvgPropagationTime] = createSignal<number>(0)
@@ -165,7 +159,7 @@ export default function Watch(props: { name: string }) {
 		// Condition to verifiy that the web client is used as publisher instead of moq-pub, i.e., ffmpeg
 		const publisherIsWebClient = averagePropagationTime < 1_000_000_000
 
-		setTotalSegments(totalSegments)
+		setSegmentData(allReceivedSegments)
 		if (publisherIsWebClient) {
 			setMinPropagationTime(minPropagationTime)
 			setMaxPropagationTime(maxPropagationTime)
@@ -567,7 +561,7 @@ export default function Watch(props: { name: string }) {
 				<div class="flex ">
 					<div class="mr-20 flex items-center">
 						<span>Total segments: &nbsp;</span>
-						<p>{totalSegments()}</p>
+						<p>{segmentData().length}</p>
 					</div>
 				</div>
 
@@ -579,6 +573,8 @@ export default function Watch(props: { name: string }) {
 						<span>{avgPropagationTime().toFixed(2)} ms&nbsp;</span>
 					</div>
 				</div>
+
+				<Plot segments={segmentData().slice(1)} />
 			</div>
 
 			{/*
