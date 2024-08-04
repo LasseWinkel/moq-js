@@ -252,7 +252,11 @@ export default function Watch(props: { name: string }) {
 		}, 10)
 
 		setTimeout(async () => {
-			downloadFrameData(await IDBService.retrieveFramesFromIndexedDBSubscriber())
+			downloadFrameData(
+				(await IDBService.retrieveFramesFromIndexedDBSubscriber()).filter(
+					(aFrame) => aFrame._5_receiveMp4FrameTimestamp !== undefined,
+				),
+			)
 		}, DATA_DOWNLOAD_TIME * 1000)
 
 		const namespace = props.name
