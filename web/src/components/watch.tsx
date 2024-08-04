@@ -150,7 +150,7 @@ export default function Watch(props: { name: string }) {
 
 		const totalSegments = allReceivedSegments.length
 
-		const propagationTimes = allReceivedSegments.map((segment) => segment.propagationTime)
+		const propagationTimes = allReceivedSegments.slice(1).map((segment) => segment.propagationTime)
 
 		const minPropagationTime = Math.min(...propagationTimes)
 		const maxPropagationTime = Math.max(...propagationTimes)
