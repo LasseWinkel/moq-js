@@ -348,11 +348,10 @@ export default function Publish() {
 
 		// Compute the absolute URL
 		const absolute = new URL(relative, window.location.href).href
-
-		window.open(absolute, "_blank")
+		const newAbsolute = absolute.replace("12.0.0.2", "14.0.0.2")
 
 		navigator.clipboard
-			.writeText(absolute)
+			.writeText(newAbsolute)
 			.then(() => setCopied(true))
 			.catch((err) => console.error("Failed to copy link:", err))
 	}
@@ -480,7 +479,7 @@ export default function Publish() {
 
 					<Show when={broadcast()}>
 						<a href={watchUrl} onClick={copyShare} class="form-button">
-							Watch & Share
+							Watch Remotely
 						</a>
 					</Show>
 
