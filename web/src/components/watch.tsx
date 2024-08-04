@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { Player } from "@kixelated/moq/playback"
 
-import { BitrateMode, type IndexedDBFramesSchemaSubscriber } from "@kixelated/moq/common"
+import { BitrateMode, type IndexedDBFramesSchema } from "@kixelated/moq/common"
 import { IDBService } from "@kixelated/moq/common"
 
 /* import FramesPlot from "./frames"
@@ -68,6 +68,34 @@ function createTimeString(millisecondsInput: number): string {
 	return formattedTime
 }
 
+// Utility function to download collected data.
+function downloadFrameData(frames: IndexedDBFramesSchema[]): void {
+	const jsonData = JSON.stringify(frames)
+	const blob = new Blob([jsonData], {
+		type: "application/json",
+	})
+
+	const link = document.createElement("a")
+	link.href = URL.createObjectURL(blob)
+	const downloadName = `remotesubscriberres${EVALUATION_SCENARIO.resolution}fps${EVALUATION_SCENARIO.frameRate}bit${
+		EVALUATION_SCENARIO.bitrate / 1_000_000
+	}gop(${EVALUATION_SCENARIO.gopDefault},${EVALUATION_SCENARIO.gopThresholds[0] * 100},${
+		EVALUATION_SCENARIO.gopThresholds[1] * 100
+	})loss${EVALUATION_SCENARIO.packetLossServerLink}delay${EVALUATION_SCENARIO.delayServerLink}bw${
+		EVALUATION_SCENARIO.bandwidthConstraintServerLink / 1_000_000
+	}`
+	link.download = downloadName
+
+	// Append the link to the body
+	document.body.appendChild(link)
+
+	// Programmatically click the link to trigger the download
+	link.click()
+
+	// Clean up
+	document.body.removeChild(link)
+}
+
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
 	const urlSearchParams = new URLSearchParams(window.location.search)
@@ -90,7 +118,7 @@ export default function Watch(props: { name: string }) {
 	const [frameDeliveryRate, setFrameDeliveryRate] = createSignal<number>(0)
 
 	// const [receivedFrames, setReceivedFrames] = createSignal<IndexedDBFramesSchema[]>([])
-	const [lastRenderedFrame, setLastRenderedFrame] = createSignal<IndexedDBFramesSchemaSubscriber>()
+	const [lastRenderedFrame, setLastRenderedFrame] = createSignal<IndexedDBFramesSchema>()
 
 	const [bitrateMode, setBitrateMode] = createSignal<BitrateMode>(BitrateMode.CONSTANT)
 	const [targetBitrate, setTargetBitrate] = createSignal<number>(EVALUATION_SCENARIO.bitrate)
@@ -127,18 +155,23 @@ export default function Watch(props: { name: string }) {
 		const maxPropagationTime = Math.max(...propagationTimes)
 		const averagePropagationTime = propagationTimes.reduce((sum, time) => sum + time, 0) / totalSegments
 
+		// Condition to verifiy that the web client is used as publisher instead of moq-pub, i.e., ffmpeg
+		const publisherIsWebClient = averagePropagationTime < 1_000_000_000
+
 		const minSegment = allReceivedSegments.find((segment) => segment.propagationTime === minPropagationTime)
 
 		const maxSegment = allReceivedSegments.find((segment) => segment.propagationTime === maxPropagationTime)
 
 		setTotalSegments(totalSegments)
-		if (averagePropagationTime < 1_000_000_000) {
+		if (publisherIsWebClient) {
 			setMinPropagationTime(minPropagationTime)
 			setMaxPropagationTime(maxPropagationTime)
 			setAvgPropagationTime(averagePropagationTime)
 		}
 
-		const allReceivedFrames = await IDBService.retrieveFramesFromIndexedDBSubscriber()
+		const allReceivedFrames = (await IDBService.retrieveFramesFromIndexedDBSubscriber()).filter(
+			(aFrame) => aFrame._5_receiveMp4FrameTimestamp !== undefined,
+		)
 
 		const metrics = {
 			frameRate: 0,
@@ -152,25 +185,26 @@ export default function Watch(props: { name: string }) {
 		let totalDuration = 0
 		let keyFrameCount = 0
 		let totalGopSize = 0
-		let lastFrameId = allReceivedFrames[0].frameId
+		let lastFrameId = allReceivedFrames[0]._0_frameId
 		let lastKeyFrameIndex = -1
 
 		for (let i = 0; i < allReceivedFrames.length; i++) {
 			const frame = allReceivedFrames[i]
-			totalSize += frame.size
+			totalSize += frame._14_receivedBytes
 
 			if (i > 0) {
-				const duration = frame.receiveTime - allReceivedFrames[i - 1].receiveTime
+				const duration =
+					frame._5_receiveMp4FrameTimestamp - allReceivedFrames[i - 1]._5_receiveMp4FrameTimestamp
 				totalDuration += duration
 
 				// Detect frame loss
-				if (frame.frameId !== lastFrameId + 1) {
-					metrics.lostFrames += frame.frameId - lastFrameId - 1
+				if (frame._0_frameId !== lastFrameId + 1) {
+					metrics.lostFrames += frame._0_frameId - lastFrameId - 1
 				}
 			}
 
 			// GoP size calculation
-			if (frame.type === "key") {
+			if (frame._16_receivedType === "key") {
 				if (lastKeyFrameIndex !== -1) {
 					totalGopSize += i - lastKeyFrameIndex
 				}
@@ -178,13 +212,13 @@ export default function Watch(props: { name: string }) {
 				keyFrameCount++
 			}
 
-			lastFrameId = frame.frameId
+			lastFrameId = frame._0_frameId
 		}
 
 		const totalTimeInSeconds = totalDuration / 1000
 
 		const numberOfSentFrames =
-			allReceivedFrames[allReceivedFrames.length - 1].frameId - allReceivedFrames[0].frameId + 1
+			allReceivedFrames[allReceivedFrames.length - 1]._0_frameId - allReceivedFrames[0]._0_frameId + 1
 
 		// Frame rate calculation
 		metrics.frameRate = allReceivedFrames.length / totalTimeInSeconds
@@ -201,7 +235,7 @@ export default function Watch(props: { name: string }) {
 		setFrameRate(metrics.frameRate)
 		setBitrate(metrics.bitrate)
 		setGopSize(metrics.avgGopSize)
-		if (averagePropagationTime < 1_000_000_000) {
+		if (publisherIsWebClient) {
 			setLostFrames(metrics.lostFrames)
 		}
 		setFrameDeliveryRate(metrics.frameDeliverRate)
@@ -216,6 +250,10 @@ export default function Watch(props: { name: string }) {
 		setTimeout(() => {
 			IDBService.resetIndexedDBSubscriber()
 		}, 10)
+
+		setTimeout(async () => {
+			downloadFrameData(await IDBService.retrieveFramesFromIndexedDBSubscriber())
+		}, DATA_DOWNLOAD_TIME)
 
 		const namespace = props.name
 		const url = `https://${server}`
@@ -253,7 +291,7 @@ export default function Watch(props: { name: string }) {
 
 				{/* {isRecording() && <div class="text-red-400">Recording</div>} */}
 				<span>
-					{lastRenderedFrame()?.width} x {lastRenderedFrame()?.height}
+					{lastRenderedFrame()?._17_width} x {lastRenderedFrame()?._18_height}
 				</span>
 				<canvas ref={canvas} onClick={play} class="aspect-video w-3/4 rounded-lg" />
 

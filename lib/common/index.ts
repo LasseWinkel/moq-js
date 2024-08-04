@@ -7,9 +7,4 @@ export {
 	IDBService,
 	IndexedDBNameSubscriber,
 } from "./idbservice"
-export type {
-	IndexedDBFramesSchema,
-	IndexedDBSegmentsSchema,
-	IndexedDBFramesSchemaSubscriber,
-	IndexedDBSegmentsSchemaSubscriber,
-} from "./idbservice"
+export type { IndexedDBFramesSchema, IndexedDBSegmentsSchema, IndexedDBSegmentsSchemaSubscriber } from "./idbservice"

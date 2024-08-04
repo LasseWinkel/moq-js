@@ -10,7 +10,7 @@ import { asError } from "../../common/error"
 import { Deferred } from "../../common/async"
 import { GroupReader, Reader } from "../../transport/objects"
 
-import { IDBService, IndexedDBFramesSchemaSubscriber } from "../../common"
+import { IDBService } from "../../common"
 
 class Worker {
 	// Timeline receives samples, buffering them and choosing the timestamp to render.
@@ -22,8 +22,6 @@ class Worker {
 	// Renderer requests samples, rendering video frames and emitting audio frames.
 	#audio?: Audio.Renderer
 	#video?: Video.Renderer
-
-	allReceivedFrames: IndexedDBFramesSchemaSubscriber[] = []
 
 	on(e: MessageEvent) {
 		const msg = e.data as Message.ToWorker
@@ -88,8 +86,6 @@ class Worker {
 			segments.releaseLock()
 		}
 
-		IDBService.addFramesSubscriber(this.allReceivedFrames)
-
 		// Read each chunk, decoding the MP4 frames and adding them to the queue.
 		for (;;) {
 			const chunk = await reader.read()
@@ -101,14 +97,15 @@ class Worker {
 			const frames = container.decode(chunk.payload)
 			for (const frame of frames) {
 				if (MP4.isVideoTrack(frame.track)) {
-					this.allReceivedFrames.push({
-						frameId: frame.sample.duration,
-						size: frame.sample.size,
-						type: frame.sample.is_sync ? "key" : "delta",
-						receiveTime: Date.now(),
-						width: frame.sample.description.width,
-						height: frame.sample.description.height,
-					})
+					IDBService.addReceiveMP4FrameTimestampSubscriber(
+						frame.sample.duration,
+						frame.sample.dts,
+						frame.sample.size,
+						frame.sample.is_sync,
+						frame.sample.description.width,
+						frame.sample.description.height,
+						Date.now(),
+					)
 				}
 
 				await segment.write(frame)

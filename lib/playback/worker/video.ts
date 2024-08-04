@@ -1,6 +1,7 @@
 import { Frame, Component } from "./timeline"
 import * as MP4 from "../../media/mp4"
 import * as Message from "./message"
+import { IDBService } from "../../common"
 
 export class Renderer {
 	#canvas: OffscreenCanvas
@@ -38,6 +39,8 @@ export class Renderer {
 				const ctx = this.#canvas.getContext("2d")
 				// const ctx = this.#canvas.getContext("2d", { willReadFrequently: true })
 				if (!ctx) throw new Error("failed to get canvas context")
+
+				IDBService.addRenderFrameTimestampSubscriber(frame, Date.now())
 
 				ctx.drawImage(frame, 0, 0, frame.displayWidth, frame.displayHeight) // TODO respect aspect ratio
 
