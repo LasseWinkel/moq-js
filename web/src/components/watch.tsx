@@ -112,6 +112,9 @@ export default function Watch(props: { name: string }) {
 	const [bitrate, setBitrate] = createSignal<number>(0)
 	const [gopSize, setGopSize] = createSignal<number>(0)
 	const [targetGopSize, setTargetGopSize] = createSignal<number>(GOP_DEFAULTS[0])
+	const [gop1sThreshold, setGop1sThreshold] = createSignal<number>(EVALUATION_SCENARIO.gopThresholds[0] * 100)
+	const [gop0_5sThreshold, setGop0_5sThreshold] = createSignal<number>(EVALUATION_SCENARIO.gopThresholds[1] * 100)
+	const [constantGopSize, setConstantGopSize] = createSignal<boolean>(false)
 	const [lostFrames, setLostFrames] = createSignal<number>(0)
 	const [frameDeliveryRate, setFrameDeliveryRate] = createSignal<number>(0)
 
@@ -268,6 +271,24 @@ export default function Watch(props: { name: string }) {
 		}
 		setFrameDeliveryRate(metrics.frameDeliverRate)
 		setLastRenderedFrame(allReceivedFrames[allReceivedFrames.length - 1])
+
+		if (!constantGopSize()) {
+			// Adjust GoP size if number of received frames changes
+			let newGopSize: number
+			if (frameDeliveryRate() < gop1sThreshold()) {
+				newGopSize = 1
+
+				if (frameDeliveryRate() < gop0_5sThreshold()) {
+					newGopSize = 0.5
+				}
+			} else {
+				newGopSize = EVALUATION_SCENARIO.gopDefault
+			}
+			if (newGopSize !== targetGopSize()) {
+				setTargetGopSize(newGopSize)
+				setServerStoredMetrics()
+			}
+		}
 	}, DATA_UPDATE_RATE)
 
 	let canvas!: HTMLCanvasElement
@@ -328,7 +349,7 @@ export default function Watch(props: { name: string }) {
 				<canvas ref={canvas} onClick={play} class="aspect-video w-3/4 rounded-lg" />
 
 				<div class="flex items-center">
-					<span>Watch time: &nbsp;</span>
+					<span>Watch Time: &nbsp;</span>
 					<p>{createTimeString(streamWatchTime())}</p>
 				</div>
 
@@ -572,7 +593,7 @@ export default function Watch(props: { name: string }) {
 
 				<div class="flex ">
 					<div class="mr-20 flex items-center">
-						<span>Total segments: &nbsp;</span>
+						<span>Total Segments: &nbsp;</span>
 						<p>{segmentData().length}</p>
 					</div>
 				</div>
@@ -753,6 +774,7 @@ export default function Watch(props: { name: string }) {
 					<select
 						class="w-1/3"
 						onChange={(event) => {
+							setConstantGopSize(true)
 							setTargetGopSize(parseFloat(event.target.value))
 							setServerStoredMetrics()
 						}}
@@ -765,6 +787,40 @@ export default function Watch(props: { name: string }) {
 							)}
 						</For>
 					</select>
+				</div>
+
+				<div class="flex items-center">
+					GoP 1s FDR Threshold:
+					<input
+						class="m-3 w-1/3"
+						type="range"
+						min="15"
+						max="99"
+						disabled={constantGopSize()}
+						value={gop1sThreshold()}
+						onChange={(event) => {
+							const value = parseInt(event.target.value, 10)
+							setGop1sThreshold(value)
+						}}
+					/>
+					<div class="mt-2 text-center">{gop1sThreshold()}%</div>
+				</div>
+
+				<div class="flex items-center">
+					GoP 0.5s FDR Threshold:
+					<input
+						class="m-3 w-1/3"
+						type="range"
+						min="10"
+						max="95"
+						disabled={constantGopSize()}
+						value={gop0_5sThreshold()}
+						onChange={(event) => {
+							const value = parseInt(event.target.value, 10)
+							setGop0_5sThreshold(value)
+						}}
+					/>
+					<div class="mt-2 text-center">{gop0_5sThreshold()}%</div>
 				</div>
 
 				<div class="flex w-1/2 items-center">
@@ -787,7 +843,7 @@ export default function Watch(props: { name: string }) {
 				</div>
 
 				<div class="flex items-center">
-					Bitrate: &nbsp;<span class="text-slate-400">{(targetBitrate() / 1_000_000).toFixed(1)} Mb/s</span>
+					Bitrate:
 					<input
 						disabled={bitrateMode() === BitrateMode.CONSTANT}
 						class="m-3"
@@ -801,6 +857,7 @@ export default function Watch(props: { name: string }) {
 							setServerStoredMetrics()
 						}}
 					/>
+					<span class="text-slate-400">{(targetBitrate() / 1_000_000).toFixed(1)} Mbps</span>
 				</div>
 			</div>
 		</div>
