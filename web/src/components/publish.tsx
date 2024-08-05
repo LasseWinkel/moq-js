@@ -383,7 +383,7 @@ export default function Publish() {
 				</div>
 				<Show when={broadcast()}>
 					<div class="flex items-center">
-						<span>Key Frame Interval (s): &nbsp;</span>
+						<span>Target GoP Size (s): &nbsp;</span>
 						<select
 							class="m-3 w-1/3"
 							onChange={(event) => {
@@ -421,7 +421,7 @@ export default function Publish() {
 					</div>
 
 					<div class="flex items-center">
-						Bitrate: &nbsp;<span class="text-slate-400">{(bitrate() / 1_000_000).toFixed(1)} Mb/s</span>
+						Bitrate:
 						<input
 							disabled={bitrateMode() === BitrateMode.CONSTANT}
 							class="m-3 w-1/3"
@@ -435,6 +435,7 @@ export default function Publish() {
 								IDBService.changeBitrate(value)
 							}}
 						/>
+						<span class="text-slate-400">{(bitrate() / 1_000_000).toFixed(1)} Mbps</span>
 					</div>
 				</Show>
 			</form>
