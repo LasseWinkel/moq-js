@@ -95,7 +95,7 @@ export function downloadFrameData(publisherData: boolean, frames: IndexedDBFrame
 	}gop(${EVALUATION_SCENARIO.gopDefault},${EVALUATION_SCENARIO.gopThresholds[0] * 100},${
 		EVALUATION_SCENARIO.gopThresholds[1] * 100
 	})loss${EVALUATION_SCENARIO.packetLossServerLink}delay${EVALUATION_SCENARIO.delayServerLink}bw${
-		EVALUATION_SCENARIO.bandwidthConstraintServerLink / 1_000_000
+		EVALUATION_SCENARIO.bandwidthConstraintServerLink
 	}`
 	if (publisherData) {
 		downloadName = "publisher" + downloadName
