@@ -442,12 +442,12 @@ export default function Watch(props: { name: string }) {
 
 				<div class="flex">
 					<div class="mr-20 flex items-center">
-						<span>Stream live since: &nbsp;</span>
+						<span>Stream Live For: &nbsp;</span>
 						<p>{createTimeString(streamRunningTime())}</p>
 					</div>
 
 					<div class="flex items-center">
-						<span>Watching since: &nbsp;</span>
+						<span>Watching For: &nbsp;</span>
 						<p>{createTimeString(streamWatchTime())}</p>
 					</div>
 				</div>
@@ -459,13 +459,13 @@ export default function Watch(props: { name: string }) {
 					</div>
 					<div class="flex items-center">
 						<span>Total Stall Duration: &nbsp;</span>
-						<p>{(totalStallDuration() / 1000).toFixed(2)}s</p>
+						<p>{(totalStallDuration() / 1000).toFixed(3)}s</p>
 					</div>
 				</div>
 
 				<div class="w-full">
 					<div class="flex items-center">
-						<span>Key Frame Interval (s): &nbsp;</span>
+						<span>Target GoP Size (s): &nbsp;</span>
 						<select
 							class="m-3 w-1/3"
 							onChange={(event) => {
@@ -485,12 +485,13 @@ export default function Watch(props: { name: string }) {
 					</div>
 
 					<div class="flex items-center">
-						GoP size 1s Received Frames:
+						GoP 1s FDR Threshold:
 						<input
 							class="m-3 w-1/3"
 							type="range"
 							min="15"
-							max="95"
+							max="99"
+							disabled={constantGopSize()}
 							value={gop1sThreshold()}
 							onChange={(event) => {
 								const value = parseInt(event.target.value, 10)
@@ -501,12 +502,13 @@ export default function Watch(props: { name: string }) {
 					</div>
 
 					<div class="flex items-center">
-						GoP size 0.5s Received Frames:
+						GoP 0.5s FDR Threshold:
 						<input
 							class="m-3 w-1/3"
 							type="range"
 							min="10"
-							max="90"
+							max="95"
+							disabled={constantGopSize()}
 							value={gop0_5sThreshold()}
 							onChange={(event) => {
 								const value = parseInt(event.target.value, 10)
@@ -556,7 +558,7 @@ export default function Watch(props: { name: string }) {
 								</select>
 							</div>
 							<div class="flex items-center">
-								Bandwidth Limit (Mbit/s):
+								Bandwidth Limit (Mbps):
 								<select
 									class="m-3 w-1/3"
 									onChange={(event) => {
@@ -582,7 +584,7 @@ export default function Watch(props: { name: string }) {
 									setBandwidthLimitPublisher(BANDWIDTH_CONSTRAINTS_SERVER_LINK[0])
 								}}
 							>
-								Reset tc rules
+								Reset tc Rules
 							</button>
 						</div>
 
@@ -625,7 +627,7 @@ export default function Watch(props: { name: string }) {
 								</select>
 							</div>
 							<div class="flex items-center">
-								Bandwidth Limit (Mbit/s):
+								Bandwidth Limit (Mbps):
 								<select
 									class="m-3 w-1/3"
 									onChange={(event) => {
@@ -651,7 +653,7 @@ export default function Watch(props: { name: string }) {
 									setBandwidthLimitServer(BANDWIDTH_CONSTRAINTS_SERVER_LINK[0])
 								}}
 							>
-								Reset tc rules
+								Reset tc Rules
 							</button>
 						</div>
 					</div>
@@ -729,7 +731,7 @@ export default function Watch(props: { name: string }) {
 					</div>
 					<div class="flex items-center">
 						<span>Latest Stall Duration: &nbsp;</span>
-						<p>{(latestStallDuration() / 1000).toFixed(2)}s</p>
+						<p>{(latestStallDuration() / 1000).toFixed(3)}s</p>
 					</div>
 				</div>
 
@@ -753,7 +755,7 @@ export default function Watch(props: { name: string }) {
 				</div>
 
 				<div class="flex items-center">
-					Bitrate: &nbsp;<span class="text-slate-400">{(targetBitrate() / 1_000_000).toFixed(1)} Mb/s</span>
+					Bitrate:
 					<input
 						disabled={bitrateMode() === BitrateMode.CONSTANT}
 						class="m-3"
@@ -767,6 +769,7 @@ export default function Watch(props: { name: string }) {
 							IDBService.changeBitrate(value)
 						}}
 					/>
+					<span class="text-slate-400">{(targetBitrate() / 1_000_000).toFixed(1)} Mbps</span>
 				</div>
 			</div>
 		</div>
