@@ -732,7 +732,7 @@ export default function Watch(props: { name: string }) {
 
 				<div class="flex">
 					<div class="mr-14 flex items-center">
-						<span>Dropped Frames: &nbsp;</span>
+						<span>Skipped Frames: &nbsp;</span>
 						<p>{lostFrames()}</p>
 					</div>
 
