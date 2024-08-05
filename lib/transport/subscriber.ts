@@ -91,13 +91,6 @@ export class Subscriber {
 		})
 	}
 
-	async packet_loss(lossRate: number) {
-		await this.#control.send({
-			kind: Control.Msg.PacketLoss,
-			lossRate,
-		})
-	}
-
 	async tc_reset(networkNamespace: string) {
 		await this.#control.send({
 			kind: Control.Msg.TcReset,

@@ -59,20 +59,12 @@ export class Connection {
 		return this.#subscriber.throttle(lossRate, delay, bandwidthLimit, networkNamespace)
 	}
 
-	packet_loss(lossRate: number) {
-		return this.#subscriber.packet_loss(lossRate)
-	}
-
 	tc_reset(networkNamespace: string) {
 		return this.#subscriber.tc_reset(networkNamespace)
 	}
 
 	setServerStoredMetrics(gopSize: string, bitrateMode: string, bitrate: number) {
 		return this.#subscriber.setServerStoredMetrics(gopSize, bitrateMode, bitrate)
-	}
-
-	latency(currentPublisherTime: number) {
-		return this.#publisher.latency(currentPublisherTime)
 	}
 
 	subscribed() {

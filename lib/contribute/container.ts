@@ -12,8 +12,6 @@ export class Container {
 
 	encode: TransformStream<DecoderConfig | EncodedChunk, Chunk>
 
-	#frameId = 0
-
 	constructor() {
 		this.#mp4 = new MP4.ISOFile()
 		this.#mp4.init()
@@ -101,7 +99,7 @@ export class Container {
 			return
 		}
 
-		// const duration = frame.timestamp - this.#frame.timestamp // Duration not needed for now
+		const duration = frame.timestamp - this.#frame.timestamp
 
 		// TODO avoid this extra copy by writing to the mdat directly
 		// ...which means changing mp4box.js to take an offset instead of ArrayBuffer
@@ -112,9 +110,9 @@ export class Container {
 
 		// Add the sample to the container
 		this.#mp4.addSample(this.#track, buffer, {
-			duration: this.#frameId, // TODO: Don't manipulate the duration field in order to add a frame ID
+			duration,
 			dts: this.#frame.timestamp,
-			cts: this.#frame.timestamp, // Static values here lead to these values on the receiving side: 4293440496 4274800177 4293040498 4293176284
+			cts: this.#frame.timestamp,
 			is_sync: this.#frame.type == "key",
 		})
 
@@ -144,7 +142,6 @@ export class Container {
 			data,
 		})
 
-		this.#frameId++
 		this.#frame = frame
 	}
 

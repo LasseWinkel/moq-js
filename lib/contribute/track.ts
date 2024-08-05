@@ -72,14 +72,13 @@ export class Track {
 		}
 
 		let current = this.#segments.at(-1)
-		const segmentID = this.#offset + this.#segments.length
 
 		if (!current || chunk.type === "key") {
 			if (current) {
 				await current.input.close()
 			}
 
-			const segment = new Segment(segmentID)
+			const segment = new Segment(this.#offset + this.#segments.length)
 			this.#segments.push(segment)
 
 			this.#notify.wake()

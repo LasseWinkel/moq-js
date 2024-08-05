@@ -56,7 +56,7 @@ export class Encoder {
 	#start(controller: TransformStreamDefaultController<EncodedVideoChunk>) {
 		this.#encoder = new VideoEncoder({
 			output: (frame, metadata) => {
-				this.#enqueue(controller, frame, metadata).catch((e) => console.warn(e))
+				this.#enqueue(controller, frame, metadata)
 			},
 			error: (err) => {
 				throw err
@@ -89,16 +89,11 @@ export class Encoder {
 			this.#decoderConfig = config
 		}
 
-		const keyFrameIntervalSize = 2
-
 		if (frame.type === "key") {
 			this.#keyframeCounter = 0
 		} else {
 			this.#keyframeCounter += 1
-			if (
-				this.#keyframeCounter + this.#encoder.encodeQueueSize >=
-				keyFrameIntervalSize * this.#encoderConfig.framerate!
-			) {
+			if (this.#keyframeCounter + this.#encoder.encodeQueueSize >= 2 * this.#encoderConfig.framerate!) {
 				this.#keyframeNext = true
 			}
 		}

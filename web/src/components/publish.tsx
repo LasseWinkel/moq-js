@@ -1,45 +1,9 @@
 import { Broadcast, VideoEncoder, AudioEncoder } from "@kixelated/moq/contribute"
 import { Client, Connection } from "@kixelated/moq/transport"
 
-import {
-	createSignal,
-	createEffect,
-	onCleanup,
-	createMemo,
-	Show,
-	For,
-	createSelector,
-	Switch,
-	Match,
-	onMount,
-} from "solid-js"
+import { createSignal, createEffect, onCleanup, createMemo, Show, For, createSelector, Switch, Match } from "solid-js"
 
 import Fail from "./fail"
-
-import { EVALUATION_SCENARIO, GOP_DEFAULTS } from "@kixelated/moq/common/evaluationscenarios"
-import { IDBService, BitrateMode } from "@kixelated/moq/common"
-
-/*
-// Utility function to download collected data.
-function downloadData(data: { timestamp: string; captureTime: number }[]): void {
-	const jsonData = JSON.stringify(data)
-	const blob = new Blob([jsonData], {
-		type: "application/json",
-	})
-
-	const link = document.createElement("a")
-	link.href = URL.createObjectURL(blob)
-	link.download = "capture_time"
-
-	// Append the link to the body
-	document.body.appendChild(link)
-
-	// Programmatically click the link to trigger the download
-	link.click()
-
-	// Clean up
-	document.body.removeChild(link)
-} */
 
 const AUDIO_CODECS = [
 	"Opus",
@@ -99,10 +63,10 @@ const VIDEO_CODECS: VideoCodec[] = [
 ]
 
 const SUPPORTED_HEIGHT = [240, 360, 480, 720, 1080, 1440]
-const SUPPORTED_FPS = [5, 10, 15, 20, 25, 30, 60, 90]
+const SUPPORTED_FPS = [15, 30, 60]
 
-const DEFAULT_HEIGHT = EVALUATION_SCENARIO.resolution
-// const DEFAULT_FPS = 30
+const DEFAULT_HEIGHT = 480
+const DEFAULT_FPS = 30
 
 export default function Publish() {
 	// Use query params to allow overriding environment variables.
@@ -111,7 +75,6 @@ export default function Publish() {
 	const server = params.server ?? import.meta.env.PUBLIC_RELAY_HOST
 
 	const [device, setDevice] = createSignal<MediaStream | undefined>()
-	const [videoElement, setVideoElement] = createSignal<HTMLVideoElement>()
 	const [deviceLoading, setDeviceLoading] = createSignal(false)
 	const [audio, setAudio] = createSignal<AudioEncoderConfig | undefined>()
 	const [video, setVideo] = createSignal<VideoEncoderConfig | undefined>()
@@ -121,11 +84,6 @@ export default function Publish() {
 	const [copied, setCopied] = createSignal<boolean>()
 	const [active, setActive] = createSignal<boolean>()
 	const [error, setError] = createSignal<Error | undefined>()
-	// const [isRecording, setIsRecording] = createSignal<boolean>(false)
-	const [fps, setFps] = createSignal(EVALUATION_SCENARIO.frameRate)
-	const [keyFrameInterval, setKeyFrameInterval] = createSignal<number>(EVALUATION_SCENARIO.gopDefault)
-	const [bitrateMode, setBitrateMode] = createSignal<BitrateMode>(BitrateMode.CONSTANT)
-	const [bitrate, setBitrate] = createSignal<number>(EVALUATION_SCENARIO.bitrate)
 
 	const audioTrack = createMemo(() => {
 		const tracks = device()?.getAudioTracks()
@@ -146,8 +104,6 @@ export default function Publish() {
 	}
 
 	createEffect(() => {
-		// Initialize IDB Service
-		IDBService.initIDBService()
 		const url = `https://${server}`
 
 		// Special case localhost to fetch the TLS fingerprint from the server.
@@ -162,85 +118,6 @@ export default function Publish() {
 
 		client.connect().then(setConnection).catch(setError)
 	})
-
-	/* 	const recordOriginalVideo = (stream: MediaStream) => {
-		// Record the published video
-		setIsRecording(true)
-		const recordedBlobs: BlobPart[] = []
-		const mediaRecorder = new MediaRecorder(stream, {
-			videoBitsPerSecond: 2_000_000,
-			videoKeyFrameIntervalCount: 60,
-		})
-		console.log("Recorder", mediaRecorder)
-		mediaRecorder.ondataavailable = (event) => {
-			if (event.data && event.data.size > 0) {
-				console.log("Recorded", recordedBlobs)
-
-				recordedBlobs.push(event.data)
-			}
-		}
-
-		mediaRecorder.start()
-
-		mediaRecorder.onstop = function () {
-			setIsRecording(false)
-			console.log("Recorded", recordedBlobs)
-
-			const blob = new Blob(recordedBlobs, { type: "video/webm" })
-			const url = URL.createObjectURL(blob)
-			const a = document.createElement("a")
-			a.href = url
-			a.download = "published_video.webm"
-			a.click()
-			URL.revokeObjectURL(url)
-		}
-
-		setTimeout(() => {
-			mediaRecorder.stop()
-		}, 5000)
-	} */
-
-	/*  const getCaptureFrameTime = (videoElement: HTMLVideoElement) => {
-		// const videoElement = document.createElement("video")
-		const canvas = document.createElement("canvas")
-		const ctx = canvas.getContext("2d")
-
-		const seenFrames: { timestamp: string; captureTime: number }[] = []
-
-		setTimeout(() => {
-			downloadData(seenFrames)
-		}, 30000)
-
-		const updateCanvas: VideoFrameRequestCallback = function (
-			now: number,
-			metadata: {
-				captureTime?: number
-				expectedDisplayTime: number
-				height: number
-				mediaTime: number
-				presentationTime: number
-				presentedFrames: number
-				width: number
-			},
-		) {
-			if (metadata.captureTime) {
-				seenFrames.push({
-					timestamp: (metadata.mediaTime * 1000000).toFixed(),
-					captureTime: metadata.captureTime,
-				})
-				// console.log("CALLBACKF", seenFrames)
-				// console.log("")
-
-			}
-
-			if (!ctx) throw new Error("failed to get canvas context")
-			// ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height)
-
-			videoElement.requestVideoFrameCallback(updateCanvas)
-		}
-
-		videoElement.requestVideoFrameCallback(updateCanvas)
-	} */
 
 	const createBroadcast = function () {
 		const d = device()
@@ -262,16 +139,6 @@ export default function Publish() {
 		if (!v && videoTrack()) {
 			throw new Error("no supported video codec")
 		}
-
-		const e = videoElement()
-		if (!e) {
-			throw new Error("no video element")
-		}
-
-		// getCaptureFrameTime(e)
-		// recordOriginalVideo(d)
-
-		console.log(video())
 
 		return new Broadcast({
 			connection: c,
@@ -349,8 +216,6 @@ export default function Publish() {
 		// Compute the absolute URL
 		const absolute = new URL(relative, window.location.href).href
 
-		window.open(absolute, "_blank")
-
 		navigator.clipboard
 			.writeText(absolute)
 			.then(() => setCopied(true))
@@ -364,53 +229,15 @@ export default function Publish() {
 		onCleanup(() => clearTimeout(timeout))
 	})
 
-	// Stop streaming
-	const stopStreaming = function () {
-		const conn = connection()
-		if (!conn) return
-
-		conn.close()
-		conn.closed().then(setError, setError)
-
-		const b = broadcast()
-		if (!b) return
-
-		// Close the broadcast on teardown
-		b.close()
-
-		// Wait until the broadcast is closed.
-		b.closed()
-			.then(setError, setError)
-			.finally(() => {
-				setBroadcast(undefined)
-				setActive(false)
-			})
-
-		setDevice(undefined)
-	}
-
 	return (
 		<>
 			<form onSubmit={(e) => e.preventDefault()}>
-				<Device
-					setError={setError}
-					setDevice={setDevice}
-					setVideoElement={setVideoElement}
-					setDeviceLoading={setDeviceLoading}
-					stopStream={stopStreaming}
-					fps={fps()}
-				/>
+				<Device setError={setError} setDevice={setDevice} setDeviceLoading={setDeviceLoading} />
 				{/* {isRecording() && <div class="text-red-400">Recording</div>} */}
 
 				<Show when={videoTrack()}>
 					{(track) => (
-						<Video
-							setError={setError}
-							setFps={setFps}
-							setConfig={setVideo}
-							track={track()}
-							advanced={advanced()}
-						/>
+						<Video setError={setError} setConfig={setVideo} track={track()} advanced={advanced()} />
 					)}
 				</Show>
 
@@ -427,23 +254,11 @@ export default function Publish() {
 				<div class="flex flex-wrap items-center gap-4">
 					<button
 						type="submit"
-						id={watchUrl}
 						onClick={(e) => {
 							e.preventDefault()
 
 							if (isStatus("ready")) {
-								IDBService.resetIndexedDB()
-								const startTime = Date.now()
-								IDBService.addStreamStartTime(startTime)
 								setActive(true)
-
-								const target = e.currentTarget
-								const relative = target.getAttribute("id")
-								if (!relative) return
-
-								// Compute the absolute URL
-								const absolute = new URL(relative, window.location.href).href
-								window.open(absolute, "_blank")
 							}
 						}}
 						classList={{
@@ -480,7 +295,7 @@ export default function Publish() {
 
 					<Show when={broadcast()}>
 						<a href={watchUrl} onClick={copyShare} class="form-button">
-							Watch & Share
+							Share
 						</a>
 					</Show>
 
@@ -488,62 +303,6 @@ export default function Publish() {
 						<span class="text-slate-300">Link copied to clipboard</span>
 					</Show>
 				</div>
-				<Show when={broadcast()}>
-					<div class="flex items-center">
-						<span>Key Frame Interval (s): &nbsp;</span>
-						<select
-							class="m-3 w-1/3"
-							onChange={(event) => {
-								setKeyFrameInterval(parseFloat(event.target.value))
-								IDBService.adjustKeyFrameIntervalSizeInIndexedDB(parseFloat(event.target.value))
-							}}
-						>
-							<For each={GOP_DEFAULTS}>
-								{(value) => (
-									<option value={value} selected={value === keyFrameInterval()}>
-										{value}
-									</option>
-								)}
-							</For>
-						</select>
-					</div>
-
-					<div class="flex items-center">
-						<span>Bitrate Mode: &nbsp;</span>
-						<select
-							class="m-3 w-1/3"
-							onChange={(event) => {
-								setBitrateMode(event.target.value as BitrateMode)
-								IDBService.changeBitrateMode(event.target.value as BitrateMode)
-							}}
-						>
-							<For each={Object.values(BitrateMode)}>
-								{(value) => (
-									<option value={value} selected={value === bitrateMode()}>
-										{value}
-									</option>
-								)}
-							</For>
-						</select>
-					</div>
-
-					<div class="flex items-center">
-						Bitrate: &nbsp;<span class="text-slate-400">{(bitrate() / 1_000_000).toFixed(1)} Mb/s</span>
-						<input
-							disabled={bitrateMode() === BitrateMode.CONSTANT}
-							class="m-3 w-1/3"
-							type="range"
-							min={500_000}
-							max={20_000_000}
-							value={bitrate()}
-							onChange={(event) => {
-								const value = parseInt(event.target.value, 10)
-								setBitrate(value)
-								IDBService.changeBitrate(value)
-							}}
-						/>
-					</div>
-				</Show>
 			</form>
 		</>
 	)
@@ -552,19 +311,12 @@ export default function Publish() {
 function Device(props: {
 	setError: (err: Error) => void
 	setDevice: (input: MediaStream) => void
-	setVideoElement: (input: HTMLVideoElement) => void
 	setDeviceLoading: (ok: boolean) => void
-	stopStream: () => void
-	fps: number
 }) {
 	const [mode, setMode] = createSignal<"user" | "display" | "none">("none")
 	const [device, setDevice] = createSignal<MediaStream | undefined>()
 	const [videoDeviceId, setVideoDeviceId] = createSignal<string>("")
-	const [audioDeviceId, setAudioDeviceId] = createSignal<string>("disabled")
-
-	createEffect(() => {
-		loadUser()
-	})
+	const [audioDeviceId, setAudioDeviceId] = createSignal<string>("")
 
 	let preview: HTMLVideoElement | undefined // undefined until mount
 
@@ -598,7 +350,7 @@ function Device(props: {
 				video: {
 					aspectRatio: { ideal: 16 / 9 },
 					height: { ideal: DEFAULT_HEIGHT }, // max not supported
-					frameRate: { ideal: props.fps }, // max not supported
+					frameRate: { ideal: DEFAULT_FPS }, // max not supported
 				},
 			})
 			.then(setDevice)
@@ -627,7 +379,7 @@ function Device(props: {
 					: {
 							aspectRatio: { ideal: 16 / 9 },
 							height: { ideal: DEFAULT_HEIGHT, max: SUPPORTED_HEIGHT.at(-1) },
-							frameRate: { ideal: props.fps, max: SUPPORTED_FPS.at(-1) },
+							frameRate: { ideal: DEFAULT_FPS, max: SUPPORTED_FPS.at(-1) },
 							deviceId: videoDeviceId(),
 					  },
 		})
@@ -652,10 +404,8 @@ function Device(props: {
 		const d = device()
 		if (!d) return
 
-		if (preview) {
-			preview.srcObject = d
-			props.setVideoElement(preview)
-		}
+		if (preview) preview.srcObject = d
+
 		props.setDevice(d)
 
 		// Stop on cleanup
@@ -664,19 +414,9 @@ function Device(props: {
 
 	const isMode = createSelector(mode)
 
-	// Stop streaming
-	const stopStreaming = function (event: MouseEvent) {
-		event.preventDefault()
-
-		props.stopStream()
-
-		setMode("none")
-		setDevice(undefined)
-	}
-
 	return (
 		<>
-			{/* <h2>Source</h2> */}
+			<h2>Source</h2>
 
 			<div>Choose an input device:</div>
 			<button
@@ -715,13 +455,10 @@ function Device(props: {
 					videoDeviceId={videoDeviceId()}
 					audioDeviceId={audioDeviceId()}
 				/>
-				<button onClick={stopStreaming} class="form-button bg-red-600">
-					Stop Streaming
-				</button>
 			</Show>
 
 			<Show when={device()}>
-				<video autoplay muted class="w-1/2 rounded-md" ref={preview} />
+				<video autoplay muted class="rounded-md" ref={preview} />
 			</Show>
 		</>
 	)
@@ -802,7 +539,6 @@ function DeviceList(props: {
 
 function Video(props: {
 	setError: (err: Error) => void
-	setFps: (fps: number) => void
 	setConfig: (config: VideoEncoderConfig | undefined) => void
 	track: VideoTrackSettings
 	advanced: boolean
@@ -822,14 +558,13 @@ function Video(props: {
 	// Default values
 	const [height, setHeight] = createSignal(0) // use track default
 	const [fps, setFps] = createSignal(0) // use fps default
-	const [bitrate, setBitrate] = createSignal(EVALUATION_SCENARIO.bitrate)
+	const [bitrate, setBitrate] = createSignal(2_000_000)
 	const [codec, setCodec] = createSignal("")
 	const [profile, setProfile] = createSignal("")
 	const [supported, setSupported] = createSignal<VideoCodec[]>()
-	const [maxSupportedFrameRate, setMaxSupportedFrameRate] = createSignal<number>(0)
 
 	const supportedFps = createMemo(() => {
-		const options = SUPPORTED_FPS.filter((f) => f <= maxSupportedFrameRate())
+		const options = SUPPORTED_FPS.filter((f) => f <= props.track.frameRate)
 
 		// Use the device framerate by default
 		if (options.indexOf(props.track.frameRate) == -1) {
@@ -838,11 +573,6 @@ function Video(props: {
 		}
 
 		return options
-	})
-
-	// Set the maximum supported frame rate initially
-	onMount(() => {
-		setMaxSupportedFrameRate(props.track.frameRate)
 	})
 
 	// Compute the width based on the aspect ratio.
@@ -999,14 +729,7 @@ function Video(props: {
 
 					<label>
 						Frame Rate
-						<select
-							name="fps"
-							class="block w-64"
-							onInput={(e) => {
-								setFps(parseInt(e.target.value))
-								props.setFps(parseInt(e.target.value))
-							}}
-						>
+						<select name="fps" class="block w-64" onInput={(e) => setFps(parseInt(e.target.value))}>
 							<For each={supportedFps()}>
 								{(value) => (
 									<option value={value} selected={value === fps()}>
@@ -1024,7 +747,7 @@ function Video(props: {
 							name="bitrate"
 							class="block w-64"
 							min={500_000}
-							max={20_000_000}
+							max={4_000_000}
 							step={100_000}
 							value={bitrate()}
 							onInput={(e) => setBitrate(parseInt(e.target.value))}
