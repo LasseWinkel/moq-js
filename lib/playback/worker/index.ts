@@ -23,6 +23,11 @@ class Worker {
 	#audio?: Audio.Renderer
 	#video?: Video.Renderer
 
+	// Only used when publishing with ffmpeg
+	#frameId = 0
+
+	#publisherIsWebClient = true
+
 	on(e: MessageEvent) {
 		const msg = e.data as Message.ToWorker
 
@@ -66,6 +71,9 @@ class Worker {
 			this.#inits.set(msg.init, init)
 		}
 
+		const publisherIsWebClient = msg.header.priority < 1_000_000_000
+		this.#publisherIsWebClient = publisherIsWebClient
+
 		// Create a new stream that we will use to decode.
 		const container = new MP4.Parser(await init.promise)
 
@@ -97,6 +105,11 @@ class Worker {
 			const frames = container.decode(chunk.payload)
 			for (const frame of frames) {
 				if (MP4.isVideoTrack(frame.track)) {
+					if (!this.#publisherIsWebClient) {
+						frame.sample.duration = this.#frameId
+						this.#frameId++
+					}
+
 					IDBService.addReceiveMP4FrameTimestampSubscriber(
 						frame.sample.duration,
 						frame.sample.dts,

@@ -74,6 +74,9 @@ export default function Watch(props: { name: string }) {
 
 	const [error, setError] = createSignal<Error | undefined>()
 
+	// Condition to verifiy that the web client is used as publisher instead of moq-pub, i.e., ffmpeg
+	const [publisherIsWebClient, setPublisherIsWebClient] = createSignal<boolean>(true)
+
 	// Various dynamic meta data to be displayed next to the video
 	const [segmentData, setSegmentData] = createSignal<IndexedDBSegmentsSchemaSubscriber[]>([])
 	const [minPropagationTime, setMinPropagationTime] = createSignal<number>(0)
@@ -116,8 +119,8 @@ export default function Watch(props: { name: string }) {
 		const maxPropagationTime = Math.max(...propagationTimes)
 		const averagePropagationTime = propagationTimes.reduce((sum, time) => sum + time, 0) / propagationTimes.length
 
-		// Condition to verifiy that the web client is used as publisher instead of moq-pub, i.e., ffmpeg
 		const publisherIsWebClient = averagePropagationTime < 1_000_000_000
+		setPublisherIsWebClient(publisherIsWebClient)
 
 		setSegmentData(allReceivedSegments)
 		if (publisherIsWebClient) {
@@ -150,8 +153,13 @@ export default function Watch(props: { name: string }) {
 			const nextTimestamp = allRenderedFrames[i + 1]._7_renderFrameTimestamp
 			const difference = nextTimestamp - currentTimestamp
 
-			if (difference > STALL_EVENT_THRESHOLD) {
+			if (publisherIsWebClient && difference > STALL_EVENT_THRESHOLD) {
 				newTotalStallDuration += difference - STALL_EVENT_THRESHOLD
+				newNumberOfStallEvents++
+			}
+			// 24 Fps when streaming BBB
+			else if (!publisherIsWebClient && difference > 42) {
+				newTotalStallDuration += difference - 42
 				newNumberOfStallEvents++
 			}
 		}
@@ -324,16 +332,17 @@ export default function Watch(props: { name: string }) {
 					</div>
 				</div>
 
-				<div class="flex">
-					<div class="mr-20 flex items-center">
-						<span>Propagation Time (min | max | avg): &nbsp;</span>
-						<span>{minPropagationTime()} ms | &nbsp;</span>
-						<span>{maxPropagationTime()} ms | &nbsp;</span>
-						<span>{avgPropagationTime().toFixed(2)} ms&nbsp;</span>
+				{publisherIsWebClient() && (
+					<div class="flex">
+						<div class="mr-20 flex items-center">
+							<span>Propagation Time (min | max | avg): &nbsp;</span>
+							<span>{minPropagationTime()} ms | &nbsp;</span>
+							<span>{maxPropagationTime()} ms | &nbsp;</span>
+							<span>{avgPropagationTime().toFixed(2)} ms&nbsp;</span>
+						</div>
 					</div>
-				</div>
-
-				<Plot segments={segmentData().slice(1)} />
+				)}
+				{publisherIsWebClient() && <Plot segments={segmentData().slice(1)} />}
 			</div>
 
 			<div class="flex w-1/2 flex-col items-center">
@@ -351,17 +360,19 @@ export default function Watch(props: { name: string }) {
 					</div>
 				</div>
 
-				<div class="flex">
-					<div class="mr-14 flex items-center">
-						<span>Skipped Frames: &nbsp;</span>
-						<p>{lostFrames()}</p>
-					</div>
+				{publisherIsWebClient() && (
+					<div class="flex">
+						<div class="mr-14 flex items-center">
+							<span>Skipped Frames: &nbsp;</span>
+							<p>{lostFrames()}</p>
+						</div>
 
-					<div class="mr-14 flex items-center">
-						<span>Frame Delivery Rate: &nbsp;</span>
-						<p>{frameDeliveryRate().toFixed(2)} %</p>
+						<div class="mr-14 flex items-center">
+							<span>Frame Delivery Rate: &nbsp;</span>
+							<p>{frameDeliveryRate().toFixed(2)} %</p>
+						</div>
 					</div>
-				</div>
+				)}
 
 				<div class="flex">
 					<div class="mr-20 flex items-center">
@@ -390,96 +401,106 @@ export default function Watch(props: { name: string }) {
 					</div>
 				</div>
 
-				<div class="flex w-1/2 items-center">
-					<span>Target GoP Size (s): &nbsp;</span>
-					<select
-						class="w-1/3"
-						onChange={(event) => {
-							setConstantGopSize(true)
-							setTargetGopSize(parseFloat(event.target.value))
-							setServerStoredMetrics()
-						}}
-					>
-						<For each={GOP_DEFAULTS}>
-							{(value) => (
-								<option value={value} selected={value === targetGopSize()}>
-									{value}
-								</option>
-							)}
-						</For>
-					</select>
-				</div>
+				{publisherIsWebClient() && (
+					<div class="flex w-1/2 items-center">
+						<span>Target GoP Size (s): &nbsp;</span>
+						<select
+							class="w-1/3"
+							onChange={(event) => {
+								setConstantGopSize(true)
+								setTargetGopSize(parseFloat(event.target.value))
+								setServerStoredMetrics()
+							}}
+						>
+							<For each={GOP_DEFAULTS}>
+								{(value) => (
+									<option value={value} selected={value === targetGopSize()}>
+										{value}
+									</option>
+								)}
+							</For>
+						</select>
+					</div>
+				)}
 
-				<div class="flex items-center">
-					GoP 1s FDR Threshold:
-					<input
-						class="m-3 w-1/3"
-						type="range"
-						min="15"
-						max="99"
-						disabled={constantGopSize()}
-						value={gop1sThreshold()}
-						onChange={(event) => {
-							const value = parseInt(event.target.value, 10)
-							setGop1sThreshold(value)
-						}}
-					/>
-					<div class="mt-2 text-center">{gop1sThreshold()}%</div>
-				</div>
+				{publisherIsWebClient() && (
+					<div class="flex items-center">
+						GoP 1s FDR Threshold:
+						<input
+							class="m-3 w-1/3"
+							type="range"
+							min="15"
+							max="99"
+							disabled={constantGopSize()}
+							value={gop1sThreshold()}
+							onChange={(event) => {
+								const value = parseInt(event.target.value, 10)
+								setGop1sThreshold(value)
+							}}
+						/>
+						<div class="mt-2 text-center">{gop1sThreshold()}%</div>
+					</div>
+				)}
 
-				<div class="flex items-center">
-					GoP 0.5s FDR Threshold:
-					<input
-						class="m-3 w-1/3"
-						type="range"
-						min="10"
-						max="95"
-						disabled={constantGopSize()}
-						value={gop0_5sThreshold()}
-						onChange={(event) => {
-							const value = parseInt(event.target.value, 10)
-							setGop0_5sThreshold(value)
-						}}
-					/>
-					<div class="mt-2 text-center">{gop0_5sThreshold()}%</div>
-				</div>
+				{publisherIsWebClient() && (
+					<div class="flex items-center">
+						GoP 0.5s FDR Threshold:
+						<input
+							class="m-3 w-1/3"
+							type="range"
+							min="10"
+							max="95"
+							disabled={constantGopSize()}
+							value={gop0_5sThreshold()}
+							onChange={(event) => {
+								const value = parseInt(event.target.value, 10)
+								setGop0_5sThreshold(value)
+							}}
+						/>
+						<div class="mt-2 text-center">{gop0_5sThreshold()}%</div>
+					</div>
+				)}
 
-				<div class="flex w-1/2 items-center">
-					<span>Bitrate Mode: &nbsp;</span>
-					<select
-						class="m-3 w-1/3"
-						onChange={(event) => {
-							setBitrateMode(event.target.value as BitrateMode)
-							setServerStoredMetrics()
-						}}
-					>
-						<For each={Object.values(BitrateMode)}>
-							{(value) => (
-								<option value={value} selected={value === bitrateMode()}>
-									{value}
-								</option>
-							)}
-						</For>
-					</select>
-				</div>
+				{publisherIsWebClient() && (
+					<div class="flex w-1/2 items-center">
+						<span>Bitrate Mode: &nbsp;</span>
+						<select
+							class="m-3 w-1/3"
+							onChange={(event) => {
+								setBitrateMode(event.target.value as BitrateMode)
+								setServerStoredMetrics()
+							}}
+						>
+							<For each={Object.values(BitrateMode)}>
+								{(value) => (
+									<option value={value} selected={value === bitrateMode()}>
+										{value}
+									</option>
+								)}
+							</For>
+						</select>
+					</div>
+				)}
 
-				<div class="flex items-center">
-					Bitrate:
-					<input
-						disabled={bitrateMode() === BitrateMode.CONSTANT}
-						class="m-3"
-						type="range"
-						min={500_000}
-						max={20_000_000}
-						value={targetBitrate()}
-						onChange={(event) => {
-							const value = parseInt(event.target.value, 10)
-							setTargetBitrate(value)
-							setServerStoredMetrics()
-						}}
-					/>
-					<span class="text-slate-400">{(targetBitrate() / 1_000_000).toFixed(1)} Mbps</span>
-				</div>
+				{publisherIsWebClient() && (
+					<div class="flex items-center">
+						Bitrate:
+						<input
+							disabled={bitrateMode() === BitrateMode.CONSTANT}
+							class="m-3"
+							type="range"
+							min={500_000}
+							max={20_000_000}
+							value={targetBitrate()}
+							onChange={(event) => {
+								const value = parseInt(event.target.value, 10)
+								setTargetBitrate(value)
+								setServerStoredMetrics()
+							}}
+						/>
+						<span class="text-slate-400">{(targetBitrate() / 1_000_000).toFixed(1)} Mbps</span>
+					</div>
+				)}
 			</div>
 		</div>
 	)
