@@ -72,7 +72,6 @@ export class Track {
 		}
 
 		let current = this.#segments.at(-1)
-
 		if (!current || chunk.type === "key") {
 			if (current) {
 				await current.input.close()

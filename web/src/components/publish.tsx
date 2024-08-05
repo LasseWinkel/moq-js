@@ -233,7 +233,6 @@ export default function Publish() {
 		<>
 			<form onSubmit={(e) => e.preventDefault()}>
 				<Device setError={setError} setDevice={setDevice} setDeviceLoading={setDeviceLoading} />
-				{/* {isRecording() && <div class="text-red-400">Recording</div>} */}
 
 				<Show when={videoTrack()}>
 					{(track) => (
@@ -405,7 +404,6 @@ function Device(props: {
 		if (!d) return
 
 		if (preview) preview.srcObject = d
-
 		props.setDevice(d)
 
 		// Stop on cleanup
@@ -555,14 +553,6 @@ function Video(props: {
 		return options
 	})
 
-	// Default values
-	const [height, setHeight] = createSignal(0) // use track default
-	const [fps, setFps] = createSignal(0) // use fps default
-	const [bitrate, setBitrate] = createSignal(2_000_000)
-	const [codec, setCodec] = createSignal("")
-	const [profile, setProfile] = createSignal("")
-	const [supported, setSupported] = createSignal<VideoCodec[]>()
-
 	const supportedFps = createMemo(() => {
 		const options = SUPPORTED_FPS.filter((f) => f <= props.track.frameRate)
 
@@ -574,6 +564,14 @@ function Video(props: {
 
 		return options
 	})
+
+	// Default values
+	const [height, setHeight] = createSignal(0) // use track default
+	const [fps, setFps] = createSignal(0) // use fps default
+	const [bitrate, setBitrate] = createSignal(2_000_000)
+	const [codec, setCodec] = createSignal("")
+	const [profile, setProfile] = createSignal("")
+	const [supported, setSupported] = createSignal<VideoCodec[]>()
 
 	// Compute the width based on the aspect ratio.
 	const width = (height: number) => {
