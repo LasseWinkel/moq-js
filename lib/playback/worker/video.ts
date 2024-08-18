@@ -3,6 +3,26 @@ import * as MP4 from "../../media/mp4"
 import * as Message from "./message"
 import { IDBService } from "../../common"
 
+// 30 Fps
+// const FRAME_SIZE_TO_BEGIN_DOWNLOAD = 5472
+// const FRAME_SIZE_TO_END_DOWNLOAD = 2597
+
+// 24 Fps Scenic GoP
+// const FRAME_SIZE_TO_BEGIN_DOWNLOAD = 12572
+// const FRAME_SIZE_TO_END_DOWNLOAD = 9762
+
+// 24 Fps GoP 12
+const FRAME_SIZE_TO_BEGIN_DOWNLOAD = 53301
+const FRAME_SIZE_TO_END_DOWNLOAD = 106914
+
+// 24 Fps GoP 24
+// const FRAME_SIZE_TO_BEGIN_DOWNLOAD = 55131
+// const FRAME_SIZE_TO_END_DOWNLOAD = 108892
+
+// 24 Fps GoP 48
+// const FRAME_SIZE_TO_BEGIN_DOWNLOAD = 55631
+// const FRAME_SIZE_TO_END_DOWNLOAD = 109369
+
 export class Renderer {
 	#canvas: OffscreenCanvas
 	#timeline: Component
@@ -11,6 +31,9 @@ export class Renderer {
 	#queue: TransformStream<Frame, VideoFrame>
 
 	#encodedRawFramesData: Uint8Array[] = []
+
+	#frameCount = 0
+	#shouldDownload = false
 
 	constructor(config: Message.ConfigVideo, timeline: Component) {
 		this.#canvas = config.canvas
@@ -26,7 +49,6 @@ export class Renderer {
 
 	async #run() {
 		const reader = this.#timeline.frames.pipeThrough(this.#queue).getReader()
-		const renderedFramesRawData: ArrayBufferLike[] = []
 
 		for (;;) {
 			const { value: frame, done } = await reader.read()
@@ -48,11 +70,12 @@ export class Renderer {
 				const imageData = ctx.getImageData(0, 0, frame.displayWidth, frame.displayHeight)
 				const rawData = imageData.data.buffer
 
-				if (renderedFramesRawData.length <= 900) {
-					renderedFramesRawData.push(rawData)
-				}
-				if (renderedFramesRawData.length === 900) {
-					postMessage({ renderedFramesRawData })
+				if (this.#shouldDownload) {
+					const renderedFramesRawData = { renderTime: Date.now(), rawData }
+					this.#frameCount++
+					setTimeout(() => {
+						postMessage({ renderedFramesRawData })
+					}, 500 * this.#frameCount)
 				} */
 				frame.close()
 			})
@@ -98,6 +121,16 @@ export class Renderer {
 			timestamp: frame.sample.dts,
 			duration: frame.sample.duration,
 		})
+
+		/* if (frame.sample.size === FRAME_SIZE_TO_BEGIN_DOWNLOAD) {
+			console.log(frame)
+			this.#shouldDownload = true
+		}
+
+		if (frame.sample.size === FRAME_SIZE_TO_END_DOWNLOAD) {
+			console.log(frame)
+			this.#shouldDownload = false
+		} */
 
 		/* if (this.#encodedRawFramesData.length === 0) {
 			const encodedRawFramesData = this.#encodedRawFramesData

@@ -88,7 +88,7 @@ export interface ToWorker {
 export interface FromWorker {
 	// Sent back to the main thread regularly to update the UI
 	timeline?: Timeline
-	renderedFramesRawData?: ArrayBufferLike[]
+	renderedFramesRawData?: { renderTime: number; rawData: ArrayBufferLike }
 	encodedRawFramesData?: Uint8Array[]
 }
 

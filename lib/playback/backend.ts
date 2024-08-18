@@ -96,16 +96,7 @@ export default class Backend {
 			// console.log("received message from worker to main", msg)
 		}
 		if (msg.renderedFramesRawData) {
-			let frameIndex = 0
-			let frameIndexTimeout = 0
-			msg.renderedFramesRawData.forEach((rawData) => {
-				// Save the raw data to disk
-				frameIndexTimeout++
-				setTimeout(() => {
-					saveRawDataToFile(rawData, `frame-${frameIndex}.raw`)
-					frameIndex++
-				}, 200 * frameIndexTimeout)
-			})
+			saveRawDataToFile(msg.renderedFramesRawData.rawData, `${msg.renderedFramesRawData.renderTime}.raw`)
 		}
 		if (msg.encodedRawFramesData) {
 			let frameIndex = 0
