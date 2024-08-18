@@ -12,21 +12,103 @@ You'll either need to run a local server using [moq-rs](https://github.com/kixel
 
 Join the [Discord](https://discord.gg/FCYF3p99mr) for updates and discussion.
 
-## Setup
+## Setup of our Test Environment
 
-Install the dependencies with `npm`:
+### Installations
+
+-   We run our setup on Ubuntu 24.04 LTS.
+
+-   Install the beta version of the Chromium browser.
+
+-   Install `rustup`.
+
+-   Install `go`.
+
+-   Clone our forks of `moq-js` and `moq-rs`.
+
+### Namespaces
+
+-   Execute the `ns-inet.sh` script with your network interface (get its name by running `ip a`) as first argument in order to create the 3 Linux network namespaces.
+
+-   Run `ip netns` for a list of network namespaces on your device.
+
+### Publisher
+
+Get into `ns-js` namespace by running
+
+```bash
+sudo ip netns exec ns-js bash
+```
+
+Move into the `moq-js` folder and run
 
 ```bash
 npm install
 ```
 
-## Development
-
-Run the development web server:
+as well as
 
 ```bash
 npm run dev
 ```
+
+Remember to adjust the IP addresses of the network interfaces if you changed them in the `ns-inet.sh` script or if you test under real network conditions.
+
+In another terminal, also get into `ns-js` and open a Chromium browser session by running the following commands replace `$USER` with your user name:
+
+```bash
+mount -t cgroup2 cgroup2 /sys/fs/cgroup
+```
+
+```bash
+mount -t securityfs securityfs /sys/kernel/security/
+```
+
+```bash
+mkdir /tmp/chromium-session0
+```
+
+```bash
+sudo -u $USER chromium --ignore-certificate-errors --user-data-dir=/tmp/chromium-session0
+```
+
+Then, open `https://12.0.0.2:4321/publish` to publish content.
+
+### Server
+
+As a next step, run the server. To accomplish this, get into the `ns-rs` namespace by running
+
+```bash
+sudo ip netns exec ns-rs bash
+```
+
+Add `cargo` to the `$PATH` variable
+
+```bash
+export PATH=$PATH:/home/$USER/.cargo/bin
+```
+
+Move into the `moq-rs` folder and run
+
+```bash
+./dev/relay
+```
+
+### Remote Subscriber
+
+To run the remote subscriber, get into the respective namespace
+
+```bash
+sudo ip netns exec ns-js-sub bash
+```
+
+Within `moq-js`, open the `remote-subscriber` branch and run all of the `npm` and Chromium related commands of the `ns-js` namespace, but make sure to replace `chromium-session0` with `chromium-session1`.
+
+Then, open `https://14.0.0.2:4321/watch/$URL_ID` to publish content. Replace `$URL_ID` with the respective unique namespace string that was created when starting the publisher live stream.
+
+### Configuration
+
+-   Stream parameters can be changed at `lib/common/evaluationscenarios.ts`.
 
 ## License
 
