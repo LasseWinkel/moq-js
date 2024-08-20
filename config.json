@@ -1,0 +1,8 @@
+{
+	"serverIpAddress": "12.0.0.1",
+	"serverPort": "4443",
+	"networkInterfacePublisher": "app-js",
+	"networkInterfaceServer": "app-rs",
+	"networkInterfacePRemoteSubscriber": "app-rs-sub",
+	"areLinuxNetworkNamespacesUsed": true
+}

@@ -16,6 +16,8 @@ import {
 	PACKET_LOSS_SERVER_LINK,
 } from "@kixelated/moq/common/evaluationscenarios"
 
+import config from "../../../config.json"
+
 // Data update rate in milliseconds
 const DATA_UPDATE_RATE = 1000
 
@@ -111,7 +113,7 @@ export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
 	const urlSearchParams = new URLSearchParams(window.location.search)
 	const params = Object.fromEntries(urlSearchParams.entries())
-	const server = params.server ?? import.meta.env.PUBLIC_RELAY_HOST
+	const server = params.server ?? `${config.serverIpAddress}:${config.serverPort}`
 
 	const [error, setError] = createSignal<Error | undefined>()
 
@@ -410,7 +412,7 @@ export default function Watch(props: { name: string }) {
 
 		// Special case localhost to fetch the TLS fingerprint from the server.
 		// TODO remove this when WebTransport correctly supports self-signed certificates
-		const fingerprint = server.startsWith("12.0.0.1") ? `https://${server}/fingerprint` : undefined
+		const fingerprint = server.startsWith(config.serverIpAddress) ? `https://${server}/fingerprint` : undefined
 
 		Player.create({ url, fingerprint, canvas, namespace }).then(setPlayer).catch(setError)
 	})
