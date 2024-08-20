@@ -166,6 +166,7 @@ export default function Watch(props: { name: string }) {
 	const [bandwidthLimitServer, setBandwidthLimitServer] = createSignal<number>(BANDWIDTH_CONSTRAINTS_SERVER_LINK[0])
 	const [bitrateMode, setBitrateMode] = createSignal<BitrateMode>(BitrateMode.CONSTANT)
 	const [targetBitrate, setTargetBitrate] = createSignal<number>(EVALUATION_SCENARIO.bitrate)
+	const [gopSize, setGopSize] = createSignal<number>(0)
 
 	// Define a function to update the data at regular times
 	const updateDataInterval = setInterval(() => {
@@ -234,6 +235,15 @@ export default function Watch(props: { name: string }) {
 			)
 			const latestRenderedFrames = allRenderedFrames.filter(
 				(frame) => timeOfDataRetrieval - frame._7_renderFrameTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
+			)
+
+			const latestKeyFrames = latestFrames.filter((aFrame) => aFrame._15_sentType === "key")
+			setGopSize(
+				parseFloat(
+					(LATEST_DATA_DISPLAY_INTERVAL / (latestKeyFrames.length > 0 ? latestKeyFrames.length : 1)).toFixed(
+						2,
+					),
+				),
 			)
 
 			setLatestFrames(latestFrames)
@@ -734,6 +744,13 @@ export default function Watch(props: { name: string }) {
 					<div class="flex items-center">
 						<span>Latest Stall Duration: &nbsp;</span>
 						<p>{(latestStallDuration() / 1000).toFixed(3)}s</p>
+					</div>
+				</div>
+
+				<div class="flex">
+					<div class="mr-20 flex items-center">
+						<span>GoP Size: &nbsp;</span>
+						<p>{gopSize().toFixed(2)}</p>
 					</div>
 				</div>
 
