@@ -74,7 +74,7 @@ export default function Publish() {
 	// Use query params to allow overriding environment variables.
 	const urlSearchParams = new URLSearchParams(window.location.search)
 	const params = Object.fromEntries(urlSearchParams.entries())
-	const server = params.server ?? `${config.serverIpAddress}:${config.serverPort}`
+	const server = params.server ?? `${config.serverIpAddressForRemoteSubscriber}:${config.serverPort}`
 
 	const [device, setDevice] = createSignal<MediaStream | undefined>()
 	const [deviceLoading, setDeviceLoading] = createSignal(false)
@@ -101,7 +101,7 @@ export default function Publish() {
 
 	const name = crypto.randomUUID()
 	let watchUrl = `/watch/${name}`
-	if (server != `${config.serverIpAddress}:${config.serverPort}`) {
+	if (server != `${config.serverIpAddressForRemoteSubscriber}:${config.serverPort}`) {
 		watchUrl = `${watchUrl}?server=${server}`
 	}
 
@@ -110,10 +110,9 @@ export default function Publish() {
 
 		// Special case localhost to fetch the TLS fingerprint from the server.
 		// TODO remove this when WebTransport correctly supports self-signed certificates
-		const fingerprint =
-			server.startsWith(config.serverIpAddress) || server.startsWith("14.0.0.1")
-				? `https://${server}/fingerprint`
-				: undefined
+		const fingerprint = server.startsWith(config.serverIpAddressForRemoteSubscriber)
+			? `https://${server}/fingerprint`
+			: undefined
 
 		const client = new Client({
 			url,
