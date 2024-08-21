@@ -18,7 +18,11 @@ Join the [Discord](https://discord.gg/FCYF3p99mr) for updates and discussion.
 
 -   We run our setup on Ubuntu 24.04 LTS.
 
--   Install the beta version of the Chromium browser.
+-   Install the beta version of the `Chromium` browser, we run version `128.0.6613.27`.
+
+-   Install `node` version `18.19.1` or higher.
+
+-   Install `npm` version `9.2.0` or higher.
 
 -   Install `rustup`.
 
@@ -109,6 +113,8 @@ Then, open `https://14.0.0.2:4321/watch/$URL_ID` to publish content. Replace `$U
 ### Configuration
 
 -   Stream parameters can be changed at `lib/common/evaluationscenarios.ts`.
+
+-   Network configurations can be changed at `config.json`.
 
 ## License
 
