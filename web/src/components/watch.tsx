@@ -265,13 +265,15 @@ export default function Watch(props: { name: string }) {
 			IDBService.resetIndexedDBSubscriber()
 		}, 100)
 
-		setTimeout(async () => {
-			downloadFrameData(
-				(await IDBService.retrieveFramesFromIndexedDBSubscriber()).filter(
-					(aFrame) => aFrame._5_receiveMp4FrameTimestamp !== undefined,
-				),
-			)
-		}, DATA_DOWNLOAD_TIME * 1000)
+		if (config.allowDownloadOfSubscriberFrameDataInTheBrowser) {
+			setTimeout(async () => {
+				downloadFrameData(
+					(await IDBService.retrieveFramesFromIndexedDBSubscriber()).filter(
+						(aFrame) => aFrame._5_receiveMp4FrameTimestamp !== undefined,
+					),
+				)
+			}, DATA_DOWNLOAD_TIME * 1000)
+		}
 
 		const namespace = props.name
 		const url = `https://${server}`
