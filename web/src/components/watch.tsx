@@ -176,7 +176,9 @@ export default function Watch(props: { name: string }) {
 				setStreamStartTime(await IDBService.getStreamStartTime())
 
 				setTimeout(() => {
-					downloadFrameData(false, allFrames())
+					if (config.allowDownloadOfSubscriberFrameDataInTheBrowser) {
+						downloadFrameData(false, allFrames())
+					}
 					// downloadSegmentData(await retrieveSegmentsFromIndexedDB())
 				}, DATA_DOWNLOAD_TIME * 1000)
 

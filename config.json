@@ -5,5 +5,8 @@
 	"networkInterfacePublisher": "app-js",
 	"networkInterfaceServer": "app-rs",
 	"networkInterfacePRemoteSubscriber": "app-rs-sub",
-	"areLinuxNetworkNamespacesUsed": true
+	"areLinuxNetworkNamespacesUsed": true,
+	"allowDownloadOfSubscriberFrameDataInTheBrowser": false,
+	"allowDownloadOfPublisherFrameDataInTheBrowser": false,
+	"regularlyRequestStreamSettingsFromServer": false
 }

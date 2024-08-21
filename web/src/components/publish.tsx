@@ -328,9 +328,11 @@ export default function Publish() {
 								IDBService.addStreamStartTime(startTime)
 								setActive(true)
 
-								/* setTimeout(async () => {
-									downloadFrameData(true, await IDBService.retrieveFramesFromIndexedDB())
-								}, DATA_DOWNLOAD_TIME * 1000) */
+								if (config.allowDownloadOfPublisherFrameDataInTheBrowser) {
+									setTimeout(async () => {
+										downloadFrameData(true, await IDBService.retrieveFramesFromIndexedDB())
+									}, DATA_DOWNLOAD_TIME * 1000)
+								}
 
 								const target = e.currentTarget
 								const relative = target.getAttribute("id")

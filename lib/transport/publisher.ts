@@ -3,6 +3,8 @@ import { Queue, Watch } from "../common/async"
 import { Objects, GroupWriter, ObjectWriter, StreamType, TrackWriter } from "./objects"
 import { BitrateMode, IDBService } from "../common"
 
+import config from "../../config.json"
+
 export class Publisher {
 	// Used to send control messages
 	#control: Control.Stream
@@ -36,9 +38,11 @@ export class Publisher {
 			namespace,
 		})
 
-		/* setInterval(async () => {
-			await this.#control.send({ kind: Control.Msg.GetServerStoredMetrics })
-		}, 500) */
+		if (config.regularlyRequestStreamSettingsFromServer) {
+			setInterval(async () => {
+				await this.#control.send({ kind: Control.Msg.GetServerStoredMetrics })
+			}, 500)
+		}
 
 		return announce
 	}
