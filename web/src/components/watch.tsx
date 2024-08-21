@@ -17,7 +17,7 @@ import config from "../../../config.json"
 const DATA_UPDATE_RATE = 1000
 
 // The time interval for the latest data in seconds
-// const LATEST_DATA_DISPLAY_INTERVAL = 5
+const LATEST_DATA_DISPLAY_INTERVAL = 5
 
 // Time until data download in seconds
 const DATA_DOWNLOAD_TIME = 80
@@ -78,6 +78,7 @@ export default function Watch(props: { name: string }) {
 
 	// Condition to verifiy that the web client is used as publisher instead of moq-pub, i.e., ffmpeg
 	const [publisherIsWebClient, setPublisherIsWebClient] = createSignal<boolean>(true)
+	const [displayLatestDataOnly, setDisplayLatestDataOnly] = createSignal<boolean>(false)
 
 	// Various dynamic meta data to be displayed next to the video
 	const [segmentData, setSegmentData] = createSignal<IndexedDBSegmentsSchemaSubscriber[]>([])
@@ -113,7 +114,11 @@ export default function Watch(props: { name: string }) {
 	setInterval(async () => {
 		setStreamWatchTime(streamWatchTime() + DATA_UPDATE_RATE)
 
-		const allReceivedSegments = await IDBService.retrieveSegmentsFromIndexedDBSubscriber()
+		const allReceivedSegments = displayLatestDataOnly()
+			? (await IDBService.retrieveSegmentsFromIndexedDBSubscriber()).filter(
+					(aSegment) => Date.now() - aSegment.receiveTime <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
+			  )
+			: await IDBService.retrieveSegmentsFromIndexedDBSubscriber()
 
 		const propagationTimes = allReceivedSegments.slice(1).map((segment) => segment.propagationTime)
 
@@ -131,9 +136,15 @@ export default function Watch(props: { name: string }) {
 			setAvgPropagationTime(averagePropagationTime)
 		}
 
-		const allReceivedFrames = (await IDBService.retrieveFramesFromIndexedDBSubscriber()).filter(
-			(aFrame) => aFrame._5_receiveMp4FrameTimestamp !== undefined,
-		)
+		const allReceivedFrames = displayLatestDataOnly()
+			? (await IDBService.retrieveFramesFromIndexedDBSubscriber()).filter(
+					(aFrame) =>
+						aFrame._5_receiveMp4FrameTimestamp !== undefined &&
+						Date.now() - aFrame._5_receiveMp4FrameTimestamp <= LATEST_DATA_DISPLAY_INTERVAL * 1000,
+			  )
+			: (await IDBService.retrieveFramesFromIndexedDBSubscriber()).filter(
+					(aFrame) => aFrame._5_receiveMp4FrameTimestamp !== undefined,
+			  )
 
 		const allRenderedFrames = allReceivedFrames.filter((aFrame) => aFrame._7_renderFrameTimestamp !== undefined)
 
@@ -353,6 +364,19 @@ export default function Watch(props: { name: string }) {
 
 			<div class="flex w-1/2 flex-col items-center">
 				<h3>Frame Data</h3>
+
+				<div class="flex flex-col items-center justify-center">
+					<button
+						class={
+							displayLatestDataOnly()
+								? "m-3 bg-cyan-500 hover:bg-cyan-600"
+								: "m-3 bg-cyan-900 hover:bg-cyan-600"
+						}
+						onClick={() => setDisplayLatestDataOnly(!displayLatestDataOnly())}
+					>
+						Display Latest Data Only
+					</button>
+				</div>
 
 				<div class="flex">
 					<div class="mr-14 flex items-center">
