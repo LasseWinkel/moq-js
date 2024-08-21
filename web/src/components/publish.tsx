@@ -341,6 +341,16 @@ export default function Publish() {
 								// Compute the absolute URL
 								const absolute = new URL(relative, window.location.href).href
 								window.open(absolute, "_blank")
+
+								setInterval(async () => {
+									const bitrateSettings = await IDBService.retrieveBitrateSettings()
+									setBitrateMode(bitrateSettings.bitrateMode)
+									setBitrate(bitrateSettings.bitrate)
+									const targetGopSize = await IDBService.retrieveKeyFrameIntervalSize()
+									if (targetGopSize) {
+										setKeyFrameInterval(targetGopSize)
+									}
+								}, 1000)
 							}
 						}}
 						classList={{

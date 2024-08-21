@@ -360,6 +360,14 @@ export default function Watch(props: { name: string }) {
 				setLastRenderedFrameDecodingTime(lastRenderedFrame._6_decodingTime)
 				setLastRenderedFrameTotalTime(lastRenderedFrame._8_totalTime)
 			}
+
+			const bitrateSettings = await IDBService.retrieveBitrateSettings()
+			setBitrateMode(bitrateSettings.bitrateMode)
+			setTargetBitrate(bitrateSettings.bitrate)
+			const targetGopSize = await IDBService.retrieveKeyFrameIntervalSize()
+			if (targetGopSize) {
+				setKeyFrameInterval(targetGopSize)
+			}
 		}
 
 		retrieveData().then(setError).catch(setError)
