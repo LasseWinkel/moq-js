@@ -8,5 +8,6 @@
 	"areLinuxNetworkNamespacesUsed": true,
 	"allowDownloadOfSubscriberFrameDataInTheBrowser": false,
 	"allowDownloadOfPublisherFrameDataInTheBrowser": false,
-	"regularlyRequestStreamSettingsFromServer": false
+	"regularlyRequestStreamSettingsFromServer": true,
+	"intervalToRequestStreamSettingsFromServerMilliseconds": 1000
 }
