@@ -41,7 +41,7 @@ export class Publisher {
 		if (config.regularlyRequestStreamSettingsFromServer) {
 			setInterval(async () => {
 				await this.#control.send({ kind: Control.Msg.GetServerStoredMetrics })
-			}, 500)
+			}, config.intervalToRequestStreamSettingsFromServerMilliseconds)
 		}
 
 		return announce
