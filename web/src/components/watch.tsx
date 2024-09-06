@@ -8,6 +8,8 @@ import Fail from "./fail"
 
 import { createEffect, createSignal, For, onCleanup } from "solid-js"
 
+import Plot from "./plotlychart"
+
 import {
 	BANDWIDTH_CONSTRAINTS_SERVER_LINK,
 	DELAYS_SERVER_LINK,
@@ -22,7 +24,8 @@ import config from "../../../config.json"
 const DATA_UPDATE_RATE = 1000
 
 // The time interval for the latest data in seconds
-const LATEST_DATA_DISPLAY_INTERVAL = 5
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+const LATEST_DATA_DISPLAY_INTERVAL = config.timeIntervalOfLatestDataInSeconds
 
 // Time until data download in seconds
 export const DATA_DOWNLOAD_TIME = 80
@@ -460,7 +463,7 @@ export default function Watch(props: { name: string }) {
 				<span>
 					{lastRenderedFrame()?._17_width} x {lastRenderedFrame()?._18_height}
 				</span>
-				<canvas ref={canvas} onClick={play} class="aspect-video w-3/4 rounded-lg" />
+				<canvas ref={canvas} onClick={play} class={`aspect-video ${config.subscriberVideoWidth} rounded-lg`} />
 
 				<div class="flex">
 					<div class="mr-20 flex items-center">
@@ -727,6 +730,10 @@ export default function Watch(props: { name: string }) {
 					<div class="p-4 text-center">{avgLatestTotalTime().toFixed(2)} ms</div>
 				</div>
 
+				{config.displayLocalSubscriberFrameTimesGraph && (
+					<Plot frames={latestFrames()} watchStartTime={streamStartTime()} />
+				)}
+
 				<div class="flex">
 					<div class="mr-20 flex items-center">
 						<span>Bitrate: &nbsp;</span>
@@ -784,7 +791,7 @@ export default function Watch(props: { name: string }) {
 				</div>
 
 				<div class="flex items-center">
-					Bitrate:
+					Target Bitrate:
 					<input
 						disabled={bitrateMode() === BitrateMode.CONSTANT}
 						class="m-3"

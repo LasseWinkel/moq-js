@@ -627,7 +627,7 @@ function Device(props: {
 			</Show>
 
 			<Show when={device()}>
-				<video autoplay muted class="w-1/2 rounded-md" ref={preview} />
+				<video autoplay muted class={`${config.publisherVideoWidth} rounded-md`} ref={preview} />
 			</Show>
 		</>
 	)
