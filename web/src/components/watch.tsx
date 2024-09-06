@@ -17,7 +17,8 @@ import config from "../../../config.json"
 const DATA_UPDATE_RATE = 1000
 
 // The time interval for the latest data in seconds
-const LATEST_DATA_DISPLAY_INTERVAL = 5
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+const LATEST_DATA_DISPLAY_INTERVAL = config.timeIntervalOfLatestDataInSeconds
 
 // Time until data download in seconds
 const DATA_DOWNLOAD_TIME = 80
@@ -324,7 +325,7 @@ export default function Watch(props: { name: string }) {
 				<span>
 					{lastRenderedFrame()?._17_width} x {lastRenderedFrame()?._18_height}
 				</span>
-				<canvas ref={canvas} onClick={play} class="aspect-video w-3/4 rounded-lg" />
+				<canvas ref={canvas} onClick={play} class={`aspect-video ${config.subscriberVideoWidth} rounded-lg`} />
 
 				<div class="flex items-center">
 					<span>Watch Time: &nbsp;</span>

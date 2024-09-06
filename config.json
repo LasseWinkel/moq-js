@@ -8,6 +8,10 @@
 	"areLinuxNetworkNamespacesUsed": true,
 	"allowDownloadOfSubscriberFrameDataInTheBrowser": false,
 	"allowDownloadOfPublisherFrameDataInTheBrowser": false,
-	"regularlyRequestStreamSettingsFromServer": true,
-	"intervalToRequestStreamSettingsFromServerMilliseconds": 1000
+	"regularlyRequestStreamSettingsFromServer": false,
+	"intervalToRequestStreamSettingsFromServerMilliseconds": 1000,
+	"publisherVideoWidth": "w-1/2",
+	"subscriberVideoWidth": "w-1/2",
+	"timeIntervalOfLatestDataInSeconds": 8,
+	"displayLocalSubscriberFrameTimesGraph": true
 }
