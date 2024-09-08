@@ -319,7 +319,7 @@ export default function Watch(props: { name: string }) {
 	// TODO shrink it if needed via CSS
 	return (
 		<div class="flex">
-			<div class="flex w-1/2 flex-col items-center">
+			<div class="flex w-2/3 flex-col items-center">
 				<Fail error={error()} />
 
 				<span>
@@ -363,7 +363,7 @@ export default function Watch(props: { name: string }) {
 				{publisherIsWebClient() && <Plot segments={segmentData().slice(1)} />}
 			</div>
 
-			<div class="flex w-1/2 flex-col items-center">
+			<div class="flex w-1/3 flex-col items-center">
 				<h3>Frame Data</h3>
 
 				<div class="flex flex-col items-center justify-center">
