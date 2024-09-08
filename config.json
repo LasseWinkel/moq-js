@@ -10,8 +10,10 @@
 	"allowDownloadOfPublisherFrameDataInTheBrowser": false,
 	"regularlyRequestStreamSettingsFromServer": false,
 	"intervalToRequestStreamSettingsFromServerMilliseconds": 1000,
-	"publisherVideoWidth": "w-1/2",
-	"subscriberVideoWidth": "w-1/2",
+	"publisherVideoWidth": "w-full",
+	"subscriberVideoWidth": "w-full",
 	"timeIntervalOfLatestDataInSeconds": 8,
-	"displayLocalSubscriberFrameTimesGraph": true
+	"displayLocalSubscriberFrameTimesGraph": true,
+	"localSubscriberPlotWidth": 600,
+	"localSubscriberPlotHeight": 400
 }

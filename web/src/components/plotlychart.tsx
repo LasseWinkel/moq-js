@@ -1,5 +1,6 @@
 import { createEffect, onCleanup } from "solid-js"
 import type { IndexedDBFramesSchema } from "@kixelated/moq/common"
+import config from "../../../config.json"
 
 interface ChartProps {
 	frames: IndexedDBFramesSchema[]
@@ -45,6 +46,8 @@ const ChartComponent = (props: ChartProps) => {
 				]
 
 				const layout = {
+					width: config.localSubscriberPlotWidth, // Specify width
+					height: config.localSubscriberPlotHeight, // Specify height
 					xaxis: {
 						title: "Video Time (s)",
 					},

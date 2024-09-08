@@ -457,7 +457,7 @@ export default function Watch(props: { name: string }) {
 	// TODO shrink it if needed via CSS
 	return (
 		<div class="flex">
-			<div class="w-1/2">
+			<div class="w-2/3">
 				<Fail error={error()} />
 
 				<span>
@@ -695,39 +695,39 @@ export default function Watch(props: { name: string }) {
 				</div> */}
 			</div>
 
-			<div class="flex w-1/2 flex-col items-center">
+			<div class="flex w-1/3 flex-col items-center">
 				<h3>Meta Data of Last {LATEST_DATA_DISPLAY_INTERVAL} Seconds</h3>
 
 				<div class="grid grid-cols-5 gap-6 border">
-					<div class="p-4 text-center" />
-					<div class="p-4 text-center">Min</div>
-					<div class="p-4 text-center">Max</div>
-					<div class="p-4 text-center">Last</div>
-					<div class="p-4 text-center">Avg</div>
+					<div class="p-2 text-center" />
+					<div class="p-2 text-center">Min</div>
+					<div class="p-2 text-center">Max</div>
+					<div class="p-2 text-center">Last</div>
+					<div class="p-2 text-center">Avg</div>
 
-					<div class="p-4 text-center">Encoding Time:</div>
-					<div class="p-4 text-center">{minLatestEncodingTime()} ms</div>
-					<div class="p-4 text-center">{maxLatestEncodingTime()} ms</div>
-					<div class="p-4 text-center">{lastRenderedFrameEncodingTime()} ms</div>
-					<div class="p-4 text-center">{avgLatestEncodingTime().toFixed(2)} ms</div>
+					<div class="p-2 text-center">Encoding Time:</div>
+					<div class="p-2 text-center">{minLatestEncodingTime()} ms</div>
+					<div class="p-2 text-center">{maxLatestEncodingTime()} ms</div>
+					<div class="p-2 text-center">{lastRenderedFrameEncodingTime()} ms</div>
+					<div class="p-2 text-center">{avgLatestEncodingTime().toFixed(2)} ms</div>
 
-					<div class="p-4 text-center">Propagation Time:</div>
-					<div class="p-4 text-center">{minLatestPropagationTime()} ms</div>
-					<div class="p-4 text-center">{maxLatestPropagationTime()} ms</div>
-					<div class="p-4 text-center">{lastRenderedFramePropagationTime()} ms</div>
-					<div class="p-4 text-center">{avgLatestPropagationTime().toFixed(2)} ms</div>
+					<div class="p-2 text-center">Propagation Time:</div>
+					<div class="p-2 text-center">{minLatestPropagationTime()} ms</div>
+					<div class="p-2 text-center">{maxLatestPropagationTime()} ms</div>
+					<div class="p-2 text-center">{lastRenderedFramePropagationTime()} ms</div>
+					<div class="p-2 text-center">{avgLatestPropagationTime().toFixed(2)} ms</div>
 
-					<div class="p-4 text-center">Decoding Time:</div>
-					<div class="p-4 text-center">{minLatestDecodingTime()} ms</div>
-					<div class="p-4 text-center">{maxLatestDecodingTime()} ms</div>
-					<div class="p-4 text-center">{lastRenderedFrameDecodingTime()} ms</div>
-					<div class="p-4 text-center">{avgLatestDecodingTime().toFixed(2)} ms</div>
+					<div class="p-2 text-center">Decoding Time:</div>
+					<div class="p-2 text-center">{minLatestDecodingTime()} ms</div>
+					<div class="p-2 text-center">{maxLatestDecodingTime()} ms</div>
+					<div class="p-2 text-center">{lastRenderedFrameDecodingTime()} ms</div>
+					<div class="p-2 text-center">{avgLatestDecodingTime().toFixed(2)} ms</div>
 
-					<div class="p-4 text-center">Total Time:</div>
-					<div class="p-4 text-center">{minLatestTotalTime()} ms</div>
-					<div class="p-4 text-center">{maxLatestTotalTime()} ms</div>
-					<div class="p-4 text-center">{lastRenderedFrameTotalTime()} ms</div>
-					<div class="p-4 text-center">{avgLatestTotalTime().toFixed(2)} ms</div>
+					<div class="p-2 text-center">Total Time:</div>
+					<div class="p-2 text-center">{minLatestTotalTime()} ms</div>
+					<div class="p-2 text-center">{maxLatestTotalTime()} ms</div>
+					<div class="p-2 text-center">{lastRenderedFrameTotalTime()} ms</div>
+					<div class="p-2 text-center">{avgLatestTotalTime().toFixed(2)} ms</div>
 				</div>
 
 				{config.displayLocalSubscriberFrameTimesGraph && (
