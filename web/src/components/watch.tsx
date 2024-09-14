@@ -400,6 +400,13 @@ export default function Watch(props: { name: string }) {
 				IDBService.adjustKeyFrameIntervalSizeInIndexedDB(keyFrameInterval())
 			}
 		}
+
+		const numberOfStoredFrames = allFrames().length
+		const lowestFrameId = allFrames()[0]._0_frameId
+		const highestFrameId = allFrames()[numberOfStoredFrames - 1]._0_frameId
+		for (let id = lowestFrameId; id <= highestFrameId - config.maximumNumberOfStoredFrames; id++) {
+			IDBService.deleteVideoFrameById(id)
+		}
 	}, DATA_UPDATE_RATE)
 
 	const throttleConnection = (networkNamespace: NetworkNamespaces) => {

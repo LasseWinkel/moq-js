@@ -330,7 +330,18 @@ export default function Publish() {
 
 								if (config.allowDownloadOfPublisherFrameDataInTheBrowser) {
 									setTimeout(async () => {
-										downloadFrameData(true, await IDBService.retrieveFramesFromIndexedDB())
+										const allFrames = await IDBService.retrieveFramesFromIndexedDB()
+										downloadFrameData(true, allFrames)
+										const numberOfStoredFrames = allFrames.length
+										const lowestFrameId = allFrames[0]._0_frameId
+										const highestFrameId = allFrames[numberOfStoredFrames - 1]._0_frameId
+										for (
+											let id = lowestFrameId;
+											id <= highestFrameId - config.maximumNumberOfStoredFrames;
+											id++
+										) {
+											IDBService.deleteVideoFrameById(id)
+										}
 									}, DATA_DOWNLOAD_TIME * 1000)
 								}
 

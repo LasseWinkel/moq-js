@@ -240,6 +240,50 @@ export class IDBService {
 		}
 	}
 
+	// Function to delete a frame from IndexedDB using its frameId
+	static deleteVideoFrameById(frameId: number) {
+		if (!db) {
+			console.error("IndexedDB is not initialized.")
+			return
+		}
+
+		const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readwrite")
+		const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
+		const deleteRequest = objectStore.delete(frameId)
+
+		// Handle the success event when the frame is deleted successfully
+		deleteRequest.onsuccess = () => {
+			// console.log(`Frame with frameId ${frameId} deleted successfully.`)
+		}
+
+		// Handle any errors that occur during the deletion
+		deleteRequest.onerror = (event) => {
+			console.error("Error deleting frame:", (event.target as IDBRequest).error)
+		}
+	}
+
+	// Function to delete a frame from IndexedDB using its frameId
+	static deleteVideoFrameByIdRemoteSubscriber(frameId: number) {
+		if (!db) {
+			console.error("IndexedDB is not initialized.")
+			return
+		}
+
+		const transaction = db.transaction(IndexedDBObjectStoresSubscriber.FRAMES, "readwrite")
+		const objectStore = transaction.objectStore(IndexedDBObjectStoresSubscriber.FRAMES)
+		const deleteRequest = objectStore.delete(frameId)
+
+		// Handle the success event when the frame is deleted successfully
+		deleteRequest.onsuccess = () => {
+			// console.log(`Frame with frameId ${frameId} deleted successfully.`)
+		}
+
+		// Handle any errors that occur during the deletion
+		deleteRequest.onerror = (event) => {
+			console.error("Error deleting frame:", (event.target as IDBRequest).error)
+		}
+	}
+
 	// Function to retrieve the key frame interval size from IndexedDB
 	static retrieveKeyFrameIntervalSize(): Promise<number | undefined> {
 		return new Promise((resolve, reject) => {

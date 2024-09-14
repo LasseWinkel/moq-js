@@ -15,5 +15,6 @@
 	"timeIntervalOfLatestDataInSeconds": 8,
 	"displayLocalSubscriberFrameTimesGraph": true,
 	"localSubscriberPlotWidth": 600,
-	"localSubscriberPlotHeight": 400
+	"localSubscriberPlotHeight": 400,
+	"maximumNumberOfStoredFrames": 1800
 }
