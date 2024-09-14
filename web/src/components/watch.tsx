@@ -266,6 +266,13 @@ export default function Watch(props: { name: string }) {
 				setServerStoredMetrics()
 			}
 		}
+
+		const numberOfStoredFrames = allReceivedFrames.length
+		const lowestFrameId = allReceivedFrames[0]._0_frameId
+		const highestFrameId = allReceivedFrames[numberOfStoredFrames - 1]._0_frameId
+		for (let id = lowestFrameId; id <= highestFrameId - config.maximumNumberOfStoredFrames; id++) {
+			IDBService.deleteVideoFrameByIdRemoteSubscriber(id)
+		}
 	}, DATA_UPDATE_RATE)
 
 	let canvas!: HTMLCanvasElement
