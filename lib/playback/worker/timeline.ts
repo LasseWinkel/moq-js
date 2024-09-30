@@ -25,6 +25,7 @@ interface Segment {
 
 export class Component {
 	#current?: Segment
+	#currentHoldback?: Segment
 
 	frames: ReadableStream<Frame>
 	#segments: TransformStream<Segment, Segment>
@@ -73,25 +74,30 @@ export class Component {
 				continue
 			}
 
-			if (!isSegment(value)) {
-				// Return so the reader can decide when to get the next frame.
-				controller.enqueue(value)
-				return
-			}
-
-			// We didn't get any frames, and instead got a new segment.
-			if (this.#current) {
-				if (value.sequence < this.#current.sequence) {
+			if (isSegment(value)) {
+				if (this.#current && value.sequence < this.#current.sequence) {
 					// Our segment is older than the current, abandon it.
 					await value.frames.cancel(`skipping segment ${value.sequence}; too old`)
-					continue
-				} else {
-					// Our segment is newer than the current, cancel the old one.
-					await this.#current.frames.cancel(`skipping segment ${this.#current.sequence}; too slow`)
+				} else if (this.#current && value.sequence > this.#current.sequence + 2) {
+					this.#current = value
+					this.#currentHoldback = undefined
+				} else if (!this.#current) {
+					this.#current = value
+				} else if (!this.#currentHoldback) {
+					this.#currentHoldback = value
+				} else if (value.sequence > this.#currentHoldback.sequence) {
+					this.#currentHoldback = value
 				}
+				continue
 			}
 
-			this.#current = value
+			if (!isSegment(value)) {
+				controller.enqueue(value)
+				if (this.#currentHoldback) {
+					this.#current = this.#currentHoldback
+					this.#currentHoldback = undefined
+				}
+			}
 		}
 	}
 
