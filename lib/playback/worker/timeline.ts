@@ -1,6 +1,21 @@
 import type { Frame } from "../../media/mp4"
 export type { Frame }
 
+// Helper function to nicely display time strings
+function createTimeString(millisecondsInput: number): string {
+	const hours = Math.floor(millisecondsInput / 3600000) // 1 hour = 3600000 milliseconds
+	const minutes = Math.floor((millisecondsInput % 3600000) / 60000) // 1 minute = 60000 milliseconds
+	const seconds = Math.floor((millisecondsInput % 60000) / 1000) // 1 second = 1000 milliseconds
+	const milliseconds = Math.floor(millisecondsInput % 1000) // Remaining milliseconds
+
+	// Format the time
+	const formattedTime = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(
+		seconds,
+	).padStart(2, "0")}.${String(milliseconds).padStart(3, "0")}`
+
+	return formattedTime
+}
+
 export interface Range {
 	start: number
 	end: number
@@ -25,10 +40,12 @@ interface Segment {
 
 export class Component {
 	#current?: Segment
-	#currentHoldback?: Segment
 
 	frames: ReadableStream<Frame>
 	#segments: TransformStream<Segment, Segment>
+
+	currentSegments: Map<number, Segment> = new Map()
+	startTime = 0
 
 	constructor() {
 		this.frames = new ReadableStream({
@@ -45,59 +62,179 @@ export class Component {
 	}
 
 	async #pull(controller: ReadableStreamDefaultController<Frame>) {
+		this.startTime = Date.now()
 		for (;;) {
+			console.log("\nNew Loop", createTimeString(Date.now() - this.startTime))
+
+			console.log("Current segments", this.currentSegments)
+
 			// Get the next segment to render.
 			const segments = this.#segments.readable.getReader()
 
+			let frames0: ReadableStreamDefaultReader<Frame> | undefined
+			let frames1: ReadableStreamDefaultReader<Frame> | undefined
+			let frames2: ReadableStreamDefaultReader<Frame> | undefined
+			let frames3: ReadableStreamDefaultReader<Frame> | undefined
+			let frames4: ReadableStreamDefaultReader<Frame> | undefined
+			let frames5: ReadableStreamDefaultReader<Frame> | undefined
+			let mapIndex = 0
+
+			if (this.currentSegments.size > 0) {
+				for (const [_key, value] of this.currentSegments) {
+					const frames = value.frames.getReader()
+					if (mapIndex === 0) {
+						frames0 = frames
+					} else if (mapIndex === 1) {
+						frames1 = frames
+					} else if (mapIndex === 2) {
+						frames2 = frames
+					} else if (mapIndex === 3) {
+						frames3 = frames
+					} else if (mapIndex === 4) {
+						frames4 = frames
+					} else if (mapIndex === 5) {
+						frames5 = frames
+					}
+					mapIndex++
+				}
+			}
+
 			let res
-			if (this.#current) {
-				// Get the next frame to render.
-				const frames = this.#current.frames.getReader()
+			switch (this.currentSegments.size) {
+				case 0:
+					console.log("Case", 0)
 
-				// Wait for either the frames or segments to be ready.
-				// NOTE: This assume that the first promise gets priority.
-				res = await Promise.race([frames.read(), segments.read()])
+					res = await Promise.race([segments.read()])
+					break
+				case 1:
+					console.log("Case", 1)
 
-				frames.releaseLock()
-			} else {
-				res = await segments.read()
+					res = await Promise.race([frames0?.read(), segments.read()])
+					frames0?.releaseLock()
+					break
+				case 2:
+					console.log("Case", 2)
+
+					res = await Promise.race([frames0?.read(), frames1?.read(), segments.read()])
+					frames0?.releaseLock()
+					frames1?.releaseLock()
+
+					break
+				case 3:
+					console.log("Case", 3)
+
+					res = await Promise.race([frames0?.read(), frames1?.read(), frames2?.read(), segments.read()])
+					frames0?.releaseLock()
+					frames1?.releaseLock()
+					frames2?.releaseLock()
+					break
+				case 4:
+					console.log("Case", 4)
+
+					res = await Promise.race([
+						frames0?.read(),
+						frames1?.read(),
+						frames2?.read(),
+						frames3?.read(),
+						segments.read(),
+					])
+					frames0?.releaseLock()
+					frames1?.releaseLock()
+					frames2?.releaseLock()
+					frames3?.releaseLock()
+					break
+				case 5:
+					console.log("Case", 5)
+
+					res = await Promise.race([
+						frames0?.read(),
+						frames1?.read(),
+						frames2?.read(),
+						frames3?.read(),
+						frames4?.read(),
+						segments.read(),
+					])
+					frames0?.releaseLock()
+					frames1?.releaseLock()
+					frames2?.releaseLock()
+					frames3?.releaseLock()
+					frames4?.releaseLock()
+					break
+				case 6:
+					console.log("Case", 6)
+
+					res = await Promise.race([
+						frames0?.read(),
+						frames1?.read(),
+						frames2?.read(),
+						frames3?.read(),
+						frames4?.read(),
+						frames5?.read(),
+						segments.read(),
+					])
+					frames0?.releaseLock()
+					frames1?.releaseLock()
+					frames2?.releaseLock()
+					frames3?.releaseLock()
+					frames4?.releaseLock()
+					frames5?.releaseLock()
+					break
+
+				default:
+					break
 			}
 
 			segments.releaseLock()
+
+			if (!res) {
+				console.log("Nothing read")
+
+				continue
+			}
 
 			const { value, done } = res
 
 			if (done) {
 				// We assume the current segment has been closed
 				// TODO support the segments stream closing
-				this.#current = undefined
+				const oldestSegment = Math.min(...this.currentSegments.keys())
+				console.log("Done. Delete", oldestSegment)
+				this.currentSegments.delete(oldestSegment)
 				continue
 			}
 
 			if (isSegment(value)) {
-				if (this.#current && value.sequence < this.#current.sequence) {
-					// Our segment is older than the current, abandon it.
-					await value.frames.cancel(`skipping segment ${value.sequence}; too old`)
-				} else if (this.#current && value.sequence > this.#current.sequence + 2) {
-					this.#current = value
-					this.#currentHoldback = undefined
-				} else if (!this.#current) {
-					this.#current = value
-				} else if (!this.#currentHoldback) {
-					this.#currentHoldback = value
-				} else if (value.sequence > this.#currentHoldback.sequence) {
-					this.#currentHoldback = value
-				}
+				console.log("Segment", value.sequence)
+
+				this.currentSegments.set(value.sequence, value)
 				continue
 			}
 
 			if (!isSegment(value)) {
+				console.log(value.sample.is_sync ? "I" : "P", "Frame", value.sample.duration)
+
 				controller.enqueue(value)
-				if (this.#currentHoldback) {
-					this.#current = this.#currentHoldback
-					this.#currentHoldback = undefined
+				// Skip all old segments when an I-Frame arrives.
+				if (value.sample.is_sync) {
+					/* const frame = await IDBService.retrieveFrameFromIndexedDB(value.sample.duration)
+					for (let i = this.oldestSegment - 1; i < frame._19_segmentID; i++) {
+						const segment = this.currentSegments.get(i)
+						await segment?.frames.cancel(`skipping segment ${segment?.sequence}; too old`)
+						this.currentSegments.delete(i)
+					}
+					this.oldestSegment = value.sample.duration */
+					if (this.currentSegments.size > 1) {
+						const oldestSegment = Math.min(...this.currentSegments.keys())
+						console.log("Skipping", oldestSegment)
+
+						await this.currentSegments
+							.get(oldestSegment)
+							?.frames.cancel(`skipping segment ${oldestSegment}; too slow`)
+						this.currentSegments.delete(oldestSegment)
+					}
 				}
 			}
+			continue
 		}
 	}
 
