@@ -579,6 +579,60 @@ export class IDBService {
 		})
 	}
 
+	// Function to retrieve frame data from IndexedDB
+	static retrieveFrameFromIndexedDB(frameId: number): Promise<IndexedDBFramesSchema> {
+		return new Promise((resolve, reject) => {
+			if (!db) {
+				reject(new Error("IndexedDB is not initialized."))
+				return
+			}
+
+			const transaction = db.transaction(IndexedDBObjectStores.FRAMES, "readonly")
+			const objectStore = transaction.objectStore(IndexedDBObjectStores.FRAMES)
+
+			const getRequest = objectStore.get(frameId) // Get all stored values from the database
+
+			// Handle the success event when the values are retrieved successfully
+			getRequest.onsuccess = (event) => {
+				const storedValue = (event.target as IDBRequest).result as IndexedDBFramesSchema
+				resolve(storedValue)
+			}
+
+			// Handle any errors that occur during value retrieval
+			getRequest.onerror = (event) => {
+				console.error("Error retrieving value:", (event.target as IDBRequest).error)
+				reject((event.target as IDBRequest).error)
+			}
+		})
+	}
+
+	// Function to retrieve frame data from IndexedDB with remote subscrbíber
+	static retrieveFrameFromIndexedDBRemoteSubscriber(frameId: number): Promise<IndexedDBFramesSchema> {
+		return new Promise((resolve, reject) => {
+			if (!db) {
+				reject(new Error("IndexedDB is not initialized."))
+				return
+			}
+
+			const transaction = db.transaction(IndexedDBObjectStoresSubscriber.FRAMES, "readonly")
+			const objectStore = transaction.objectStore(IndexedDBObjectStoresSubscriber.FRAMES)
+
+			const getRequest = objectStore.get(frameId) // Get all stored values from the database
+
+			// Handle the success event when the values are retrieved successfully
+			getRequest.onsuccess = (event) => {
+				const storedValue = (event.target as IDBRequest).result as IndexedDBFramesSchema
+				resolve(storedValue)
+			}
+
+			// Handle any errors that occur during value retrieval
+			getRequest.onerror = (event) => {
+				console.error("Error retrieving value:", (event.target as IDBRequest).error)
+				reject((event.target as IDBRequest).error)
+			}
+		})
+	}
+
 	// Function to get the start time of the stream in IndexedDB
 	static getStreamStartTime(): Promise<number> {
 		return new Promise((resolve, reject) => {
