@@ -144,7 +144,17 @@ export default function Publish() {
 	})
 
 	const createBroadcast = function () {
-		const d = device()
+		// const d = device()
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+		const staticVideoTrack: MediaStreamTrack = (videoElement() as any).captureStream().getVideoTracks()[0]
+
+		// Optional: If your video has an audio track, you can also capture that
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+		// const staticAudioTrack = (videoElement() as any).captureStream().getAudioTracks()[0]
+
+		// Create a media stream using the video (and optionally the audio) track
+		const d = new MediaStream([staticVideoTrack])
+
 		if (!d) {
 			throw new Error("no input selected")
 		}
@@ -572,7 +582,7 @@ function Device(props: {
 		if (!d) return
 
 		if (preview) {
-			preview.srcObject = d
+			preview.src = "../../public/watch/bbb.mp4"
 			props.setVideoElement(preview)
 		}
 		props.setDevice(d)

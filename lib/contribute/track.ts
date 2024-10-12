@@ -108,17 +108,17 @@ export class Track {
 		if ((writer.desiredSize || 0) > 0) {
 			await writer.write(chunk)
 			// Check whether the frame is a video frame
-			if (chunk.duration === 0) {
-				IDBService.addFrameToStreamTimestamp(
-					chunk.timestamp,
-					chunk.data,
-					chunk.type,
-					Date.now(),
-					segmentID,
-					this.#frameId,
-				)
-				this.#frameId++
-			}
+			// if (chunk.duration === 0) {
+			IDBService.addFrameToStreamTimestamp(
+				chunk.timestamp,
+				chunk.data,
+				chunk.type,
+				Date.now(),
+				segmentID,
+				this.#frameId,
+			)
+			this.#frameId++
+			// }
 		} else {
 			console.warn("dropping chunk", writer.desiredSize)
 		}
