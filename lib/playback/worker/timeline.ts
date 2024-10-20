@@ -161,17 +161,9 @@ export class Component {
 					frames4?.releaseLock()
 					break
 				case 6:
-					console.log("Case", 6)
+					console.log("Case", 6, "Segment overflow")
 
-					res = await Promise.race([
-						frames0?.read(),
-						frames1?.read(),
-						frames2?.read(),
-						frames3?.read(),
-						frames4?.read(),
-						frames5?.read(),
-						segments.read(),
-					])
+					res = { value: {} as Frame, done: true }
 					frames0?.releaseLock()
 					frames1?.releaseLock()
 					frames2?.releaseLock()
