@@ -46,6 +46,7 @@ export class Component {
 
 	currentSegments: Map<number, Segment> = new Map()
 	startTime = 0
+	maxFrameID = 0
 
 	constructor() {
 		this.frames = new ReadableStream({
@@ -64,7 +65,7 @@ export class Component {
 	async #pull(controller: ReadableStreamDefaultController<Frame>) {
 		this.startTime = Date.now()
 		for (;;) {
-			console.log("\nNew Loop", createTimeString(Date.now() - this.startTime))
+			console.log("\nNew Iteration", createTimeString(Date.now() - this.startTime))
 
 			console.log("Current segments", this.currentSegments)
 
@@ -203,27 +204,32 @@ export class Component {
 			}
 
 			if (!isSegment(value)) {
-				console.log(value.sample.is_sync ? "I" : "P", "Frame", value.sample.duration)
+				if (value.sample.duration > this.maxFrameID) {
+					this.maxFrameID = value.sample.duration
+					console.log(value.sample.is_sync ? "I" : "P", "Frame", value.sample.duration)
 
-				controller.enqueue(value)
-				// Skip all old segments when an I-Frame arrives.
-				if (value.sample.is_sync) {
-					/* const frame = await IDBService.retrieveFrameFromIndexedDB(value.sample.duration)
+					controller.enqueue(value)
+					// Skip all old segments when an I-Frame arrives.
+					if (value.sample.is_sync) {
+						/* const frame = await IDBService.retrieveFrameFromIndexedDB(value.sample.duration)
 					for (let i = this.oldestSegment - 1; i < frame._19_segmentID; i++) {
 						const segment = this.currentSegments.get(i)
 						await segment?.frames.cancel(`skipping segment ${segment?.sequence}; too old`)
 						this.currentSegments.delete(i)
 					}
 					this.oldestSegment = value.sample.duration */
-					if (this.currentSegments.size > 1) {
-						const oldestSegment = Math.min(...this.currentSegments.keys())
-						console.log("Skipping", oldestSegment)
+						if (this.currentSegments.size > 1) {
+							const oldestSegment = Math.min(...this.currentSegments.keys())
+							console.log("Skipping", oldestSegment)
 
-						await this.currentSegments
-							.get(oldestSegment)
-							?.frames.cancel(`skipping segment ${oldestSegment}; too slow`)
-						this.currentSegments.delete(oldestSegment)
+							await this.currentSegments
+								.get(oldestSegment)
+								?.frames.cancel(`skipping segment ${oldestSegment}; too slow`)
+							this.currentSegments.delete(oldestSegment)
+						}
 					}
+				} else {
+					console.log(`Skipping frame ${value.sample.duration}, maxFrameID is ${this.maxFrameID}`)
 				}
 			}
 			continue
