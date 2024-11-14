@@ -146,7 +146,7 @@ export default function Publish() {
 	const createBroadcast = function () {
 		// const d = device()
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
-		const staticVideoTrack: MediaStreamTrack = (videoElement() as any).captureStream().getVideoTracks()[0]
+		const staticVideoTrack: MediaStreamTrack = (videoElement() as any).captureStream().getVideoTracks()[0] // XYZ
 
 		// Optional: If your video has an audio track, you can also capture that
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
@@ -582,7 +582,7 @@ function Device(props: {
 		if (!d) return
 
 		if (preview) {
-			preview.src = "../../public/watch/bbb.mp4"
+			preview.src = "../../public/watch/bbb-12.mp4" // XYZ
 			props.setVideoElement(preview)
 		}
 		props.setDevice(d)
