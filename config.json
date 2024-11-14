@@ -4,7 +4,7 @@
 	"serverPort": "4443",
 	"networkInterfacePublisher": "app-js",
 	"networkInterfaceServer": "app-rs",
-	"networkInterfacePRemoteSubscriber": "app-rs-sub",
+	"networkInterfaceRemoteSubscriber": "app-rs-sub",
 	"areLinuxNetworkNamespacesUsed": true,
 	"allowDownloadOfSubscriberFrameDataInTheBrowser": false,
 	"allowDownloadOfPublisherFrameDataInTheBrowser": false,
