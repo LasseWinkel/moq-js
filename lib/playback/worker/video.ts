@@ -12,8 +12,8 @@ import { IDBService } from "../../common"
 // const FRAME_SIZE_TO_END_DOWNLOAD = 9762
 
 // 24 Fps GoP 12
-const FRAME_SIZE_TO_BEGIN_DOWNLOAD = 53301
-const FRAME_SIZE_TO_END_DOWNLOAD = 106914
+// const FRAME_SIZE_TO_BEGIN_DOWNLOAD = 53301
+// const FRAME_SIZE_TO_END_DOWNLOAD = 106914
 
 // 24 Fps GoP 24
 // const FRAME_SIZE_TO_BEGIN_DOWNLOAD = 55131
@@ -22,6 +22,18 @@ const FRAME_SIZE_TO_END_DOWNLOAD = 106914
 // 24 Fps GoP 48
 // const FRAME_SIZE_TO_BEGIN_DOWNLOAD = 55631
 // const FRAME_SIZE_TO_END_DOWNLOAD = 109369
+
+// 24 Fps Frankenstein GoP 48 - 12 - 48
+// const FRAME_SIZE_TO_BEGIN_DOWNLOAD = 15023
+// const FRAME_SIZE_TO_END_DOWNLOAD = 3200
+
+// 24 Fps BBB Frankenstein GoP 48 - 12 - 48
+// const FRAME_SIZE_TO_BEGIN_DOWNLOAD = 11831
+// const FRAME_SIZE_TO_END_DOWNLOAD = 3223
+
+// 24 Fps Large BBB Frankenstein GoP 48 - 12 - 48
+const FRAME_SIZE_TO_BEGIN_DOWNLOAD = 33587
+const FRAME_SIZE_TO_END_DOWNLOAD = 7251
 
 export class Renderer {
 	#canvas: OffscreenCanvas
@@ -58,15 +70,15 @@ export class Renderer {
 				this.#canvas.width = frame.displayWidth
 				this.#canvas.height = frame.displayHeight
 
-				const ctx = this.#canvas.getContext("2d")
-				// const ctx = this.#canvas.getContext("2d", { willReadFrequently: true })
+				// const ctx = this.#canvas.getContext("2d")
+				const ctx = this.#canvas.getContext("2d", { willReadFrequently: true })
 				if (!ctx) throw new Error("failed to get canvas context")
 
 				IDBService.addRenderFrameTimestampSubscriber(frame, Date.now())
 
 				ctx.drawImage(frame, 0, 0, frame.displayWidth, frame.displayHeight) // TODO respect aspect ratio
 
-				/* // Access raw image data
+				// Access raw image data
 				const imageData = ctx.getImageData(0, 0, frame.displayWidth, frame.displayHeight)
 				const rawData = imageData.data.buffer
 
@@ -76,7 +88,7 @@ export class Renderer {
 					setTimeout(() => {
 						postMessage({ renderedFramesRawData })
 					}, 500 * this.#frameCount)
-				} */
+				}
 				frame.close()
 			})
 		}
@@ -122,7 +134,7 @@ export class Renderer {
 			duration: frame.sample.duration,
 		})
 
-		/* if (frame.sample.size === FRAME_SIZE_TO_BEGIN_DOWNLOAD) {
+		if (frame.sample.size === FRAME_SIZE_TO_BEGIN_DOWNLOAD) {
 			console.log(frame)
 			this.#shouldDownload = true
 		}
@@ -130,7 +142,7 @@ export class Renderer {
 		if (frame.sample.size === FRAME_SIZE_TO_END_DOWNLOAD) {
 			console.log(frame)
 			this.#shouldDownload = false
-		} */
+		}
 
 		/* if (this.#encodedRawFramesData.length === 0) {
 			const encodedRawFramesData = this.#encodedRawFramesData

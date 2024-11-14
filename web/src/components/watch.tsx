@@ -97,7 +97,7 @@ export default function Watch(props: { name: string }) {
 	const [targetGopSize, setTargetGopSize] = createSignal<number>(GOP_DEFAULTS[0])
 	const [gop1sThreshold, setGop1sThreshold] = createSignal<number>(EVALUATION_SCENARIO.gopThresholds[0] * 100)
 	const [gop0_5sThreshold, setGop0_5sThreshold] = createSignal<number>(EVALUATION_SCENARIO.gopThresholds[1] * 100)
-	const [constantGopSize, setConstantGopSize] = createSignal<boolean>(false)
+	const [constantGopSize, setConstantGopSize] = createSignal<boolean>(true)
 	const [lostFrames, setLostFrames] = createSignal<number>(0)
 	const [frameDeliveryRate, setFrameDeliveryRate] = createSignal<number>(0)
 
